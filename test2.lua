@@ -1,8 +1,16 @@
---//====================================================
---// REBIRTH TEST
---// Boss Win  -> Next Wave (27)
---// Boss Time -> Previous Wave (7) -> Rebirth
---//====================================================
+--========================================================
+-- REBIRTH TEST
+--
+-- BOSS MENANG:
+--     ContinueBossResult(27) = Next Wave
+--
+-- BOSS TIMEOUT:
+--     00:00
+--     ContinueBossResult(7) = Previous Wave
+--     lalu Rebirth
+--
+-- 33 / 35 / 38 / 39 TIDAK dipanggil manual.
+--========================================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -10,9 +18,9 @@ local UserInputService = game:GetService("UserInputService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
---====================================================
+--========================================================
 -- CLEAN OLD GUI
---====================================================
+--========================================================
 
 local OldGui = PlayerGui:FindFirstChild("RebirthTest")
 
@@ -20,53 +28,53 @@ if OldGui then
     OldGui:Destroy()
 end
 
---====================================================
+--========================================================
 -- NETWORK
---====================================================
+--========================================================
 
 local Network = workspace:WaitForChild("Network", 9e9)
 
-local GetRebirthState = Network:WaitForChild(
-    "GetRebirthState-RemoteFunction",
-    9e9
-)
+local GetRebirthState =
+    Network:WaitForChild(
+        "GetRebirthState-RemoteFunction",
+        9e9
+    )
 
-local TutorialUiAction = Network:WaitForChild(
-    "TutorialUiAction-RemoteEvent",
-    9e9
-)
+local TutorialUiAction =
+    Network:WaitForChild(
+        "TutorialUiAction-RemoteEvent",
+        9e9
+    )
 
-local AttemptRebirth = Network:WaitForChild(
-    "AttemptRebirth-RemoteFunction",
-    9e9
-)
+local AttemptRebirth =
+    Network:WaitForChild(
+        "AttemptRebirth-RemoteFunction",
+        9e9
+    )
 
-local ContinueBossResult = Network:WaitForChild(
-    "ContinueBossResult-RemoteEvent",
-    9e9
-)
+local ContinueBossResult =
+    Network:WaitForChild(
+        "ContinueBossResult-RemoteEvent",
+        9e9
+    )
 
---====================================================
--- VARIABLES
---====================================================
+--========================================================
+-- SETTINGS
+--========================================================
 
-local Enabled = false
-local Closed = false
-local Minimized = false
+local ENABLED = false
+local CLOSED = false
+local MINIMIZED = false
 
---====================================================
+--========================================================
 -- GUI
---====================================================
+--========================================================
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RebirthTest"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = PlayerGui
-
---====================================================
--- MAIN
---====================================================
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
@@ -80,12 +88,11 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = Main
 
---====================================================
+--========================================================
 -- TITLE BAR
---====================================================
+--========================================================
 
 local TitleBar = Instance.new("Frame")
-TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 35)
 TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 TitleBar.BorderSizePixel = 0
@@ -102,12 +109,11 @@ Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
---====================================================
+--========================================================
 -- MINIMIZE
---====================================================
+--========================================================
 
 local Minimize = Instance.new("TextButton")
-Minimize.Name = "Minimize"
 Minimize.Size = UDim2.new(0, 30, 0, 30)
 Minimize.Position = UDim2.new(1, -65, 0, 2)
 Minimize.BackgroundTransparency = 1
@@ -117,12 +123,11 @@ Minimize.TextSize = 20
 Minimize.Font = Enum.Font.GothamBold
 Minimize.Parent = TitleBar
 
---====================================================
+--========================================================
 -- CLOSE
---====================================================
+--========================================================
 
 local Close = Instance.new("TextButton")
-Close.Name = "Close"
 Close.Size = UDim2.new(0, 30, 0, 30)
 Close.Position = UDim2.new(1, -32, 0, 2)
 Close.BackgroundTransparency = 1
@@ -132,23 +137,21 @@ Close.TextSize = 22
 Close.Font = Enum.Font.GothamBold
 Close.Parent = TitleBar
 
---====================================================
+--========================================================
 -- CONTENT
---====================================================
+--========================================================
 
 local Content = Instance.new("Frame")
-Content.Name = "Content"
 Content.Size = UDim2.new(1, 0, 1, -35)
 Content.Position = UDim2.new(0, 0, 0, 35)
 Content.BackgroundTransparency = 1
 Content.Parent = Main
 
---====================================================
--- REBIRTH BUTTON
---====================================================
+--========================================================
+-- ON / OFF
+--========================================================
 
 local RebirthButton = Instance.new("TextButton")
-RebirthButton.Name = "RebirthButton"
 RebirthButton.Size = UDim2.new(0, 230, 0, 48)
 RebirthButton.Position = UDim2.new(0.5, -115, 0, 18)
 RebirthButton.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
@@ -163,14 +166,13 @@ local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 7)
 ButtonCorner.Parent = RebirthButton
 
---====================================================
+--========================================================
 -- STATUS
---====================================================
+--========================================================
 
 local Status = Instance.new("TextLabel")
-Status.Name = "Status"
 Status.Size = UDim2.new(1, -20, 0, 30)
-Status.Position = UDim2.new(0, 10, 0, 76)
+Status.Position = UDim2.new(0, 10, 0, 78)
 Status.BackgroundTransparency = 1
 Status.Text = "Status : OFF"
 Status.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -178,25 +180,19 @@ Status.TextSize = 13
 Status.Font = Enum.Font.Gotham
 Status.Parent = Content
 
---====================================================
--- STATUS FUNCTION
---====================================================
+local function SetStatus(text)
 
-local function SetStatus(Text)
-
-    if not Closed and Status then
-        Status.Text = "Status : " .. Text
+    if not CLOSED and Status then
+        Status.Text = "Status : " .. text
     end
 
 end
 
---====================================================
--- GET COUNTDOWN
---====================================================
+--========================================================
+-- FIND BOSS TIMER
+--========================================================
 
 local function GetBossTimer()
-
-    local TimerValue = nil
 
     for _, Object in ipairs(PlayerGui:GetDescendants()) do
 
@@ -207,15 +203,11 @@ local function GetBossTimer()
 
             if typeof(Text) == "string" then
 
-                -- Format:
-                -- 01:00
-                -- 00:59
-                -- 00:10
-                -- 00:01
-                -- 00:00
-
                 local Minutes, Seconds =
-                    string.match(Text, "^(%d%d):(%d%d)$")
+                    string.match(
+                        Text,
+                        "^(%d%d):(%d%d)$"
+                    )
 
                 if Minutes and Seconds then
 
@@ -223,33 +215,31 @@ local function GetBossTimer()
                     Seconds = tonumber(Seconds)
 
                     local Total =
-                        (Minutes * 60) + Seconds
+                        Minutes * 60 + Seconds
 
-                    -- Hanya timer 0-60 detik
+                    -- Timer boss 00:00 - 01:00
                     if Total >= 0 and Total <= 60 then
-
-                        TimerValue = Total
-                        break
+                        return Total
                     end
                 end
             end
         end
     end
 
-    return TimerValue
+    return nil
 end
 
---====================================================
+--========================================================
 -- SEND NEXT WAVE
---====================================================
+--========================================================
 
-local function NextWave()
+local function SendNextWave()
 
-    if not Enabled or Closed then
+    if not ENABLED or CLOSED then
         return
     end
 
-    SetStatus("Boss Won → Next Wave")
+    SetStatus("WIN → Next Wave (27)")
 
     pcall(function()
 
@@ -263,17 +253,17 @@ local function NextWave()
 
 end
 
---====================================================
+--========================================================
 -- SEND PREVIOUS WAVE
---====================================================
+--========================================================
 
-local function PreviousWave()
+local function SendPreviousWave()
 
-    if not Enabled or Closed then
+    if not ENABLED or CLOSED then
         return
     end
 
-    SetStatus("Timeout → Previous Wave")
+    SetStatus("TIMEOUT → Previous Wave (7)")
 
     pcall(function()
 
@@ -287,20 +277,17 @@ local function PreviousWave()
 
 end
 
---====================================================
+--========================================================
 -- REBIRTH
---====================================================
+--========================================================
 
 local function DoRebirth()
 
-    if not Enabled or Closed then
+    if not ENABLED or CLOSED then
         return
     end
 
-    -------------------------------------------------
     -- GET REBIRTH STATE
-    -------------------------------------------------
-
     SetStatus("Getting Rebirth State...")
 
     pcall(function()
@@ -313,14 +300,11 @@ local function DoRebirth()
 
     task.wait(0.3)
 
-    if not Enabled or Closed then
+    if not ENABLED or CLOSED then
         return
     end
 
-    -------------------------------------------------
     -- YES REBIRTH
-    -------------------------------------------------
-
     SetStatus("Confirming Rebirth...")
 
     pcall(function()
@@ -337,14 +321,11 @@ local function DoRebirth()
 
     task.wait(0.3)
 
-    if not Enabled or Closed then
+    if not ENABLED or CLOSED then
         return
     end
 
-    -------------------------------------------------
     -- ATTEMPT REBIRTH
-    -------------------------------------------------
-
     SetStatus("Attempting Rebirth...")
 
     pcall(function()
@@ -357,21 +338,21 @@ local function DoRebirth()
 
     task.wait(1)
 
-    if Enabled and not Closed then
-        SetStatus("Waiting Boss...")
+    if ENABLED and not CLOSED then
+        SetStatus("Waiting Next Boss...")
     end
 
 end
 
---====================================================
--- WAIT FOR BOSS TIMER
---====================================================
+--========================================================
+-- WAIT FOR TIMER
+--========================================================
 
-local function WaitForBossTimer()
+local function WaitForBoss()
 
     SetStatus("Waiting Boss Timer...")
 
-    while Enabled and not Closed do
+    while ENABLED and not CLOSED do
 
         local Timer = GetBossTimer()
 
@@ -385,32 +366,32 @@ local function WaitForBossTimer()
     return nil
 end
 
---====================================================
--- WAIT FOR BOSS RESULT
---====================================================
+--========================================================
+-- DETECT BOSS RESULT
+--========================================================
 
-local function WaitForBossResult()
+local function WaitForResult()
 
-    local LastTimer = nil
     local TimerStarted = false
+    local PreviousTimer = nil
 
-    while Enabled and not Closed do
+    while ENABLED and not CLOSED do
 
         local Timer = GetBossTimer()
+
+        --================================================
+        -- TIMER ADA
+        --================================================
 
         if Timer ~= nil then
 
             TimerStarted = true
 
-            if LastTimer == nil then
-                LastTimer = Timer
+            if PreviousTimer == nil then
+                PreviousTimer = Timer
             end
 
-            -- Update timer
-            if Timer < LastTimer then
-                LastTimer = Timer
-            end
-
+            -- Update status
             SetStatus(
                 string.format(
                     "Boss Timer : %02d:%02d",
@@ -419,27 +400,35 @@ local function WaitForBossResult()
                 )
             )
 
-            --========================================
-            -- TIMEOUT
-            --========================================
+            --================================================
+            -- TIMER HABIS
+            --================================================
 
             if Timer <= 0 then
                 return "TIMEOUT"
             end
 
+            PreviousTimer = Timer
+
+        --================================================
+        -- TIMER HILANG
+        --================================================
+
         elseif TimerStarted then
 
-            -- Timer hilang setelah sebelumnya berjalan.
-            -- Beri waktu GUI result muncul.
+            -- Timer sebelumnya ada.
+            -- Kalau hilang sebelum 00:00,
+            -- kita anggap boss menang.
+
+            SetStatus("Boss Result...")
 
             task.wait(0.5)
 
             local CheckTimer = GetBossTimer()
 
             if CheckTimer == nil then
-                return "TIMEOUT"
+                return "WIN"
             end
-
         end
 
         task.wait(0.15)
@@ -448,76 +437,80 @@ local function WaitForBossResult()
     return nil
 end
 
---====================================================
+--========================================================
 -- MAIN LOOP
---====================================================
+--========================================================
 
 task.spawn(function()
 
-    while not Closed do
+    while not CLOSED do
 
-        if Enabled then
+        if ENABLED then
 
-            --========================================
-            -- TUNGGU BOSS
-            --========================================
+            --============================================
+            -- WAIT BOSS
+            --============================================
 
-            local Timer = WaitForBossTimer()
+            local Timer = WaitForBoss()
 
             if not Timer then
                 task.wait(0.2)
                 continue
             end
 
-            if not Enabled or Closed then
+            if not ENABLED or CLOSED then
                 break
             end
 
-            --========================================
-            -- TUNGGU HASIL BOSS
-            --========================================
+            --============================================
+            -- WAIT RESULT
+            --============================================
 
-            local Result = WaitForBossResult()
+            local Result = WaitForResult()
 
-            if not Enabled or Closed then
+            if not ENABLED or CLOSED then
                 break
             end
 
-            --========================================
-            -- TIMEOUT / KALAH
-            --========================================
+            --============================================
+            -- TIMEOUT
+            --============================================
 
             if Result == "TIMEOUT" then
 
-                -- 1. PREVIOUS WAVE
-                PreviousWave()
+                -- Previous Wave
+                SendPreviousWave()
 
-                -- Tunggu server memproses
+                -- Tunggu game balik
                 task.wait(2)
 
-                if not Enabled or Closed then
+                if not ENABLED or CLOSED then
                     break
                 end
 
-                -- 2. BARU REBIRTH
+                -- Baru Rebirth
                 DoRebirth()
 
                 task.wait(1)
 
+            --============================================
+            -- WIN
+            --============================================
+
+            elseif Result == "WIN" then
+
+                -- Next Wave
+                SendNextWave()
+
+                -- Tunggu wave berikutnya
+                task.wait(2)
+
+                if ENABLED and not CLOSED then
+                    SetStatus("Next Wave → Waiting Boss...")
+                end
+
             end
 
-            --========================================
-            -- MENANG
-            --========================================
-            --
-            -- Catatan:
-            -- Kemenangan tidak bisa dibedakan hanya
-            -- dari countdown. Karena saat menang timer
-            -- bisa berhenti/hilang sebelum 00:00.
-            --
-            -- Untuk Next Wave kita perlu mendeteksi
-            -- result kemenangan dari GUI/event game.
-            --
         else
 
             task.wait(0.2)
@@ -528,15 +521,15 @@ task.spawn(function()
 
 end)
 
---====================================================
--- ON / OFF
---====================================================
+--========================================================
+-- ON / OFF BUTTON
+--========================================================
 
 RebirthButton.MouseButton1Click:Connect(function()
 
-    Enabled = not Enabled
+    ENABLED = not ENABLED
 
-    if Enabled then
+    if ENABLED then
 
         RebirthButton.Text = "Rebirth : ON"
 
@@ -558,15 +551,15 @@ RebirthButton.MouseButton1Click:Connect(function()
 
 end)
 
---====================================================
+--========================================================
 -- MINIMIZE
---====================================================
+--========================================================
 
 Minimize.MouseButton1Click:Connect(function()
 
-    Minimized = not Minimized
+    MINIMIZED = not MINIMIZED
 
-    if Minimized then
+    if MINIMIZED then
 
         Content.Visible = false
 
@@ -588,22 +581,22 @@ Minimize.MouseButton1Click:Connect(function()
 
 end)
 
---====================================================
+--========================================================
 -- CLOSE
---====================================================
+--========================================================
 
 Close.MouseButton1Click:Connect(function()
 
-    Closed = true
-    Enabled = false
+    CLOSED = true
+    ENABLED = false
 
     ScreenGui:Destroy()
 
 end)
 
---====================================================
--- DRAG
---====================================================
+--========================================================
+-- DRAG WINDOW
+--========================================================
 
 local Dragging = false
 local DragStart
@@ -628,7 +621,6 @@ TitleBar.InputBegan:Connect(function(Input)
             end
 
         end)
-
     end
 
 end)
