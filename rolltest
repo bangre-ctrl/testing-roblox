@@ -1,5 +1,5 @@
---// ROLL SPEED TEST v2
---// 2 Worker + Roll Counter + Speed + Drag + Minimize + Close
+--// ROLL SPEED TEST v3
+--// 2 Worker + Counter + Speed + Drag + Minimize + Close
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -25,13 +25,14 @@ local running = false
 local rollDelay = 0.05
 local totalRolls = 0
 local startTime = 0
+local minimized = false
 
 --==================================================
 -- GUI
 --==================================================
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "RollSpeedTestV2"
+gui.Name = "RollSpeedTestV3"
 gui.ResetOnSpawn = false
 gui.Parent = Player:WaitForChild("PlayerGui")
 
@@ -65,10 +66,7 @@ title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = titleBar
 
---==================================================
--- MINIMIZE
---==================================================
-
+-- Minimize
 local minimize = Instance.new("TextButton")
 minimize.Size = UDim2.new(0,30,0,30)
 minimize.Position = UDim2.new(1,-65,0,5)
@@ -80,12 +78,9 @@ minimize.Font = Enum.Font.GothamBold
 minimize.BorderSizePixel = 0
 minimize.Parent = titleBar
 
-Instance.new("UICorner", minimize).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner",minimize).CornerRadius = UDim.new(0,6)
 
---==================================================
--- CLOSE
---==================================================
-
+-- Close
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0,30,0,30)
 close.Position = UDim2.new(1,-33,0,5)
@@ -97,7 +92,7 @@ close.Font = Enum.Font.GothamBold
 close.BorderSizePixel = 0
 close.Parent = titleBar
 
-Instance.new("UICorner", close).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner",close).CornerRadius = UDim.new(0,6)
 
 --==================================================
 -- CONTENT
@@ -109,8 +104,7 @@ content.Position = UDim2.new(0,0,0,40)
 content.BackgroundTransparency = 1
 content.Parent = frame
 
--- STATUS
-
+-- Status
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1,-20,0,25)
 status.Position = UDim2.new(0,10,0,5)
@@ -119,12 +113,9 @@ status.Text = "● OFF"
 status.TextColor3 = Color3.fromRGB(255,80,80)
 status.TextSize = 14
 status.Font = Enum.Font.GothamBold
-content.Parent = content
+status.Parent = content
 
---==================================================
--- COUNTER
---==================================================
-
+-- Counter
 local rollCount = Instance.new("TextLabel")
 rollCount.Size = UDim2.new(1,-20,0,28)
 rollCount.Position = UDim2.new(0,10,0,32)
@@ -135,9 +126,10 @@ rollCount.TextSize = 15
 rollCount.Font = Enum.Font.GothamBold
 rollCount.Parent = content
 
+-- Speed
 local rollSpeed = Instance.new("TextLabel")
 rollSpeed.Size = UDim2.new(1,-20,0,25)
-rollSpeed.Position = UDim2.new(0,10,0,58)
+rollSpeed.Position = UDim2.new(0,10,0,60)
 rollSpeed.BackgroundTransparency = 1
 rollSpeed.Text = "Actual Speed: 0.00 roll/s"
 rollSpeed.TextColor3 = Color3.fromRGB(120,200,255)
@@ -145,13 +137,10 @@ rollSpeed.TextSize = 14
 rollSpeed.Font = Enum.Font.Gotham
 rollSpeed.Parent = content
 
---==================================================
--- DELAY
---==================================================
-
+-- Delay
 local delayLabel = Instance.new("TextLabel")
 delayLabel.Size = UDim2.new(1,-20,0,25)
-delayLabel.Position = UDim2.new(0,10,0,84)
+delayLabel.Position = UDim2.new(0,10,0,87)
 delayLabel.BackgroundTransparency = 1
 delayLabel.Text = "Delay: 0.05s"
 delayLabel.TextColor3 = Color3.new(1,1,1)
@@ -177,9 +166,10 @@ for i,data in ipairs(speeds) do
     local b = Instance.new("TextButton")
 
     b.Size = UDim2.new(0,62,0,32)
-    b.Position = UDim2.new(0,10+(i-1)*70,0,112)
+    b.Position = UDim2.new(0,10+(i-1)*70,0,115)
 
-    b.BackgroundColor3 = data[2] == 0.05
+    b.BackgroundColor3 =
+        data[2] == 0.05
         and Color3.fromRGB(45,140,75)
         or Color3.fromRGB(55,55,65)
 
@@ -209,7 +199,10 @@ for i,data in ipairs(speeds) do
         b.BackgroundColor3 =
             Color3.fromRGB(45,140,75)
 
+        print("[RollSpeed] Delay:",rollDelay)
+
     end)
+
 end
 
 --==================================================
@@ -219,8 +212,7 @@ end
 local toggle = Instance.new("TextButton")
 
 toggle.Size = UDim2.new(1,-20,0,42)
-toggle.Position = UDim2.new(0,10,0,153)
-
+toggle.Position = UDim2.new(0,10,0,155)
 toggle.BackgroundColor3 = Color3.fromRGB(170,45,45)
 toggle.Text = "🎲 2 WORKER : OFF"
 toggle.TextColor3 = Color3.new(1,1,1)
@@ -252,7 +244,9 @@ local function updateCounter()
             )
 
         end
+
     end
+
 end
 
 --==================================================
@@ -263,13 +257,22 @@ local function worker(id)
 
     while running do
 
-        local success = pcall(function()
-            RollDice:InvokeServer()
+        local success, result = pcall(function()
+            return RollDice:InvokeServer()
         end)
 
         if success then
+
             totalRolls += 1
             updateCounter()
+
+        else
+
+            warn(
+                "[Worker "..id.."] Roll Error:",
+                result
+            )
+
         end
 
         task.wait(rollDelay)
@@ -291,7 +294,7 @@ toggle.MouseButton1Click:Connect(function()
         totalRolls = 0
         startTime = os.clock()
 
-        status.Text = "● ON"
+        status.Text = "● ON — 2 WORKERS"
         status.TextColor3 =
             Color3.fromRGB(80,255,100)
 
@@ -352,7 +355,9 @@ end)
 
 UIS.InputChanged:Connect(function(input)
 
-    if not dragging then return end
+    if not dragging then
+        return
+    end
 
     if input.UserInputType == Enum.UserInputType.MouseMovement
     or input.UserInputType == Enum.UserInputType.Touch then
@@ -373,8 +378,6 @@ end)
 --==================================================
 -- MINIMIZE
 --==================================================
-
-local minimized = false
 
 minimize.MouseButton1Click:Connect(function()
 
@@ -407,4 +410,7 @@ close.MouseButton1Click:Connect(function()
 
 end)
 
-print("[RollSpeedTestV2] Loaded successfully!")
+print("================================")
+print("[RollSpeedTestV3] Loaded!")
+print("RollDelay:",rollDelay)
+print("================================")
