@@ -1,4 +1,5 @@
---// ROLL TEST - SPEED CONTROL
+--// ROLL TEST - 2 WORKER
+--// Menguji apakah parallel InvokeServer mempercepat roll
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -17,13 +18,13 @@ local RollDice = RS
 --==================================================
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "RollSpeedTest"
+gui.Name = "Roll2WorkerTest"
 gui.ResetOnSpawn = false
 gui.Parent = Player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 235)
-frame.Position = UDim2.new(0.5, -140, 0.5, -117)
+frame.Size = UDim2.new(0, 280, 0, 190)
+frame.Position = UDim2.new(0.5, -140, 0.5, -95)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 frame.BorderSizePixel = 0
 frame.Parent = gui
@@ -31,7 +32,7 @@ frame.Parent = gui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 --==================================================
--- TITLE BAR
+-- TITLE
 --==================================================
 
 local titleBar = Instance.new("Frame")
@@ -41,12 +42,12 @@ titleBar.BorderSizePixel = 0
 titleBar.Parent = frame
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -75, 1, 0)
+title.Size = UDim2.new(1, -70, 1, 0)
 title.Position = UDim2.new(0, 10, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "🎲  ROLL SPEED TEST"
+title.Text = "🎲  2 WORKER ROLL TEST"
 title.TextColor3 = Color3.new(1,1,1)
-title.TextSize = 16
+title.TextSize = 15
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = titleBar
@@ -54,11 +55,10 @@ title.Parent = titleBar
 local minimize = Instance.new("TextButton")
 minimize.Size = UDim2.new(0, 30, 0, 30)
 minimize.Position = UDim2.new(1, -65, 0, 4)
-minimize.BackgroundColor3 = Color3.fromRGB(80,80,90)
 minimize.Text = "—"
-minimize.TextColor3 = Color3.new(1,1,1)
 minimize.TextSize = 18
-minimize.Font = Enum.Font.GothamBold
+minimize.TextColor3 = Color3.new(1,1,1)
+minimize.BackgroundColor3 = Color3.fromRGB(80,80,90)
 minimize.BorderSizePixel = 0
 minimize.Parent = titleBar
 
@@ -67,11 +67,10 @@ Instance.new("UICorner", minimize).CornerRadius = UDim.new(0,6)
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0, 30, 0, 30)
 close.Position = UDim2.new(1, -33, 0, 4)
-close.BackgroundColor3 = Color3.fromRGB(180,50,50)
 close.Text = "X"
-close.TextColor3 = Color3.new(1,1,1)
 close.TextSize = 15
-close.Font = Enum.Font.GothamBold
+close.TextColor3 = Color3.new(1,1,1)
+close.BackgroundColor3 = Color3.fromRGB(180,50,50)
 close.BorderSizePixel = 0
 close.Parent = titleBar
 
@@ -82,141 +81,120 @@ Instance.new("UICorner", close).CornerRadius = UDim.new(0,6)
 --==================================================
 
 local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -20, 0, 30)
+status.Size = UDim2.new(1, -20, 0, 25)
 status.Position = UDim2.new(0, 10, 0, 48)
 status.BackgroundTransparency = 1
 status.Text = "● OFF"
 status.TextColor3 = Color3.fromRGB(255,80,80)
-status.TextSize = 15
+status.TextSize = 14
 status.Font = Enum.Font.GothamBold
 status.Parent = frame
 
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(1, -20, 0, 25)
-speedLabel.Position = UDim2.new(0, 10, 0, 75)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Text = "Roll Delay: 0.30s"
-speedLabel.TextColor3 = Color3.new(1,1,1)
-speedLabel.TextSize = 14
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.Parent = frame
+local counter = Instance.new("TextLabel")
+counter.Size = UDim2.new(1, -20, 0, 25)
+counter.Position = UDim2.new(0, 10, 0, 72)
+counter.BackgroundTransparency = 1
+counter.Text = "Rolls: 0 | Speed: 0/s"
+counter.TextColor3 = Color3.new(1,1,1)
+counter.TextSize = 14
+counter.Font = Enum.Font.Gotham
+counter.Parent = frame
 
 --==================================================
--- PRESET BUTTONS
+-- BUTTON
 --==================================================
 
-local delays = {
-    {text = "0.30s", value = 0.30},
-    {text = "0.20s", value = 0.20},
-    {text = "0.10s", value = 0.10},
-    {text = "0.05s", value = 0.05}
-}
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -20, 0, 50)
+button.Position = UDim2.new(0, 10, 0, 110)
+button.BackgroundColor3 = Color3.fromRGB(170,45,45)
+button.Text = "🎲 2 WORKER : OFF"
+button.TextColor3 = Color3.new(1,1,1)
+button.TextSize = 16
+button.Font = Enum.Font.GothamBold
+button.BorderSizePixel = 0
+button.Parent = frame
 
-local buttons = {}
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,8)
 
-for i, data in ipairs(delays) do
+--==================================================
+-- VARIABLES
+--==================================================
 
-    local b = Instance.new("TextButton")
+local running = false
+local totalRolls = 0
+local startTime = 0
 
-    b.Size = UDim2.new(0, 58, 0, 35)
-    b.Position = UDim2.new(0, 10 + ((i-1) * 66), 0, 105)
+--==================================================
+-- WORKER
+--==================================================
 
-    b.BackgroundColor3 = Color3.fromRGB(55,55,65)
-    b.Text = data.text
-    b.TextColor3 = Color3.new(1,1,1)
-    b.TextSize = 13
-    b.Font = Enum.Font.GothamBold
-    b.BorderSizePixel = 0
-    b.Parent = frame
+local function worker(workerID)
 
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,7)
+    while running do
 
-    buttons[i] = b
+        local success, result = pcall(function()
+            return RollDice:InvokeServer()
+        end)
 
-    b.MouseButton1Click:Connect(function()
+        if success then
+            totalRolls += 1
 
-        -- Jangan mengubah speed saat sedang running
-        -- supaya loop tetap stabil; speed baru berlaku
-        -- pada roll berikutnya.
-        rollDelay = data.value
+            local elapsed = os.clock() - startTime
 
-        speedLabel.Text =
-            string.format("Roll Delay: %.2fs", rollDelay)
-
-        for _, other in ipairs(buttons) do
-            other.BackgroundColor3 = Color3.fromRGB(55,55,65)
+            if elapsed > 0 then
+                counter.Text = string.format(
+                    "Rolls: %d | Speed: %.2f/s",
+                    totalRolls,
+                    totalRolls / elapsed
+                )
+            end
+        else
+            warn("[Worker "..workerID.."] Error:", result)
         end
 
-        b.BackgroundColor3 = Color3.fromRGB(45,140,75)
+        task.wait(0.05)
+    end
 
-        print("[RollSpeed] Delay:", rollDelay)
-    end)
 end
 
 --==================================================
 -- ON / OFF
 --==================================================
 
-local toggle = Instance.new("TextButton")
-
-toggle.Size = UDim2.new(1, -20, 0, 42)
-toggle.Position = UDim2.new(0, 10, 0, 150)
-
-toggle.BackgroundColor3 = Color3.fromRGB(170,45,45)
-toggle.Text = "🎲 AUTO ROLL : OFF"
-toggle.TextColor3 = Color3.new(1,1,1)
-toggle.TextSize = 16
-toggle.Font = Enum.Font.GothamBold
-toggle.BorderSizePixel = 0
-toggle.Parent = frame
-
-Instance.new("UICorner", toggle).CornerRadius = UDim.new(0,8)
-
---==================================================
--- AUTO ROLL
---==================================================
-
-local running = false
-local rollDelay = 0.30
-
-toggle.MouseButton1Click:Connect(function()
+button.MouseButton1Click:Connect(function()
 
     running = not running
 
     if running then
 
-        toggle.Text = "🎲 AUTO ROLL : ON"
-        toggle.BackgroundColor3 = Color3.fromRGB(40,170,75)
+        totalRolls = 0
+        startTime = os.clock()
 
-        status.Text = "● ON"
+        button.Text = "🎲 2 WORKER : ON"
+        button.BackgroundColor3 = Color3.fromRGB(40,170,75)
+
+        status.Text = "● ON — 2 WORKERS"
         status.TextColor3 = Color3.fromRGB(80,255,100)
 
         task.spawn(function()
+            worker(1)
+        end)
 
-            while running do
-
-                local ok, result = pcall(function()
-                    return RollDice:InvokeServer()
-                end)
-
-                if not ok then
-                    warn("[AutoRoll] ERROR:", result)
-                end
-
-                task.wait(rollDelay)
-            end
-
+        task.spawn(function()
+            worker(2)
         end)
 
     else
 
-        toggle.Text = "🎲 AUTO ROLL : OFF"
-        toggle.BackgroundColor3 = Color3.fromRGB(170,45,45)
+        button.Text = "🎲 2 WORKER : OFF"
+        button.BackgroundColor3 = Color3.fromRGB(170,45,45)
 
         status.Text = "● OFF"
         status.TextColor3 = Color3.fromRGB(255,80,80)
 
     end
+
 end)
 
 --==================================================
@@ -237,13 +215,13 @@ titleBar.InputBegan:Connect(function(input)
         startPos = frame.Position
 
         input.Changed:Connect(function()
-
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
             end
-
         end)
+
     end
+
 end)
 
 UIS.InputChanged:Connect(function(input)
@@ -261,7 +239,9 @@ UIS.InputChanged:Connect(function(input)
             startPos.Y.Scale,
             startPos.Y.Offset + delta.Y
         )
+
     end
+
 end)
 
 --==================================================
@@ -282,20 +262,21 @@ minimize.MouseButton1Click:Connect(function()
             end
         end
 
-        titleBar.Visible = true
         frame.Size = UDim2.new(0, 280, 0, 38)
         minimize.Text = "□"
 
     else
 
-        frame.Size = UDim2.new(0, 280, 0, 235)
+        frame.Size = UDim2.new(0, 280, 0, 190)
 
         for _, child in ipairs(frame:GetChildren()) do
             child.Visible = true
         end
 
         minimize.Text = "—"
+
     end
+
 end)
 
 --==================================================
@@ -309,4 +290,4 @@ close.MouseButton1Click:Connect(function()
 
 end)
 
-print("[RollSpeedTest] Loaded successfully!")
+print("[2WorkerRollTest] Loaded successfully!")
