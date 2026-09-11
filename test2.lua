@@ -62,7 +62,7 @@ local ALL_DICES = {
     {name = "Blood Moon",   price = 100000000000,     luck = 3000,     emoji = "🔴"},
     {name = "Void",         price = 750000000000,     luck = 6000,     emoji = "🕳️"},
     {name = "Solar",        price = 5000000000000,    luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
-    {name = "Lunar",        price = 37000000000000,   luck = 25000,    emoji = "🌙"},
+    {name = "Lunar",        price = 37500000000000,   luck = 25000,    emoji = "🌙"},
     {name = "Galaxy",       price = 150000000000000,  luck = 50000,    emoji = "🌌"},
     {name = "Black Hole",   price = 1000000000000000, luck = 100000,   emoji = "⚫"},
     {name = "Dragon",       price = 8500000000000000,          luck = 200000,   emoji = "🐉"},
