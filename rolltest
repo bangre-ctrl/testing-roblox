@@ -1,30 +1,169 @@
-local autoRollOn = false
+--// STANDALONE AUTO ROLL TEST
 
-toggle(
-    Left,
-    "🎲  Auto Roll Dice",
-    nextLeft(),
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-    function()
-        autoRollOn = true
-        status("Auto Roll Dice: ON")
+local player = Players.LocalPlayer
+
+--==================================================
+-- NETWORK
+--==================================================
+
+local function getNetwork()
+    return ReplicatedStorage:WaitForChild("Network", 10)
+end
+
+local function invokeRF(serviceName, remoteName, ...)
+    local network = getNetwork()
+
+    if not network then
+        error("Network tidak ditemukan")
+    end
+
+    local service = network:WaitForChild(serviceName, 10)
+
+    if not service then
+        error(serviceName .. " tidak ditemukan")
+    end
+
+    local folder = service:WaitForChild("RF", 10)
+
+    if not folder then
+        error(serviceName .. " > RF tidak ditemukan")
+    end
+
+    local remote = folder:WaitForChild(remoteName, 10)
+
+    if not remote then
+        error(serviceName .. " > RF > " .. remoteName .. " tidak ditemukan")
+    end
+
+    if not remote:IsA("RemoteFunction") then
+        error(remote:GetFullName() .. " bukan RemoteFunction")
+    end
+
+    return remote:InvokeServer(...)
+end
+
+--==================================================
+-- TEST REMOTE
+--==================================================
+
+local success, result = pcall(function()
+    return invokeRF("RollService", "RollDice")
+end)
+
+if success then
+    print("[AutoRollTest] Roll berhasil!")
+    print("[AutoRollTest] Result:", result)
+else
+    warn("[AutoRollTest] Roll gagal:", result)
+end
+
+--==================================================
+-- GUI
+--==================================================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AutoRollTest"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 240, 0, 150)
+frame.Position = UDim2.new(0.5, -120, 0.5, -75)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "🎲 AUTO ROLL TEST"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
+
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, 0, 0, 30)
+status.Position = UDim2.new(0, 0, 0, 40)
+status.BackgroundTransparency = 1
+status.Text = "OFF"
+status.TextColor3 = Color3.fromRGB(255, 80, 80)
+status.TextSize = 15
+status.Font = Enum.Font.GothamBold
+status.Parent = frame
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -30, 0, 50)
+button.Position = UDim2.new(0, 15, 0, 85)
+button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
+button.Text = "OFF"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextSize = 18
+button.Font = Enum.Font.GothamBold
+button.BorderSizePixel = 0
+button.Parent = frame
+
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+
+--==================================================
+-- AUTO ROLL
+--==================================================
+
+local autoRoll = false
+
+local function updateGUI()
+    if autoRoll then
+        status.Text = "● ON"
+        status.TextColor3 = Color3.fromRGB(80, 255, 100)
+
+        button.Text = "ON"
+        button.BackgroundColor3 = Color3.fromRGB(45, 170, 75)
+    else
+        status.Text = "● OFF"
+        status.TextColor3 = Color3.fromRGB(255, 80, 80)
+
+        button.Text = "OFF"
+        button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
+    end
+end
+
+button.MouseButton1Click:Connect(function()
+
+    autoRoll = not autoRoll
+    updateGUI()
+
+    if autoRoll then
 
         task.spawn(function()
-            while autoRollOn do
 
-                pcall(function()
-                    invokeRF("RollService", "RollDice")
+            while autoRoll do
+
+                local success, result = pcall(function()
+                    return invokeRF("RollService", "RollDice")
                 end)
+
+                if success then
+                    print("[AutoRoll] Roll OK", result)
+                else
+                    warn("[AutoRoll] Roll ERROR:", result)
+                end
 
                 task.wait(0.3)
             end
 
-            status("Auto Roll Dice: OFF")
         end)
-    end,
 
-    function()
-        autoRollOn = false
-        status("Auto Roll Dice: STOPPING...")
     end
-)
+end)
+
+updateGUI()
+
+print("================================")
+print("[AutoRollTest] Loaded successfully!")
+print("[AutoRollTest] RollDice standalone test")
+print("================================")
