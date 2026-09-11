@@ -1019,7 +1019,7 @@ end)
 
 local TeleportService = game:GetService("TeleportService")
 
-local afkStartedAt = antiAFKStartedAt
+local afkStartedAt = os.time()
 local lastJobId = game.JobId
 local lastPlaceId = game.PlaceId
 local serverChanged = false
@@ -1046,72 +1046,70 @@ local function updateMiniAFK()
         or Color3.fromRGB(120, 255, 150)
 end
 
-local function updateAntiAFKButton()
-    if not antiAFKButton or not antiAFKButton.Parent then
-        return
+-- Keep the mini indicator alive and updating even when the main GUI is hidden.
+task.spawn(function()
+    while not closed and miniGui.Parent do
+        updateMiniAFK()
+        task.wait(1)
     end
+end)
 
-    if antiAFKOn then
-        local elapsed = os.time() - antiAFKStartedAt
-        local minutes = math.floor(elapsed / 60)
-        local seconds = elapsed % 60
 
-        antiAFKButton.Text = string.format(
-            "🛡️ Anti AFK : ON | %02dm %02ds",
-            minutes,
-            seconds
-        )
-        antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
-    else
-        antiAFKButton.Text = "🛡️ Anti AFK : OFF"
-        antiAFKButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-    end
+local function afkTime()
+    local elapsed = os.time() - afkStartedAt
+    local minutes = math.floor(elapsed / 60)
+    local seconds = elapsed % 60
+    return string.format("%02dm %02ds", minutes, seconds)
 end
 
--- Button2Down/Button2Up pattern from the provided working example.
+-- Small real mouse/camera movement.
+-- Uses executor mouse APIs when available, then falls back to VirtualUser.
 local function antiAFKAction()
     if not antiAFKOn or closed then
         return
     end
 
+    local movedMouse = false
+
     pcall(function()
-        local currentCamera = workspace.CurrentCamera
-        if not currentCamera then
-            return
+        if type(mouse2press) == "function"
+        and type(mouse2release) == "function"
+        and type(mousemoverel) == "function" then
+
+            -- Hold right mouse, make a tiny camera movement, then return.
+            mouse2press()
+            task.wait(0.08)
+
+            mousemoverel(2, 0)
+            task.wait(0.08)
+            mousemoverel(-2, 0)
+
+            task.wait(0.08)
+            mouse2release()
+
+            movedMouse = true
         end
-
-        VirtualUser:CaptureController()
-
-        VirtualUser:Button2Down(
-            Vector2.zero,
-            currentCamera.CFrame
-        )
-
-        task.wait(1)
-
-        currentCamera = workspace.CurrentCamera or currentCamera
-
-        VirtualUser:Button2Up(
-            Vector2.zero,
-            currentCamera.CFrame
-        )
     end)
 
-    updateMiniAFK()
-    updateAntiAFKButton()
+    -- Fallback for executors without mouse2press/mousemoverel.
+    if not movedMouse then
+        pcall(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new(0, 0))
+        end)
+    end
 end
 
--- Roblox idle event.
+-- Roblox idle event
 pcall(function()
     player.Idled:Connect(function()
-        if antiAFKOn and not closed then
-            print("[ANTI-AFK] Player.Idled triggered | AFK:", afkTime())
-            antiAFKAction()
-        end
+        print("[ANTI-AFK] Player.Idled triggered at:", afkTime())
+        antiAFKAction()
+        status("Anti-AFK active | " .. afkTime())
     end)
 end)
 
--- Periodic Button2 activity every 30 seconds.
+-- Periodic activity every 20 seconds
 task.spawn(function()
     while not closed do
         task.wait(30)
@@ -1120,57 +1118,57 @@ task.spawn(function()
             break
         end
 
-        if antiAFKOn then
-            antiAFKAction()
+        antiAFKAction()
 
-            print(
-                "[ANTI-AFK] Button2 activity sent | AFK:",
-                afkTime(),
-                "| JobId:",
-                game.JobId
-            )
-        end
+        print(
+            "[ANTI-AFK] Activity sent | AFK:",
+            afkTime(),
+            "| JobId:",
+            game.JobId
+        )
+
+        status("Anti-AFK active | " .. afkTime())
     end
 end)
 
--- Update both AFK indicators every second.
-task.spawn(function()
-    while not closed and miniGui.Parent do
-        updateMiniAFK()
-        updateAntiAFKButton()
-        task.wait(1)
-    end
-end)
-
--- Teleport failure detector.
+-- Teleport failure detector
 pcall(function()
     TeleportService.TeleportInitFailed:Connect(function(
         teleportResult,
         teleportErrorMessage,
-        placeId
+        placeId,
+        teleportOptions
     )
         warn(
             "[TELEPORT FAILED]",
-            "Result:", teleportResult,
-            "Error:", teleportErrorMessage,
-            "PlaceId:", placeId
+            "Result:",
+            teleportResult,
+            "Error:",
+            teleportErrorMessage,
+            "PlaceId:",
+            placeId
         )
     end)
 end)
 
--- Character respawn detector.
+-- Character respawn detector
 pcall(function()
-    player.CharacterAdded:Connect(function()
+    player.CharacterAdded:Connect(function(character)
         print(
             "[SERVER CHECK] CharacterAdded",
-            "| AFK:", afkTime(),
-            "| JobId:", game.JobId,
-            "| PlaceId:", game.PlaceId
+            "| AFK:",
+            afkTime(),
+            "| JobId:",
+            game.JobId,
+            "| PlaceId:",
+            game.PlaceId
         )
+
+        status("Character respawned | AFK " .. afkTime())
     end)
 end)
 
--- Server / place ID monitor.
+-- Server / place ID monitor
 task.spawn(function()
     while not closed do
         task.wait(10)
@@ -1184,7 +1182,7 @@ task.spawn(function()
 
         if currentJobId ~= lastJobId then
             serverChanged = true
-
+            updateMiniAFK()
             warn("========================================")
             warn("[SERVER CHANGE DETECTED]")
             warn("Old JobId:", lastJobId)
@@ -1194,11 +1192,10 @@ task.spawn(function()
             warn("========================================")
 
             lastJobId = currentJobId
+            lastPlaceId = currentPlaceId
         end
 
         if currentPlaceId ~= lastPlaceId then
-            serverChanged = true
-
             warn("========================================")
             warn("[PLACE CHANGE DETECTED]")
             warn("Old PlaceId:", lastPlaceId)
@@ -1208,14 +1205,12 @@ task.spawn(function()
 
             lastPlaceId = currentPlaceId
         end
-
-        updateMiniAFK()
     end
 end)
 
 print("========================================")
-print("[ANTI-AFK] V14 Button2Down/Button2Up loaded")
-print("[ANTI-AFK] Periodic interval: 30 seconds")
+print("[ANTI-AFK] Enhanced Mouse/Camera Anti-AFK loaded")
+print("[ANTI-AFK] Activity interval: 30 seconds")
 print("[ANTI-AFK] Start JobId:", game.JobId)
 print("[ANTI-AFK] Start PlaceId:", game.PlaceId)
 print("========================================")
