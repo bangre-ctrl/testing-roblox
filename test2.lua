@@ -465,7 +465,7 @@ toggle(
                     fireRE("PlotService", "EquipBest")
                 end)
 
-                task.wait(10)
+                task.wait(5)
             end
         end)
     end,
@@ -513,7 +513,7 @@ toggle(
                     sellInventory()
                 end)
 
-                task.wait(3)
+                task.wait(60)
             end
         end)
     end,
@@ -558,7 +558,7 @@ toggle(
                     task.wait(0.05)
                 end
 
-                task.wait(120)
+                task.wait(10)
             end
         end)
     end,
@@ -709,6 +709,22 @@ local function getMoney()
     return tonumber(money.Value) or 0
 end
 
+local function formatMoney(value)
+    value = tonumber(value) or 0
+
+    if value >= 1e12 then
+        return string.format("%.2fT", value / 1e12):gsub("%.?0+T$", "T")
+    elseif value >= 1e9 then
+        return string.format("%.2fB", value / 1e9):gsub("%.?0+B$", "B")
+    elseif value >= 1e6 then
+        return string.format("%.2fM", value / 1e6):gsub("%.?0+M$", "M")
+    elseif value >= 1e3 then
+        return string.format("%.2fK", value / 1e3):gsub("%.?0+K$", "K")
+    else
+        return tostring(math.floor(value))
+    end
+end
+
 local function buyDice(name)
     local ok, result = pcall(function()
         return fireRE("DiceShopService", "BuyDice", name)
@@ -731,7 +747,7 @@ for i = #ALL_DICES, 1, -1 do
         "%s  %s  | $%s  | Luck x%s",
         d.emoji,
         d.name,
-        tostring(d.price),
+        formatMoney(d.price),
         tostring(d.luck)
     ), function()
         buyDice(d.name)
