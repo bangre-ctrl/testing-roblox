@@ -1000,7 +1000,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         return
     end
 
-    if input.KeyCode == Enum.KeyCode.RightControl then
+    if input.KeyCode == Enum.KeyCode.LeftControl then
         guiHidden = not guiHidden
         gui.Enabled = not guiHidden
     end
