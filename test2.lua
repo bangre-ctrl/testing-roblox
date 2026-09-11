@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
 
 local player = Players.LocalPlayer
 
@@ -16,20 +17,16 @@ local player = Players.LocalPlayer
 --  ANTI-AFK SYSTEM
 -- ═══════════════════════════════════════════════════════
 
-local VirtualUser = game:GetService("VirtualUser")
-
 pcall(function()
     player.Idled:Connect(function()
         pcall(function()
             VirtualUser:CaptureController()
             VirtualUser:ClickButton2(Vector2.new(0, 0))
-            print("[AntiAFK] Idled detected - input sent")
+            print("[AntiAFK] Idle detected - input sent")
         end)
     end)
 end)
 
--- Fallback input setiap 60 detik
--- Membantu mencegah idle pada kondisi tertentu.
 task.spawn(function()
     while player and player.Parent do
         task.wait(60)
@@ -51,17 +48,44 @@ local function getNetwork()
     return ReplicatedStorage:WaitForChild("Network", 9e9)
 end
 
+-- RemoteEvent:
+-- Network > Service > RE > RemoteEvent
 local function fireRE(serviceName, remoteName, ...)
-    getNetwork():WaitForChild(serviceName, 9e9)
-        :WaitForChild("RE", 9e9)
-        :WaitForChild(remoteName, 9e9)
-        :FireServer(...)
+    local network = getNetwork()
+    local service = network:WaitForChild(serviceName, 9e9)
+    local reFolder = service:WaitForChild("RE", 9e9)
+    local remote = reFolder:WaitForChild(remoteName, 9e9)
+
+    if not remote:IsA("RemoteEvent") then
+        error(
+            remote:GetFullName()
+            .. " bukan RemoteEvent ("
+            .. remote.ClassName
+            .. ")"
+        )
+    end
+
+    return remote:FireServer(...)
 end
 
+-- RemoteFunction:
+-- Network > Service > RF > RemoteFunction
 local function invokeRF(serviceName, remoteName, ...)
-    return getNetwork():WaitForChild(serviceName, 9e9)
-        :WaitForChild("RF", 9e9)
-        :InvokeServer(...)
+    local network = getNetwork()
+    local service = network:WaitForChild(serviceName, 9e9)
+    local rfFolder = service:WaitForChild("RF", 9e9)
+    local remote = rfFolder:WaitForChild(remoteName, 9e9)
+
+    if not remote:IsA("RemoteFunction") then
+        error(
+            remote:GetFullName()
+            .. " bukan RemoteFunction ("
+            .. remote.ClassName
+            .. ")"
+        )
+    end
+
+    return remote:InvokeServer(...)
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -370,6 +394,7 @@ local function btn(text, o, callback)
 
             if not ok then
                 warn("[GUI] " .. tostring(err))
+                status("Error: " .. tostring(err))
             end
         end
     end)
@@ -490,13 +515,17 @@ StatusLabel.LayoutOrder = 9999
 StatusLabel.Parent = Content
 
 local function status(msg)
-    StatusLabel.Text = "⏺ " .. msg
+    if StatusLabel and StatusLabel.Parent then
+        StatusLabel.Text = "⏺ " .. msg
 
-    task.delay(4, function()
-        if StatusLabel.Text == "⏺ " .. msg then
-            StatusLabel.Text = "⏺ Ready"
-        end
-    end)
+        task.delay(4, function()
+            if StatusLabel and StatusLabel.Parent then
+                if StatusLabel.Text == "⏺ " .. msg then
+                    StatusLabel.Text = "⏺ Ready"
+                end
+            end
+        end)
+    end
 end
 
 -- ═══════════════════════════════════════════════════════
@@ -507,18 +536,38 @@ section("🎰  GACHA / ROLL", nextO())
 
 btn("🎲  Roll Dice", nextO(), function()
     status("Rolling dice...")
-    invokeRF("RollService", "RollDice")
-    status("Dice rolled!")
+
+    local ok, result = pcall(function()
+        return invokeRF("RollService", "RollDice")
+    end)
+
+    if ok then
+        status("Dice rolled!")
+    else
+        status("Roll failed!")
+        warn("[ROLL ERROR]", result)
+    end
 end)
 
 toggle("🔄  Auto Roll", nextO(),
     function()
         status("Auto Roll: ON")
-        fireRE("RollService", "SetAutoRoll", true)
+
+        local ok, err = pcall(function()
+            fireRE("RollService", "SetAutoRoll", true)
+        end)
+
+        if not ok then
+            status("Auto Roll error!")
+            warn("[AUTO ROLL ERROR]", err)
+        end
     end,
     function()
         status("Auto Roll: OFF")
-        fireRE("RollService", "SetAutoRoll", false)
+
+        pcall(function()
+            fireRE("RollService", "SetAutoRoll", false)
+        end)
     end
 )
 
@@ -532,13 +581,24 @@ section("⚔️  EQUIP", nextO())
 
 btn("📦  Buka Tas (Equip 1 per 1)", nextO(), function()
     status("Opening bag...")
-    fireRE("OnboardingService", "Advance", 2)
+
+    fireRE(
+        "OnboardingService",
+        "Advance",
+        2
+    )
+
     status("Bag opened!")
 end)
 
 btn("⚡  Equip Best → Slot Tanam", nextO(), function()
     status("Equipping best to slots...")
-    fireRE("PlotService", "EquipBest")
+
+    fireRE(
+        "PlotService",
+        "EquipBest"
+    )
+
     status("All slots filled!")
 end)
 
@@ -551,8 +611,12 @@ toggle("🔄  Auto Equip Best", nextO(),
 
         task.spawn(function()
             while autoEquipBestOn do
+
                 pcall(function()
-                    fireRE("PlotService", "EquipBest")
+                    fireRE(
+                        "PlotService",
+                        "EquipBest"
+                    )
                 end)
 
                 local nextDelay = math.random(60, 300)
@@ -591,7 +655,9 @@ sep(nextO())
 section("💰  SELL", nextO())
 
 local function getSellableUUIDs()
+
     local success, result = pcall(function()
+
         local dataCtrl = require(
             ReplicatedStorage.Framework.Features.Data.DataController
         )
@@ -600,76 +666,198 @@ local function getSellableUUIDs()
             ReplicatedStorage.Framework.Features.Selling.SellUtil
         )
 
+        local inventory = dataCtrl.Inventory()
+        local slots = dataCtrl.Slots()
+
+        if not inventory then
+            error("Inventory data tidak ditemukan")
+        end
+
         local summary = sellUtil.CreateSummary(
-            dataCtrl.Inventory(),
-            dataCtrl.Slots()
+            inventory,
+            slots
         )
+
+        if not summary then
+            error("SellUtil.CreateSummary gagal")
+        end
 
         local uuids = {}
 
-        for _, sale in ipairs(summary.sales) do
-            table.insert(uuids, sale.key)
+        if summary.sales then
+            for _, sale in ipairs(summary.sales) do
+                if sale.key then
+                    table.insert(
+                        uuids,
+                        sale.key
+                    )
+                end
+            end
         end
 
         return uuids
     end)
 
-    if success and result then
-        return result
+    if success then
+        return result or {}
     end
+
+    warn("[SELL SCAN ERROR]", result)
+    status("Sell scan error!")
 
     return {}
 end
 
-btn("🎒  Sell Inventory (All Heroes)", nextO(), function()
+local function sellInventory()
+
     status("Scanning inventory...")
 
     local uuids = getSellableUUIDs()
 
-    if #uuids > 0 then
-        status("Selling " .. #uuids .. " heroes...")
+    print(
+        "[SELL] Sellable items:",
+        #uuids
+    )
 
-        local ok, err = pcall(function()
-            invokeRF("SellService", "SellInventory", uuids)
+    if #uuids == 0 then
+        status("Tidak ada hero yang bisa dijual!")
+        return
+    end
+
+    status(
+        "Selling "
+        .. #uuids
+        .. " heroes..."
+    )
+
+    local success, result = pcall(function()
+
+        return invokeRF(
+            "SellService",
+            "SellInventory",
+            uuids
+        )
+
+    end)
+
+    if success then
+
+        status(
+            "Sold "
+            .. #uuids
+            .. " heroes!"
+        )
+
+        print(
+            "[SELL] SellInventory success:",
+            result
+        )
+
+    else
+
+        status("Sell failed!")
+
+        warn(
+            "[SELL ERROR]",
+            tostring(result)
+        )
+    end
+end
+
+btn(
+    "🎒  Sell Inventory (All Heroes)",
+    nextO(),
+    function()
+        sellInventory()
+    end
+)
+
+btn(
+    "🗑️  Sell Equipped (Tangan)",
+    nextO(),
+    function()
+
+        status("Selling equipped...")
+
+        local success, result = pcall(function()
+
+            return invokeRF(
+                "SellService",
+                "SellEquipped"
+            )
+
         end)
 
-        if ok then
-            status("Sold " .. #uuids .. " heroes!")
+        if success then
+            status("Equipped sold!")
+            print(
+                "[SELL] SellEquipped success:",
+                result
+            )
         else
-            status("Sell failed: " .. tostring(err))
+            status("Sell equipped failed!")
+            warn(
+                "[SELL EQUIPPED ERROR]",
+                tostring(result)
+            )
         end
-    else
-        status("Tas kosong / aman!")
     end
-end)
-
-btn("🗑️  Sell Equipped (Tangan)", nextO(), function()
-    status("Selling equipped...")
-    invokeRF("SellService", "SellEquipped")
-    status("Equipped sold!")
-end)
+)
 
 local autoSellInvOn = false
 
-toggle("🔄  Auto Sell Inventory", nextO(),
+toggle(
+    "🔄  Auto Sell Inventory",
+    nextO(),
+
     function()
+
         autoSellInvOn = true
         status("Auto Sell Inv: ON")
 
         task.spawn(function()
+
             while autoSellInvOn do
+
                 pcall(function()
-                    local uuids = getSellableUUIDs()
+
+                    local uuids =
+                        getSellableUUIDs()
 
                     if #uuids > 0 then
-                        invokeRF(
-                            "SellService",
-                            "SellInventory",
-                            uuids
-                        )
 
-                        status("Auto Sold: " .. #uuids .. " units")
+                        local success, result =
+                            pcall(function()
+
+                                return invokeRF(
+                                    "SellService",
+                                    "SellInventory",
+                                    uuids
+                                )
+
+                            end)
+
+                        if success then
+
+                            status(
+                                "Auto Sold: "
+                                .. #uuids
+                                .. " units"
+                            )
+
+                        else
+
+                            warn(
+                                "[AUTO SELL ERROR]",
+                                tostring(result)
+                            )
+
+                            status(
+                                "Auto Sell failed!"
+                            )
+                        end
                     end
+
                 end)
 
                 task.wait(3)
@@ -678,9 +866,12 @@ toggle("🔄  Auto Sell Inventory", nextO(),
             status("Auto Sell Inv: OFF")
         end)
     end,
+
     function()
+
         autoSellInvOn = false
         status("Auto Sell Inv: OFF")
+
     end
 )
 
@@ -692,19 +883,31 @@ sep(nextO())
 
 section("💎  COLLECT BALANCE", nextO())
 
-btn("💵  Collect ALL Slots (1-8)", nextO(), function()
-    status("Collecting all slots...")
+btn(
+    "💵  Collect ALL Slots (1-8)",
+    nextO(),
+    function()
 
-    for i = 1, 8 do
-        pcall(function()
-            fireRE("PlotService", "CollectBalance", i)
-        end)
+        status("Collecting all slots...")
 
-        task.wait(0.08)
+        for i = 1, 8 do
+
+            pcall(function()
+
+                fireRE(
+                    "PlotService",
+                    "CollectBalance",
+                    i
+                )
+
+            end)
+
+            task.wait(0.08)
+        end
+
+        status("All 8 slots collected!")
     end
-
-    status("All 8 slots collected!")
-end)
+)
 
 sep(nextO())
 
@@ -714,32 +917,66 @@ sep(nextO())
 
 section("🌟  REBIRTH", nextO())
 
-btn("♻️  Rebirth (1x)", nextO(), function()
-    status("Attempting Rebirth...")
+btn(
+    "♻️  Rebirth (1x)",
+    nextO(),
+    function()
 
-    pcall(function()
-        fireRE("RebirthService", "Rebirth")
-    end)
+        status("Attempting Rebirth...")
 
-    status("Rebirth request sent!")
-end)
+        local success, result = pcall(function()
+
+            return fireRE(
+                "RebirthService",
+                "Rebirth"
+            )
+
+        end)
+
+        if success then
+            status("Rebirth request sent!")
+        else
+            status("Rebirth failed!")
+            warn(
+                "[REBIRTH ERROR]",
+                tostring(result)
+            )
+        end
+    end
+)
 
 local autoRebirthOn = false
 
-toggle("🔄  Auto Rebirth", nextO(),
+toggle(
+    "🔄  Auto Rebirth",
+    nextO(),
+
     function()
+
         autoRebirthOn = true
         status("Auto Rebirth: ON")
 
         task.spawn(function()
+
             while autoRebirthOn do
+
                 pcall(function()
-                    fireRE("RebirthService", "Rebirth")
+
+                    fireRE(
+                        "RebirthService",
+                        "Rebirth"
+                    )
+
                 end)
 
-                local nextDelay = math.random(60, 300)
-                local minutes = math.floor(nextDelay / 60)
-                local seconds = nextDelay % 60
+                local nextDelay =
+                    math.random(60, 300)
+
+                local minutes =
+                    math.floor(nextDelay / 60)
+
+                local seconds =
+                    nextDelay % 60
 
                 status(string.format(
                     "Rebirth fired! Next in: %dm %ds",
@@ -749,18 +986,24 @@ toggle("🔄  Auto Rebirth", nextO(),
 
                 local elapsed = 0
 
-                while autoRebirthOn and elapsed < nextDelay do
+                while autoRebirthOn
+                    and elapsed < nextDelay do
+
                     task.wait(1)
                     elapsed += 1
+
                 end
             end
 
             status("Auto Rebirth: OFF")
         end)
     end,
+
     function()
+
         autoRebirthOn = false
         status("Auto Rebirth: OFF")
+
     end
 )
 
@@ -773,91 +1016,302 @@ sep(nextO())
 section("🛒  BUY DICE", nextO())
 
 local ALL_DICES = {
-    {name = "Normal",      price = 1,                 luck = 2,       emoji = "🎲"},
-    {name = "Fire",        price = 2500,              luck = 5,       emoji = "🔥"},
-    {name = "Water",       price = 10000,             luck = 10,      emoji = "💧"},
-    {name = "Nature",      price = 75000,             luck = 20,      emoji = "🌿"},
-    {name = "Lightning",   price = 500000,            luck = 42.5,    emoji = "⚡"},
-    {name = "Ice",         price = 4000000,           luck = 100,     emoji = "❄️"},
-    {name = "Magma",       price = 30000000,          luck = 200,     emoji = "🌋"},
-    {name = "Storm",       price = 200000000,         luck = 400,     emoji = "🌪️"},
-    {name = "Light",       price = 1200000000,        luck = 1500,    emoji = "✨"},
-    {name = "Shadow",      price = 1500000000,        luck = 750,     emoji = "🌑"},
-    {name = "Blood Moon",  price = 10000000000,       luck = 3000,    emoji = "🔴"},
-    {name = "Void",        price = 75000000000,       luck = 6000,    emoji = "🕳️"},
-    {name = "Solar",       price = 500000000000,      luck = 12500,   luckStr = "12.5k", emoji = "☀️"},
-    {name = "Lunar",       price = 3750000000000,     luck = 25000,   emoji = "🌙"},
-    {name = "Galaxy",      price = 15000000000000,    luck = 50000,   emoji = "🌌"},
-    {name = "Black Hole",  price = 100000000000000,   luck = 100000,  emoji = "⚫"},
-    {name = "Dragon",      price = 850000000000000,   luck = 200000,  emoji = "🐉"},
-    {name = "Royal",       price = 10000000000000000, luck = 400000,  emoji = "👑"},
-    {name = "Prismatic",   price = 100000000000000000,luck = 1000000, emoji = "🌈"},
-    {name = "Arcane",      price = 1.25e18,           luck = 2000000, emoji = "🔮"},
-    {name = "Corrupted",   price = 1.5e19,            luck = 5000000, emoji = "☣️"},
-    {name = "Titan",       price = 1e21,              luck = 10000000,emoji = "🗿"},
-    {name = "Chrono",      price = 1.5e22,            luck = 25000000,emoji = "⏳"},
+
+    {
+        name = "Normal",
+        price = 1,
+        luck = 2,
+        emoji = "🎲"
+    },
+
+    {
+        name = "Fire",
+        price = 2500,
+        luck = 5,
+        emoji = "🔥"
+    },
+
+    {
+        name = "Water",
+        price = 10000,
+        luck = 10,
+        emoji = "💧"
+    },
+
+    {
+        name = "Nature",
+        price = 75000,
+        luck = 20,
+        emoji = "🌿"
+    },
+
+    {
+        name = "Lightning",
+        price = 500000,
+        luck = 42.5,
+        emoji = "⚡"
+    },
+
+    {
+        name = "Ice",
+        price = 4000000,
+        luck = 100,
+        emoji = "❄️"
+    },
+
+    {
+        name = "Magma",
+        price = 30000000,
+        luck = 200,
+        emoji = "🌋"
+    },
+
+    {
+        name = "Storm",
+        price = 200000000,
+        luck = 400,
+        emoji = "🌪️"
+    },
+
+    {
+        name = "Light",
+        price = 1200000000,
+        luck = 1500,
+        emoji = "✨"
+    },
+
+    {
+        name = "Shadow",
+        price = 1500000000,
+        luck = 750,
+        emoji = "🌑"
+    },
+
+    {
+        name = "Blood Moon",
+        price = 10000000000,
+        luck = 3000,
+        emoji = "🔴"
+    },
+
+    {
+        name = "Void",
+        price = 75000000000,
+        luck = 6000,
+        emoji = "🕳️"
+    },
+
+    {
+        name = "Solar",
+        price = 500000000000,
+        luck = 12500,
+        luckStr = "12.5k",
+        emoji = "☀️"
+    },
+
+    {
+        name = "Lunar",
+        price = 3750000000000,
+        luck = 25000,
+        emoji = "🌙"
+    },
+
+    {
+        name = "Galaxy",
+        price = 15000000000000,
+        luck = 50000,
+        emoji = "🌌"
+    },
+
+    {
+        name = "Black Hole",
+        price = 100000000000000,
+        luck = 100000,
+        emoji = "⚫"
+    },
+
+    {
+        name = "Dragon",
+        price = 850000000000000,
+        luck = 200000,
+        emoji = "🐉"
+    },
+
+    {
+        name = "Royal",
+        price = 10000000000000000,
+        luck = 400000,
+        emoji = "👑"
+    },
+
+    {
+        name = "Prismatic",
+        price = 100000000000000000,
+        luck = 1000000,
+        emoji = "🌈"
+    },
+
+    {
+        name = "Arcane",
+        price = 1.25e18,
+        luck = 2000000,
+        emoji = "🔮"
+    },
+
+    {
+        name = "Corrupted",
+        price = 1.5e19,
+        luck = 5000000,
+        emoji = "☣️"
+    },
+
+    {
+        name = "Titan",
+        price = 1e21,
+        luck = 10000000,
+        emoji = "🗿"
+    },
+
+    {
+        name = "Chrono",
+        price = 1.5e22,
+        luck = 25000000,
+        emoji = "⏳"
+    },
 }
 
 local function formatNumber(n)
+
     if not n then
         return "0"
     end
 
     if n >= 1e21 then
-        return string.format("%.1fSx", n / 1e21)
+
+        return string.format(
+            "%.1fSx",
+            n / 1e21
+        )
+
     elseif n >= 1e18 then
-        return string.format("%.1fQi", n / 1e18)
+
+        return string.format(
+            "%.1fQi",
+            n / 1e18
+        )
+
     elseif n >= 1e15 then
-        return string.format("%.1fQa", n / 1e15)
+
+        return string.format(
+            "%.1fQa",
+            n / 1e15
+        )
+
     elseif n >= 1e12 then
-        return string.format("%.1fT", n / 1e12)
+
+        return string.format(
+            "%.1fT",
+            n / 1e12
+        )
+
     elseif n >= 1e9 then
-        return string.format("%.1fB", n / 1e9)
+
+        return string.format(
+            "%.1fB",
+            n / 1e9
+        )
+
     elseif n >= 1e6 then
-        return string.format("%.1fM", n / 1e6)
+
+        return string.format(
+            "%.1fM",
+            n / 1e6
+        )
+
     elseif n >= 1e3 then
-        return string.format("%.1fK", n / 1e3)
+
+        return string.format(
+            "%.1fK",
+            n / 1e3
+        )
+
     else
+
         return tostring(n)
+
     end
 end
 
 local autoBuyBestOn = false
 
-toggle("🎯  Auto Buy Best Dice", nextO(),
+toggle(
+    "🎯  Auto Buy Best Dice",
+    nextO(),
+
     function()
+
         autoBuyBestOn = true
         status("Auto Buy Best: ON")
 
         task.spawn(function()
+
             while autoBuyBestOn do
+
                 pcall(function()
-                    local ls = player:FindFirstChild("leaderstats")
-                    local moneyVal = ls and ls:FindFirstChild("Money")
+
+                    local ls =
+                        player:FindFirstChild(
+                            "leaderstats"
+                        )
+
+                    local moneyVal =
+                        ls
+                        and ls:FindFirstChild(
+                            "Money"
+                        )
 
                     if moneyVal then
-                        local money = tonumber(moneyVal.Value) or 0
+
+                        local money =
+                            tonumber(
+                                moneyVal.Value
+                            ) or 0
 
                         for i = #ALL_DICES, 1, -1 do
-                            local d = ALL_DICES[i]
+
+                            local d =
+                                ALL_DICES[i]
 
                             if money >= d.price then
+
                                 fireRE(
                                     "DiceShopService",
                                     "BuyDice",
                                     d.name
                                 )
 
-                                status("Auto Bought: " .. d.name)
+                                status(
+                                    "Auto Bought: "
+                                    .. d.name
+                                )
+
                                 break
                             end
                         end
                     end
+
                 end)
 
-                local nextDelay = math.random(60, 300)
-                local minutes = math.floor(nextDelay / 60)
-                local seconds = nextDelay % 60
+                local nextDelay =
+                    math.random(60, 300)
+
+                local minutes =
+                    math.floor(
+                        nextDelay / 60
+                    )
+
+                local seconds =
+                    nextDelay % 60
 
                 status(string.format(
                     "Dice checked! Next in: %dm %ds",
@@ -867,22 +1321,29 @@ toggle("🎯  Auto Buy Best Dice", nextO(),
 
                 local elapsed = 0
 
-                while autoBuyBestOn and elapsed < nextDelay do
+                while autoBuyBestOn
+                    and elapsed < nextDelay do
+
                     task.wait(1)
                     elapsed += 1
+
                 end
             end
 
             status("Auto Buy Best: OFF")
         end)
     end,
+
     function()
+
         autoBuyBestOn = false
         status("Auto Buy Best: OFF")
+
     end
 )
 
 for _, d in ipairs(ALL_DICES) do
+
     local text = string.format(
         "%s  Buy %s ($%s)",
         d.emoji,
@@ -890,17 +1351,50 @@ for _, d in ipairs(ALL_DICES) do
         formatNumber(d.price)
     )
 
-    btn(text, nextO(), function()
-        status("Buying " .. d.name .. "...")
+    btn(
+        text,
+        nextO(),
+        function()
 
-        fireRE(
-            "DiceShopService",
-            "BuyDice",
-            d.name
-        )
+            status(
+                "Buying "
+                .. d.name
+                .. "..."
+            )
 
-        status(d.name .. " purchased!")
-    end)
+            local success, result =
+                pcall(function()
+
+                    return fireRE(
+                        "DiceShopService",
+                        "BuyDice",
+                        d.name
+                    )
+
+                end)
+
+            if success then
+
+                status(
+                    d.name
+                    .. " purchased!"
+                )
+
+            else
+
+                status(
+                    "Buy "
+                    .. d.name
+                    .. " failed!"
+                )
+
+                warn(
+                    "[BUY ERROR]",
+                    tostring(result)
+                )
+            end
+        end
+    )
 end
 
 sep(nextO())
@@ -913,36 +1407,54 @@ section("🤖  AUTOMATION", nextO())
 
 local autoFarmOn = false
 
-toggle("🔁  Auto Farm Loop", nextO(),
+toggle(
+    "🔁  Auto Farm Loop",
+    nextO(),
+
     function()
+
         autoFarmOn = true
         status("Auto Farm STARTED")
 
         task.spawn(function()
+
             while autoFarmOn do
 
                 -- 1. Roll Dice
                 pcall(function()
-                    invokeRF("RollService", "RollDice")
+
+                    invokeRF(
+                        "RollService",
+                        "RollDice"
+                    )
+
                 end)
 
                 task.wait(0.3)
 
                 -- 2. Equip Best
                 pcall(function()
-                    fireRE("PlotService", "EquipBest")
+
+                    fireRE(
+                        "PlotService",
+                        "EquipBest"
+                    )
+
                 end)
 
                 task.wait(0.2)
 
-                -- 3. Collect all balance
+                -- 3. Collect
                 for i = 1, 8 do
+
                     pcall(function()
+
                         fireRE(
                             "PlotService",
                             "CollectBalance",
                             i
                         )
+
                     end)
 
                     task.wait(0.05)
@@ -950,17 +1462,22 @@ toggle("🔁  Auto Farm Loop", nextO(),
 
                 task.wait(0.2)
 
-                -- 4. Sell inventory
+                -- 4. Sell Inventory
                 pcall(function()
-                    local uuids = getSellableUUIDs()
+
+                    local uuids =
+                        getSellableUUIDs()
 
                     if #uuids > 0 then
+
                         invokeRF(
                             "SellService",
                             "SellInventory",
                             uuids
                         )
+
                     end
+
                 end)
 
                 task.wait(0.8)
@@ -969,28 +1486,40 @@ toggle("🔁  Auto Farm Loop", nextO(),
             status("Auto Farm STOPPED")
         end)
     end,
+
     function()
+
         autoFarmOn = false
         status("Auto Farm STOPPING...")
+
     end
 )
 
 local autoCollectOn = false
 
-toggle("💰  Auto Collect Loop", nextO(),
+toggle(
+    "💰  Auto Collect Loop",
+    nextO(),
+
     function()
+
         autoCollectOn = true
         status("Auto Collect STARTED")
 
         task.spawn(function()
+
             while autoCollectOn do
+
                 for i = 1, 8 do
+
                     pcall(function()
+
                         fireRE(
                             "PlotService",
                             "CollectBalance",
                             i
                         )
+
                     end)
 
                     task.wait(0.05)
@@ -1002,44 +1531,67 @@ toggle("💰  Auto Collect Loop", nextO(),
             status("Auto Collect STOPPED")
         end)
     end,
+
     function()
+
         autoCollectOn = false
         status("Auto Collect STOPPING...")
+
     end
 )
 
 local autoRollBuyOn = false
 
-toggle("🎰  Auto Roll + Buy Normal", nextO(),
+toggle(
+    "🎰  Auto Roll + Buy Normal",
+    nextO(),
+
     function()
+
         autoRollBuyOn = true
         status("Auto Roll+Buy STARTED")
 
         task.spawn(function()
+
             while autoRollBuyOn do
+
                 pcall(function()
-                    invokeRF("RollService", "RollDice")
+
+                    invokeRF(
+                        "RollService",
+                        "RollDice"
+                    )
+
                 end)
 
                 task.wait(0.2)
 
                 pcall(function()
+
                     fireRE(
                         "DiceShopService",
                         "BuyDice",
                         "Normal"
                     )
+
                 end)
 
                 task.wait(0.5)
             end
 
-            status("Auto Roll+Buy STOPPED")
+            status(
+                "Auto Roll+Buy STOPPED"
+            )
         end)
     end,
+
     function()
+
         autoRollBuyOn = false
-        status("Auto Roll+Buy STOPPING...")
+        status(
+            "Auto Roll+Buy STOPPING..."
+        )
+
     end
 )
 
@@ -1049,43 +1601,63 @@ sep(nextO())
 --  DRAGGING
 -- ═══════════════════════════════════════════════════════
 
-local dragging, dragInput, dragStart, startPos
+local dragging
+local dragInput
+local dragStart
+local startPos
 
 TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
+
+    if input.UserInputType
+        == Enum.UserInputType.MouseButton1
+        or input.UserInputType
+        == Enum.UserInputType.Touch then
 
         dragging = true
         dragStart = input.Position
         startPos = MainFrame.Position
 
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
+
+            if input.UserInputState
+                == Enum.UserInputState.End then
+
                 dragging = false
             end
+
         end)
     end
 end)
 
 TitleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
+
+    if input.UserInputType
+        == Enum.UserInputType.MouseMovement
+        or input.UserInputType
+        == Enum.UserInputType.Touch then
 
         dragInput = input
     end
+
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local d = input.Position - dragStart
 
-        MainFrame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + d.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + d.Y
-        )
+    if input == dragInput
+        and dragging then
+
+        local d =
+            input.Position - dragStart
+
+        MainFrame.Position =
+            UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + d.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + d.Y
+            )
     end
+
 end)
 
 -- ═══════════════════════════════════════════════════════
@@ -1096,39 +1668,57 @@ local minimized = false
 local fullSize = MainFrame.Size
 
 MinBtn.MouseButton1Click:Connect(function()
+
     minimized = not minimized
 
     if minimized then
+
         Content.Visible = false
         StatsBar.Visible = false
         accent.Visible = false
 
         TweenService:Create(
             MainFrame,
-            TweenInfo.new(TWEEN, Enum.EasingStyle.Quart),
+            TweenInfo.new(
+                TWEEN,
+                Enum.EasingStyle.Quart
+            ),
             {
-                Size = UDim2.new(0, 300, 0, 38)
+                Size = UDim2.new(
+                    0,
+                    300,
+                    0,
+                    38
+                )
             }
         ):Play()
 
         MinBtn.Text = "+"
+
     else
+
         TweenService:Create(
             MainFrame,
-            TweenInfo.new(TWEEN, Enum.EasingStyle.Quart),
+            TweenInfo.new(
+                TWEEN,
+                Enum.EasingStyle.Quart
+            ),
             {
                 Size = fullSize
             }
         ):Play()
 
         task.delay(TWEEN, function()
+
             Content.Visible = true
             StatsBar.Visible = true
             accent.Visible = true
+
         end)
 
         MinBtn.Text = "—"
     end
+
 end)
 
 ClsBtn.MouseButton1Click:Connect(function()
@@ -1144,9 +1734,17 @@ ClsBtn.MouseButton1Click:Connect(function()
 
     TweenService:Create(
         MainFrame,
-        TweenInfo.new(0.18, Enum.EasingStyle.Quart),
+        TweenInfo.new(
+            0.18,
+            Enum.EasingStyle.Quart
+        ),
         {
-            Size = UDim2.new(0, 300, 0, 0)
+            Size = UDim2.new(
+                0,
+                300,
+                0,
+                0
+            )
         }
     ):Play()
 
@@ -1160,5 +1758,11 @@ end)
 -- ═══════════════════════════════════════════════════════
 
 status("GUI Loaded! 🎲")
-print("[DiceGachaHub] Loaded successfully!")
-print("[AntiAFK] Active")
+
+print(
+    "[DiceGachaHub] Loaded successfully!"
+)
+
+print(
+    "[AntiAFK] Active"
+)
