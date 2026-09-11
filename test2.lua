@@ -9,7 +9,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local VirtualUser = game:GetService("VirtualUser")
 
 local player = Players.LocalPlayer
 
@@ -17,20 +16,20 @@ local player = Players.LocalPlayer
 --  ANTI-AFK SYSTEM (Anti 20-Minutes Kick)
 -- ═══════════════════════════════════════════════════════
 
-player.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-    print("[DiceGachaHub] Anti-AFK: Keystroke/Click dispatched to prevent disconnect!")
+pcall(function()
+    local vu = game:GetService("VirtualUser")
+    player.Idled:Connect(function()
+        pcall(function()
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end)
+    end)
 end)
 
--- Backup timer agar tidak pernah idle
-task.spawn(function()
-    while true do
-        task.wait(600) -- Setiap 10 menit
-        pcall(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new())
-        end)
+-- Disable Idled connections if executor supports it
+pcall(function()
+    for _, conn in pairs(getconnections(player.Idled)) do
+        conn:Disable()
     end
 end)
 
