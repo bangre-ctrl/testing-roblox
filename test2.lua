@@ -788,241 +788,42 @@ toggle(
 )
 
 --==================================================
--- ANTI AFK GUI
---==================================================
-
-antiAFKButton = Instance.new("TextButton")
-antiAFKButton.Size = UDim2.new(1, -20, 0, 42)
-antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
-antiAFKButton.Text = "🛡️ Anti AFK : ON | 00m 00s"
-antiAFKButton.TextColor3 = Color3.new(1, 1, 1)
-antiAFKButton.TextSize = 13
-antiAFKButton.Font = Enum.Font.GothamBold
-antiAFKButton.BorderSizePixel = 0
-antiAFKButton.LayoutOrder = #left:GetChildren()
-antiAFKButton.Parent = left
-Instance.new("UICorner", antiAFKButton).CornerRadius = UDim.new(0, 8)
-
-antiAFKButton.MouseButton1Click:Connect(function()
-    antiAFKOn = not antiAFKOn
-
-    if antiAFKOn then
-        antiAFKStartedAt = os.time()
-        antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
-        antiAFKButton.Text = "🛡️ Anti AFK : ON | 00m 00s"
-        status("Anti-AFK: ON")
-    else
-        antiAFKButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-        antiAFKButton.Text = "🛡️ Anti AFK : OFF"
-        status("Anti-AFK: OFF")
-    end
-end)
-
-task.spawn(function()
-    while not closed and antiAFKButton and antiAFKButton.Parent do
-        if antiAFKOn then
-            local elapsed = os.time() - antiAFKStartedAt
-            local minutes = math.floor(elapsed / 60)
-            local seconds = elapsed % 60
-            antiAFKButton.Text = string.format(
-                "🛡️ Anti AFK : ON | %02dm %02ds",
-                minutes,
-                seconds
-            )
-        else
-            antiAFKButton.Text = "🛡️ Anti AFK : OFF"
-        end
-        task.wait(1)
-    end
-end)
-
---==================================================
--- RIGHT: DICE SHOP
---==================================================
-
-section(right, "🛒 DICE SHOP")
-
--- Dice Shop is collapsed by default.
--- Click the header to show/hide the full dice list.
-local diceShopOpen = false
-
-local diceShopButton = Instance.new("TextButton")
-diceShopButton.Size = UDim2.new(1, -20, 0, 42)
-diceShopButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-diceShopButton.Text = "🛒 Dice Shop  ▸"
-diceShopButton.TextColor3 = Color3.new(1, 1, 1)
-diceShopButton.TextSize = 14
-diceShopButton.Font = Enum.Font.GothamBold
-diceShopButton.BorderSizePixel = 0
-diceShopButton.LayoutOrder = #right:GetChildren()
-diceShopButton.Parent = right
-Instance.new("UICorner", diceShopButton).CornerRadius = UDim.new(0, 8)
-
-local diceList = Instance.new("Frame")
-diceList.Name = "DiceList"
-diceList.Size = UDim2.new(1, -20, 0, 0)
-diceList.BackgroundTransparency = 1
-diceList.BorderSizePixel = 0
-diceList.ClipsDescendants = true
-diceList.LayoutOrder = #right:GetChildren()
-diceList.Parent = right
-
-local diceListLayout = Instance.new("UIListLayout")
-diceListLayout.Padding = UDim.new(0, 8)
-diceListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-diceListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-diceListLayout.Parent = diceList
-
-local diceListPad = Instance.new("UIPadding")
-diceListPad.PaddingBottom = UDim.new(0, 2)
-diceListPad.Parent = diceList
-
-local function getMoney()
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if not leaderstats then
-        return 0
-    end
-
-    local money = leaderstats:FindFirstChild("Money")
-    if not money then
-        return 0
-    end
-
-    return tonumber(money.Value) or 0
-end
-
--- Game-style compact money display.
--- The stored price remains the original numeric value.
-local function formatMoney(value)
-    value = tonumber(value) or 0
-
-    local suffixes = {
-        {1e21, "sx"},
-        {1e18, "qi"},
-        {1e15, "qd"},
-        {1e12, "T"},
-        {1e9, "B"},
-        {1e6, "M"},
-        {1e3, "K"},
-    }
-
-    for _, data in ipairs(suffixes) do
-        local threshold, suffix = data[1], data[2]
-        if value >= threshold then
-            local n = value / threshold
-            local text
-            if n >= 100 then
-                text = string.format("%.0f", n)
-            elseif n >= 10 then
-                text = string.format("%.1f", n):gsub("%.0$", "")
-            else
-                text = string.format("%.2f", n):gsub("0+$", ""):gsub("%.$", "")
-            end
-            return text .. suffix
-        end
-    end
-
-    return tostring(math.floor(value))
-end
-
-local function buyDice(name)
-    local ok, result = pcall(function()
-        return fireRE("DiceShopService", "BuyDice", name)
-    end)
-
-    if ok then
-        status("Bought dice: " .. name)
-    else
-        warn("[BUY DICE]", result)
-        status("Buy failed: " .. name)
-    end
-
-    return ok, result
-end
-
--- Show the newest/most expensive dice first, ending with Normal.
-for i = #ALL_DICES, 1, -1 do
-    local d = ALL_DICES[i]
-
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 40)
-    b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-    b.Text = string.format(
-        "%s  %s  | $%s  | Luck x%s",
-        d.emoji,
-        d.name,
-        formatMoney(d.price),
-        d.luckStr or tostring(d.luck)
-    )
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.TextSize = 13
-    b.Font = Enum.Font.GothamBold
-    b.BorderSizePixel = 0
-    b.LayoutOrder = #diceList:GetChildren()
-    b.Parent = diceList
-
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-
-    b.MouseButton1Click:Connect(function()
-        buyDice(d.name)
-    end)
-end
-
-diceListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    if diceShopOpen then
-        diceList.Size = UDim2.new(1, -20, 0, diceListLayout.AbsoluteContentSize.Y + 2)
-    end
-end)
-
-diceShopButton.MouseButton1Click:Connect(function()
-    diceShopOpen = not diceShopOpen
-
-    if diceShopOpen then
-        diceShopButton.Text = "🛒 Dice Shop  ▾"
-        diceList.Size = UDim2.new(1, -20, 0, diceListLayout.AbsoluteContentSize.Y + 2)
-    else
-        diceShopButton.Text = "🛒 Dice Shop  ▸"
-        diceList.Size = UDim2.new(1, -20, 0, 0)
-    end
-end)
-
---==================================================
--- STATS UPDATE
---==================================================
-
-task.spawn(function()
-    while not closed and gui.Parent do
-        pcall(function()
-            local leaderstats = player:FindFirstChild("leaderstats")
-
-            if leaderstats then
-                local money = leaderstats:FindFirstChild("Money")
-                local rolls = leaderstats:FindFirstChild("Rolls")
-
-                if money then
-                    moneyLabel.Text = "💰 Money: " .. tostring(money.Value)
-                end
-
-                if rolls then
-                    rollsLabel.Text = "🎲 Rolls: " .. tostring(rolls.Value)
-                end
-            end
-        end)
-
-        task.wait(1)
-    end
-end)
-
---==================================================
--- ANTI AFK + SERVER / TELEPORT DETECTOR
+-- ANTI AFK + MINI INDICATOR
 --==================================================
 
 local TeleportService = game:GetService("TeleportService")
 
+local antiAFKOn = true
 local afkStartedAt = os.time()
 local lastJobId = game.JobId
 local lastPlaceId = game.PlaceId
 local serverChanged = false
+
+-- Mini indicator stays visible when the main GUI is hidden with Ctrl.
+local miniGui = Instance.new("ScreenGui")
+miniGui.Name = "DiceGachaMiniAFK"
+miniGui.ResetOnSpawn = false
+miniGui.IgnoreGuiInset = true
+miniGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+miniGui.DisplayOrder = 999999
+miniGui.Enabled = true
+miniGui.Parent = player:WaitForChild("PlayerGui")
+
+local miniAFK = Instance.new("TextLabel")
+miniAFK.Name = "MiniAntiAFK"
+miniAFK.AnchorPoint = Vector2.new(0.5, 0)
+miniAFK.Size = UDim2.new(0, 245, 0, 34)
+miniAFK.Position = UDim2.new(0.5, 0, 0, 8)
+miniAFK.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+miniAFK.BackgroundTransparency = 0.05
+miniAFK.BorderSizePixel = 0
+miniAFK.Text = "🛡️ AFK 00m 00s | Server OK"
+miniAFK.TextColor3 = Color3.fromRGB(120, 255, 150)
+miniAFK.TextSize = 13
+miniAFK.Font = Enum.Font.GothamBold
+miniAFK.TextXAlignment = Enum.TextXAlignment.Center
+miniAFK.ZIndex = 100
+miniAFK.Parent = miniGui
 
 local function updateMiniAFK()
     if closed or not miniAFK.Parent then
@@ -1046,70 +847,46 @@ local function updateMiniAFK()
         or Color3.fromRGB(120, 255, 150)
 end
 
--- Keep the mini indicator alive and updating even when the main GUI is hidden.
-task.spawn(function()
-    while not closed and miniGui.Parent do
-        updateMiniAFK()
-        task.wait(1)
-    end
-end)
-
-
-local function afkTime()
-    local elapsed = os.time() - afkStartedAt
-    local minutes = math.floor(elapsed / 60)
-    local seconds = elapsed % 60
-    return string.format("%02dm %02ds", minutes, seconds)
-end
-
--- Small real mouse/camera movement.
--- Uses executor mouse APIs when available, then falls back to VirtualUser.
+-- Button2Down/Button2Up pattern from the tested Anti-AFK example.
 local function antiAFKAction()
     if not antiAFKOn or closed then
         return
     end
 
-    local movedMouse = false
-
     pcall(function()
-        if type(mouse2press) == "function"
-        and type(mouse2release) == "function"
-        and type(mousemoverel) == "function" then
-
-            -- Hold right mouse, make a tiny camera movement, then return.
-            mouse2press()
-            task.wait(0.08)
-
-            mousemoverel(2, 0)
-            task.wait(0.08)
-            mousemoverel(-2, 0)
-
-            task.wait(0.08)
-            mouse2release()
-
-            movedMouse = true
+        local currentCamera = workspace.CurrentCamera
+        if not currentCamera then
+            return
         end
-    end)
 
-    -- Fallback for executors without mouse2press/mousemoverel.
-    if not movedMouse then
-        pcall(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new(0, 0))
-        end)
-    end
+        VirtualUser:Button2Down(
+            Vector2.zero,
+            currentCamera.CFrame
+        )
+
+        task.wait(1)
+
+        currentCamera = workspace.CurrentCamera or currentCamera
+
+        VirtualUser:Button2Up(
+            Vector2.zero,
+            currentCamera.CFrame
+        )
+    end)
 end
 
--- Roblox idle event
+-- Roblox idle event.
 pcall(function()
     player.Idled:Connect(function()
-        print("[ANTI-AFK] Player.Idled triggered at:", afkTime())
-        antiAFKAction()
-        status("Anti-AFK active | " .. afkTime())
+        if antiAFKOn and not closed then
+            print("[ANTI-AFK] Player.Idled triggered")
+            antiAFKAction()
+            updateMiniAFK()
+        end
     end)
 end)
 
--- Periodic activity every 20 seconds
+-- Periodic Button2 activity every 30 seconds.
 task.spawn(function()
     while not closed do
         task.wait(30)
@@ -1118,57 +895,58 @@ task.spawn(function()
             break
         end
 
-        antiAFKAction()
+        if antiAFKOn then
+            antiAFKAction()
 
-        print(
-            "[ANTI-AFK] Activity sent | AFK:",
-            afkTime(),
-            "| JobId:",
-            game.JobId
-        )
-
-        status("Anti-AFK active | " .. afkTime())
+            local elapsed = os.time() - afkStartedAt
+            print(
+                string.format(
+                    "[ANTI-AFK] Button2 activity sent | AFK: %02dm %02ds",
+                    math.floor(elapsed / 60),
+                    elapsed % 60
+                )
+            )
+        end
     end
 end)
 
--- Teleport failure detector
+-- Mini indicator timer.
+task.spawn(function()
+    while not closed and miniGui.Parent do
+        updateMiniAFK()
+        task.wait(1)
+    end
+end)
+
+-- Detect teleport failures when available.
 pcall(function()
     TeleportService.TeleportInitFailed:Connect(function(
         teleportResult,
         teleportErrorMessage,
-        placeId,
-        teleportOptions
+        placeId
     )
         warn(
             "[TELEPORT FAILED]",
-            "Result:",
-            teleportResult,
-            "Error:",
-            teleportErrorMessage,
-            "PlaceId:",
-            placeId
+            "Result:", teleportResult,
+            "Error:", teleportErrorMessage,
+            "PlaceId:", placeId
         )
     end)
 end)
 
--- Character respawn detector
+-- Detect character respawns.
 pcall(function()
-    player.CharacterAdded:Connect(function(character)
+    player.CharacterAdded:Connect(function()
         print(
-            "[SERVER CHECK] CharacterAdded",
-            "| AFK:",
-            afkTime(),
-            "| JobId:",
-            game.JobId,
-            "| PlaceId:",
-            game.PlaceId
+            "[SERVER CHECK] CharacterAdded | AFK:",
+            os.time() - afkStartedAt,
+            "| JobId:", game.JobId,
+            "| PlaceId:", game.PlaceId
         )
-
-        status("Character respawned | AFK " .. afkTime())
     end)
 end)
 
--- Server / place ID monitor
+-- Detect JobId / PlaceId changes while this script remains alive.
 task.spawn(function()
     while not closed do
         task.wait(10)
@@ -1182,35 +960,34 @@ task.spawn(function()
 
         if currentJobId ~= lastJobId then
             serverChanged = true
-            updateMiniAFK()
+
             warn("========================================")
             warn("[SERVER CHANGE DETECTED]")
             warn("Old JobId:", lastJobId)
             warn("New JobId:", currentJobId)
-            warn("AFK Duration:", afkTime())
-            warn("PlaceId:", currentPlaceId)
+            warn("AFK Duration:", os.time() - afkStartedAt, "seconds")
             warn("========================================")
 
             lastJobId = currentJobId
-            lastPlaceId = currentPlaceId
         end
 
         if currentPlaceId ~= lastPlaceId then
-            warn("========================================")
+            serverChanged = true
+
             warn("[PLACE CHANGE DETECTED]")
             warn("Old PlaceId:", lastPlaceId)
             warn("New PlaceId:", currentPlaceId)
-            warn("AFK Duration:", afkTime())
-            warn("========================================")
 
             lastPlaceId = currentPlaceId
         end
+
+        updateMiniAFK()
     end
 end)
 
 print("========================================")
-print("[ANTI-AFK] Enhanced Mouse/Camera Anti-AFK loaded")
-print("[ANTI-AFK] Activity interval: 30 seconds")
+print("[ANTI-AFK] Button2Down/Button2Up loaded")
+print("[ANTI-AFK] Periodic interval: 30 seconds")
 print("[ANTI-AFK] Start JobId:", game.JobId)
 print("[ANTI-AFK] Start PlaceId:", game.PlaceId)
 print("========================================")
