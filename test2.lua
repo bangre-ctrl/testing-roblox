@@ -64,14 +64,14 @@ local ALL_DICES = {
     {name = "Solar",        price = 5000000000000,      luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
     {name = "Lunar",        price = 37500000000000,     luck = 25000,    emoji = "🌙"},
     {name = "Galaxy",       price = 150000000000000,    luck = 50000,    emoji = "🌌"},
-    {name = "Black Hole",   price = 1000000000000000,  luck = 100000,   emoji = "⚫"},
-    {name = "Dragon",       price = 8500000000000000,  luck = 200000,   emoji = "🐉"},
-    {name = "Royal",        price = 1e17,               luck = 400000,   emoji = "👑"},
+    {name = "Black Hole",   price = 1e15,               luck = 100000,   emoji = "⚫", displayPrice = "1qd"},
+    {name = "Dragon",       price = 8.5e15,             luck = 200000,   emoji = "🐉", displayPrice = "8.5qd"},
+    {name = "Royal",        price = 1e17,               luck = 400000,   emoji = "👑", displayPrice = "100qd"},
     {name = "Prismatic",    price = 1e18,               luck = 1000000,  emoji = "🌈"},
     {name = "Arcane",       price = 1.25e19,            luck = 2000000,  emoji = "🔮"},
-    {name = "Corrupted",    price = 1.5e20,             luck = 5000000,  emoji = "☣️"},
-    {name = "Titan",        price = 1e21,               luck = 10000000, emoji = "🗿"},
-    {name = "Chrono",       price = 1.5e22,             luck = 25000000, emoji = "⏳"},
+    {name = "Corrupted",    price = 1.5e20,             luck = 5000000,  emoji = "☣️", displayPrice = "150qi"},
+    {name = "Titan",        price = 1e21,               luck = 10000000, emoji = "🗿", displayPrice = "1sx"},
+    {name = "Chrono",       price = 1.5e22,             luck = 25000000, emoji = "⏳", displayPrice = "15sx"},
 }
 --==================================================
 -- STATE
