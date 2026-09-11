@@ -59,21 +59,21 @@ local ALL_DICES = {
     {name = "Storm",        price = 200000000,       luck = 400,      emoji = "🌪️"},
     {name = "Shadow",       price = 1500000000,      luck = 750,      emoji = "🌑"},
     {name = "Light",        price = 12000000000,     luck = 1500,     emoji = "✨"},
-    {name = "Blood Moon",   price = 10000000000,     luck = 3000,     emoji = "🔴"},
-    {name = "Void",         price = 75000000000,     luck = 6000,     emoji = "🕳️"},
-    {name = "Solar",        price = 500000000000,    luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
-    {name = "Lunar",        price = 3750000000000,   luck = 25000,    emoji = "🌙"},
-    {name = "Galaxy",       price = 15000000000000,  luck = 50000,    emoji = "🌌"},
-    {name = "Black Hole",   price = 100000000000000, luck = 100000,   emoji = "⚫"},
+    {name = "Blood Moon",   price = 100000000000,     luck = 3000,     emoji = "🔴"},
+    {name = "Void",         price = 750000000000,     luck = 6000,     emoji = "🕳️"},
+    {name = "Solar",        price = 5000000000000,    luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
+    {name = "Lunar",        price = 37500000000000,   luck = 25000,    emoji = "🌙"},
+    {name = "Galaxy",       price = 150000000000000,  luck = 50000,    emoji = "🌌"},
+    {name = "Black Hole",   price = 1000000000000000, luck = 100000,   emoji = "⚫"},
     {name = "Dragon",       price = 8500000000000000,          luck = 200000,   emoji = "🐉"},
 
     -- Harga dari Dev Log Console
     {name = "Royal",        price = 100000000000000000,        luck = 400000,   emoji = "👑"},
     {name = "Prismatic",    price = 1000000000000000000,       luck = 1000000,  emoji = "🌈"},
-    {name = "Arcane",       price = 1.25e19,                    luck = 2000000,  emoji = "🔮"},
-    {name = "Corrupted",    price = 1.5e20,                     luck = 5000000,  emoji = "☣️"},
-    {name = "Titan",        price = 1e21,                       luck = 10000000, emoji = "🗿"},
-    {name = "Chrono",       price = 1.5e22,                     luck = 25000000, emoji = "⏳"},
+    {name = "Arcane",       price = 1.2e19,                    luck = 2000000, emoji = "🔮"},
+    {name = "Corrupted",    price = 1.5e20,                    luck = 5000000,  emoji = "☣️"},
+    {name = "Titan",        price = 1e21,                      luck = 10000000, emoji = "🗿"},
+    {name = "Chrono",       price = 1.5e22,                    luck = 25000000, emoji = "⏳"},
 }
 
 --==================================================
