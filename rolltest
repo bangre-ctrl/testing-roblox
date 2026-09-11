@@ -1,101 +1,53 @@
---// STANDALONE - COPY ROLL METHOD FROM DICE GACHA HUB
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
 
-local Player = Players.LocalPlayer
+local player = Players.LocalPlayer
 
---========================================
--- SAME METHOD AS AUTOFARM
---========================================
+local RollDice = RS
+    :WaitForChild("Network")
+    :WaitForChild("RollService")
+    :WaitForChild("RF")
+    :WaitForChild("RollDice")
 
-local function getNetwork()
-    return ReplicatedStorage:WaitForChild("Network", 9e9)
-end
-
-local function invokeRF(serviceName, remoteName, ...)
-    local network = getNetwork()
-
-    local service = network:WaitForChild(serviceName, 9e9)
-    local folder = service:WaitForChild("RF", 9e9)
-    local remote = folder:WaitForChild(remoteName, 9e9)
-
-    if not remote:IsA("RemoteFunction") then
-        error(remote:GetFullName() .. " is " .. remote.ClassName)
-    end
-
-    return remote:InvokeServer(...)
-end
-
---========================================
 -- GUI
---========================================
-
 local gui = Instance.new("ScreenGui")
-gui.Name = "StandaloneAutoRoll"
+gui.Name = "SimpleAutoRoll"
 gui.ResetOnSpawn = false
-gui.Parent = Player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 120)
-frame.Position = UDim2.new(0.5, -110, 0.5, -60)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-frame.BorderSizePixel = 0
-frame.Parent = gui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = frame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 35)
-title.BackgroundTransparency = 1
-title.Text = "🎲 AUTO ROLL"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.TextSize = 18
-title.Font = Enum.Font.GothamBold
-title.Parent = frame
+gui.Parent = player:WaitForChild("PlayerGui")
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -30, 0, 45)
-button.Position = UDim2.new(0, 15, 0, 55)
+button.Size = UDim2.new(0, 220, 0, 55)
+button.Position = UDim2.new(0.5, -110, 0.5, -27)
 button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
-button.Text = "OFF"
-button.TextColor3 = Color3.new(1, 1, 1)
-button.TextSize = 18
+button.Text = "🎲 AUTO ROLL : OFF"
+button.TextColor3 = Color3.new(1,1,1)
+button.TextSize = 17
 button.Font = Enum.Font.GothamBold
-button.BorderSizePixel = 0
-button.Parent = frame
+button.Parent = gui
 
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
-buttonCorner.Parent = button
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
---========================================
--- AUTO ROLL
---========================================
-
-local autoRoll = false
+local running = false
 
 button.MouseButton1Click:Connect(function()
 
-    autoRoll = not autoRoll
+    running = not running
 
-    if autoRoll then
-
-        button.Text = "ON"
-        button.BackgroundColor3 = Color3.fromRGB(45, 170, 75)
-
-        print("[StandaloneAutoRoll] ON")
+    if running then
+        button.Text = "🎲 AUTO ROLL : ON"
+        button.BackgroundColor3 = Color3.fromRGB(40, 170, 75)
 
         task.spawn(function()
 
-            while autoRoll do
+            while running do
 
-                -- EXACT SAME CALL AS AUTOFARM
-                pcall(function()
-                    invokeRF("RollService", "RollDice")
+                local ok, result = pcall(function()
+                    return RollDice:InvokeServer()
                 end)
+
+                if not ok then
+                    warn("[AUTO ROLL ERROR]", result)
+                end
 
                 task.wait(0.3)
 
@@ -105,14 +57,10 @@ button.MouseButton1Click:Connect(function()
 
     else
 
-        button.Text = "OFF"
+        button.Text = "🎲 AUTO ROLL : OFF"
         button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
 
-        print("[StandaloneAutoRoll] OFF")
-
     end
-
 end)
 
-print("[StandaloneAutoRoll] Loaded!")
-print("[StandaloneAutoRoll] Using same RollDice method as AutoFarm")
+print("[SimpleAutoRoll] Loaded successfully!")
