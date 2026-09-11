@@ -1,144 +1,30 @@
---// AUTO ROLL DICE - STANDALONE
+local autoRollOn = false
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+toggle(
+    Left,
+    "🎲  Auto Roll Dice",
+    nextLeft(),
 
---==================================================
--- REMOTE
---==================================================
-
-local Network = game:GetService("ReplicatedStorage")
-    :WaitForChild("Network", 10)
-
-local RollService = Network
-    :WaitForChild("RollService", 10)
-
-local RF = RollService
-    :WaitForChild("RF", 10)
-
-local RollDice = RF
-    :WaitForChild("RollDice", 10)
-
-if not RollDice then
-    warn("❌ RollDice tidak ditemukan")
-    return
-end
-
-if not RollDice:IsA("RemoteFunction") then
-    warn("❌ RollDice bukan RemoteFunction: " .. RollDice.ClassName)
-    return
-end
-
-print("✅ RollDice ditemukan:")
-print(RollDice:GetFullName())
-
---==================================================
--- GUI
---==================================================
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "AutoRollGUI"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 230, 0, 130)
-frame.Position = UDim2.new(0.5, -115, 0.5, -65)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-frame.BorderSizePixel = 0
-frame.Parent = gui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = frame
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 35)
-title.BackgroundTransparency = 1
-title.Text = "🎲 AUTO ROLL DICE"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 18
-title.Font = Enum.Font.GothamBold
-title.Parent = frame
-
--- Status
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -20, 0, 25)
-status.Position = UDim2.new(0, 10, 0, 35)
-status.BackgroundTransparency = 1
-status.Text = "Status: OFF"
-status.TextColor3 = Color3.fromRGB(255, 80, 80)
-status.TextSize = 14
-status.Font = Enum.Font.Gotham
-status.Parent = frame
-
--- Toggle
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(1, -30, 0, 45)
-toggleButton.Position = UDim2.new(0, 15, 0, 75)
-toggleButton.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
-toggleButton.Text = "OFF"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.TextSize = 18
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.BorderSizePixel = 0
-toggleButton.Parent = frame
-
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
-buttonCorner.Parent = toggleButton
-
---==================================================
--- AUTO ROLL
---==================================================
-
-local autoRoll = false
-
-local function setStatus(on)
-    if on then
-        status.Text = "Status: ON"
-        status.TextColor3 = Color3.fromRGB(80, 255, 120)
-
-        toggleButton.Text = "ON"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(45, 170, 75)
-    else
-        status.Text = "Status: OFF"
-        status.TextColor3 = Color3.fromRGB(255, 80, 80)
-
-        toggleButton.Text = "OFF"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
-    end
-end
-
-toggleButton.MouseButton1Click:Connect(function()
-
-    autoRoll = not autoRoll
-    setStatus(autoRoll)
-
-    if autoRoll then
+    function()
+        autoRollOn = true
+        status("Auto Roll Dice: ON")
 
         task.spawn(function()
+            while autoRollOn do
 
-            while autoRoll do
-
-                local success, result = pcall(function()
-                    return RollDice:InvokeServer()
+                pcall(function()
+                    invokeRF("RollService", "RollDice")
                 end)
 
-                if not success then
-                    warn("❌ RollDice error:", result)
-                end
-
-                -- SATSET
-                task.wait(0.05)
+                task.wait(0.3)
             end
 
+            status("Auto Roll Dice: OFF")
         end)
+    end,
 
+    function()
+        autoRollOn = false
+        status("Auto Roll Dice: STOPPING...")
     end
-end)
-
-setStatus(false)
-
-print("🎲 Auto Roll GUI siap!")
+)
