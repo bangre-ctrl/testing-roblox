@@ -1,4 +1,4 @@
--- Dice Gacha Hub V9
+-- Dice Gacha Hub V10 - Enhanced Anti-AFK
 -- Auto Roll Dice uses RollService > RF > RollDice
 -- Auto Roll UI (SetAutoRoll) removed.
 
@@ -49,31 +49,29 @@ end
 --==================================================
 
 local ALL_DICES = {
-    {name = "Normal",       price = 1,       luck = 2,        emoji = "🎲"},
-    {name = "Fire",         price = 2500,    luck = 5,        emoji = "🔥"},
-    {name = "Water",        price = 10000,   luck = 10,       emoji = "💧"},
-    {name = "Nature",       price = 75000,   luck = 20,       emoji = "🌿"},
-    {name = "Lightning",    price = 500000,  luck = 42.5,     emoji = "⚡"},
-    {name = "Ice",          price = 4000000, luck = 100,      emoji = "❄️"},
-    {name = "Magma",        price = 30000000,        luck = 200,      emoji = "🌋"},
-    {name = "Storm",        price = 200000000,       luck = 400,      emoji = "🌪️"},
-    {name = "Shadow",       price = 1500000000,      luck = 750,      emoji = "🌑"},
-    {name = "Light",        price = 12000000000,     luck = 1500,     emoji = "✨"},
-    {name = "Blood Moon",   price = 100000000000,     luck = 3000,     emoji = "🔴"},
-    {name = "Void",         price = 750000000000,     luck = 6000,     emoji = "🕳️"},
-    {name = "Solar",        price = 5000000000000,    luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
-    {name = "Lunar",        price = 37500000000000,   luck = 25000,    emoji = "🌙"},
-    {name = "Galaxy",       price = 150000000000000,  luck = 50000,    emoji = "🌌"},
-    {name = "Black Hole",   price = 1000000000000000, luck = 100000,   emoji = "⚫"},
-    {name = "Dragon",       price = 8500000000000000,          luck = 200000,   emoji = "🐉"},
-
-    -- Harga dari Dev Log Console
-    {name = "Royal",        price = 100000000000000000,        luck = 400000,   emoji = "👑"},
-    {name = "Prismatic",    price = 1000000000000000000,       luck = 1000000,  emoji = "🌈"},
-    {name = "Arcane",       price = 1.2e19,                    luck = 2000000, emoji = "🔮"},
-    {name = "Corrupted",    price = 1.5e20,                    luck = 5000000,  emoji = "☣️"},
-    {name = "Titan",        price = 1e21,                      luck = 10000000, emoji = "🗿"},
-    {name = "Chrono",       price = 1.5e22,                    luck = 25000000, emoji = "⏳"},
+    {name = "Normal",       price = 1,                  luck = 2,        emoji = "🎲"},
+    {name = "Fire",         price = 2500,               luck = 5,        emoji = "🔥"},
+    {name = "Water",        price = 10000,              luck = 10,       emoji = "💧"},
+    {name = "Nature",       price = 75000,              luck = 20,       emoji = "🌿"},
+    {name = "Lightning",    price = 500000,             luck = 42.5,     emoji = "⚡"},
+    {name = "Ice",          price = 4000000,            luck = 100,      emoji = "❄️"},
+    {name = "Magma",        price = 30000000,           luck = 200,      emoji = "🌋"},
+    {name = "Storm",        price = 200000000,          luck = 400,      emoji = "🌪️"},
+    {name = "Light",        price = 12000000000,        luck = 1500,     emoji = "✨"},
+    {name = "Shadow",       price = 1500000000,         luck = 750,      emoji = "🌑"},
+    {name = "Blood Moon",   price = 100000000000,       luck = 3000,     emoji = "🔴"},
+    {name = "Void",         price = 750000000000,        luck = 6000,     emoji = "🕳️"},
+    {name = "Solar",        price = 5000000000000,       luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
+    {name = "Lunar",        price = 37500000000000,      luck = 25000,    emoji = "🌙"},
+    {name = "Galaxy",       price = 150000000000000,     luck = 50000,    emoji = "🌌"},
+    {name = "Black Hole",   price = 1000000000000000,    luck = 100000,   emoji = "⚫"},
+    {name = "Dragon",       price = 8500000000000000,    luck = 200000,   emoji = "🐉"},
+    {name = "Royal",        price = 1e17,                luck = 400000,   emoji = "👑"},
+    {name = "Prismatic",    price = 1e18,                luck = 1000000,  emoji = "🌈"},
+    {name = "Arcane",       price = 1.25e19,             luck = 2000000,  emoji = "🔮"},
+    {name = "Corrupted",    price = 1.5e20,              luck = 5000000,  emoji = "☣️"},
+    {name = "Titan",        price = 1e21,                luck = 10000000, emoji = "🗿"},
+    {name = "Chrono",       price = 1.5e22,              luck = 25000000, emoji = "⏳"},
 }
 
 --==================================================
@@ -925,28 +923,141 @@ task.spawn(function()
 end)
 
 --==================================================
--- ANTI AFK
+-- ANTI AFK + SERVER / TELEPORT DETECTOR
 --==================================================
 
+local TeleportService = game:GetService("TeleportService")
+
+local afkStartedAt = os.time()
+local lastJobId = game.JobId
+local lastPlaceId = game.PlaceId
+
+local function afkTime()
+    local elapsed = os.time() - afkStartedAt
+    local minutes = math.floor(elapsed / 60)
+    local seconds = elapsed % 60
+    return string.format("%02dm %02ds", minutes, seconds)
+end
+
+local function antiAFKAction()
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0, 0))
+    end)
+end
+
+-- Roblox idle event
 pcall(function()
     player.Idled:Connect(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
+        print("[ANTI-AFK] Player.Idled triggered at:", afkTime())
+        antiAFKAction()
+        status("Anti-AFK active | " .. afkTime())
     end)
 end)
 
+-- Periodic activity every 30 seconds
 task.spawn(function()
     while not closed do
-        task.wait(60)
+        task.wait(30)
 
-        if not closed then
-            pcall(function()
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
+        if closed then
+            break
+        end
+
+        antiAFKAction()
+
+        print(
+            "[ANTI-AFK] Activity sent | AFK:",
+            afkTime(),
+            "| JobId:",
+            game.JobId
+        )
+
+        status("Anti-AFK active | " .. afkTime())
+    end
+end)
+
+-- Teleport failure detector
+pcall(function()
+    TeleportService.TeleportInitFailed:Connect(function(
+        teleportResult,
+        teleportErrorMessage,
+        placeId,
+        teleportOptions
+    )
+        warn(
+            "[TELEPORT FAILED]",
+            "Result:",
+            teleportResult,
+            "Error:",
+            teleportErrorMessage,
+            "PlaceId:",
+            placeId
+        )
+    end)
+end)
+
+-- Character respawn detector
+pcall(function()
+    player.CharacterAdded:Connect(function(character)
+        print(
+            "[SERVER CHECK] CharacterAdded",
+            "| AFK:",
+            afkTime(),
+            "| JobId:",
+            game.JobId,
+            "| PlaceId:",
+            game.PlaceId
+        )
+
+        status("Character respawned | AFK " .. afkTime())
+    end)
+end)
+
+-- Server / place ID monitor
+task.spawn(function()
+    while not closed do
+        task.wait(10)
+
+        if closed then
+            break
+        end
+
+        local currentJobId = game.JobId
+        local currentPlaceId = game.PlaceId
+
+        if currentJobId ~= lastJobId then
+            warn("========================================")
+            warn("[SERVER CHANGE DETECTED]")
+            warn("Old JobId:", lastJobId)
+            warn("New JobId:", currentJobId)
+            warn("AFK Duration:", afkTime())
+            warn("PlaceId:", currentPlaceId)
+            warn("========================================")
+
+            lastJobId = currentJobId
+            lastPlaceId = currentPlaceId
+        end
+
+        if currentPlaceId ~= lastPlaceId then
+            warn("========================================")
+            warn("[PLACE CHANGE DETECTED]")
+            warn("Old PlaceId:", lastPlaceId)
+            warn("New PlaceId:", currentPlaceId)
+            warn("AFK Duration:", afkTime())
+            warn("========================================")
+
+            lastPlaceId = currentPlaceId
         end
     end
 end)
+
+print("========================================")
+print("[ANTI-AFK] Enhanced Anti-AFK loaded")
+print("[ANTI-AFK] Activity interval: 30 seconds")
+print("[ANTI-AFK] Start JobId:", game.JobId)
+print("[ANTI-AFK] Start PlaceId:", game.PlaceId)
+print("========================================")
 
 --==================================================
 -- DRAG
