@@ -70,8 +70,8 @@ local ALL_DICES = {
     {name = "Prismatic", price = 1000000000000000000,   luck = 1000000,  emoji = "🌈"},
     {name = "Arcane",    price = 12000000000000000000,  luck = 2000000,  emoji = "🔮"},
     {name = "Corrupted", price = 150000000000000000000, luck = 5000000,  emoji = "☣️"},
-    {name = "Titan",     price = 1000000000000000000000,luck = 10000000, emoji = "🗿"},
-    {name = "Chrono",    price = 15000000000000000000000,luck = 25000000, emoji = "⏳"},
+    {name = "Titan",  price = 1000000000000000000000,  luck = 10000000, emoji = "🗿"},
+    {name = "Chrono", price = 15000000000000000000000, luck = 25000000, emoji = "⏳"},
 }
 
 --==================================================
