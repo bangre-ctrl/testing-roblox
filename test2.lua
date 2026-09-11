@@ -1,4 +1,4 @@
--- Dice Gacha Hub
+-- Dice Gacha Hub V9
 -- Auto Roll Dice uses RollService > RF > RollDice
 -- Auto Roll UI (SetAutoRoll) removed.
 
@@ -990,20 +990,32 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 --==================================================
--- RIGHT CTRL: HIDE / SHOW GUI
+-- CTRL: HIDE / SHOW GUI
 --==================================================
+-- LDPlayer/Roblox reports the Ctrl key as LeftControl.
+-- Do not check gameProcessed here so the hotkey still works
+-- when Roblox/emulator marks the input as processed.
 
 local guiHidden = false
+local ctrlDebounce = false
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode ~= Enum.KeyCode.LeftControl then
         return
     end
 
-    if input.KeyCode == Enum.KeyCode.LeftControl then
-        guiHidden = not guiHidden
-        gui.Enabled = not guiHidden
+    if ctrlDebounce then
+        return
     end
+
+    ctrlDebounce = true
+
+    guiHidden = not guiHidden
+    gui.Enabled = not guiHidden
+
+    task.delay(0.2, function()
+        ctrlDebounce = false
+    end)
 end)
 
 --==================================================
