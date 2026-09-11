@@ -58,21 +58,22 @@ local ALL_DICES = {
     {name = "Magma",        price = 30000000,           luck = 200,      emoji = "🌋"},
     {name = "Storm",        price = 200000000,          luck = 400,      emoji = "🌪️"},
     {name = "Shadow",       price = 1500000000,         luck = 750,      emoji = "🌑"},
-    {name = "Light",        price = 12000000000,        luck = 1500,     emoji = "✨"},
-    {name = "Blood Moon",   price = 100000000000,       luck = 3000,     emoji = "🔴"},
-    {name = "Void",         price = 750000000000,       luck = 6000,     emoji = "🕳️"},
-    {name = "Solar",        price = 5000000000000,      luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
-    {name = "Lunar",        price = 37500000000000,     luck = 25000,    emoji = "🌙"},
-    {name = "Galaxy",       price = 150000000000000,    luck = 50000,    emoji = "🌌"},
-    {name = "Black Hole",   price = 1e15,               luck = 100000,   emoji = "⚫", displayPrice = "1qd"},
-    {name = "Dragon",       price = 8.5e15,             luck = 200000,   emoji = "🐉", displayPrice = "8.5qd"},
+    {name = "Light",        price = 12000000000,        luck = 1500,     emoji = "✨", displayPrice = "12B"},
+    {name = "Blood Moon",   price = 100000000000,       luck = 3000,     emoji = "🔴", displayPrice = "100B"},
+    {name = "Void",         price = 750000000000,       luck = 6000,     emoji = "🕳️", displayPrice = "750B"},
+    {name = "Solar",        price = 5000000000000,      luck = 12500,    luckStr = "12.5k", emoji = "☀️", displayPrice = "5T"},
+    {name = "Lunar",        price = 37500000000000,     luck = 25000,    emoji = "🌙", displayPrice = "37.5T"},
+    {name = "Galaxy",       price = 150000000000000,    luck = 50000,    emoji = "🌌", displayPrice = "150T"},
+    {name = "Black Hole",   price = 1000000000000000,  luck = 100000,   emoji = "⚫", displayPrice = "1qd"},
+    {name = "Dragon",       price = 8500000000000000,  luck = 200000,   emoji = "🐉", displayPrice = "8.5qd"},
     {name = "Royal",        price = 1e17,               luck = 400000,   emoji = "👑", displayPrice = "100qd"},
-    {name = "Prismatic",    price = 1e18,               luck = 1000000,  emoji = "🌈"},
-    {name = "Arcane",       price = 1.25e19,            luck = 2000000,  emoji = "🔮"},
+    {name = "Prismatic",    price = 1e18,               luck = 1000000,  emoji = "🌈", displayPrice = "1qi"},
+    {name = "Arcane",       price = 1.25e19,            luck = 2000000,  emoji = "🔮", displayPrice = "12qi"},
     {name = "Corrupted",    price = 1.5e20,             luck = 5000000,  emoji = "☣️", displayPrice = "150qi"},
     {name = "Titan",        price = 1e21,               luck = 10000000, emoji = "🗿", displayPrice = "1sx"},
     {name = "Chrono",       price = 1.5e22,             luck = 25000000, emoji = "⏳", displayPrice = "15sx"},
 }
+
 --==================================================
 -- STATE
 --==================================================
@@ -83,9 +84,6 @@ local autoCollectOn = false
 local autoEquipBestOn = false
 local autoSellOn = false
 local autoRebirthOn = false
-local antiAFKOn = true
-local antiAFKStartedAt = os.time()
-local antiAFKButton = nil
 local closed = false
 
 --==================================================
@@ -155,35 +153,6 @@ gui.Name = "DiceGachaHub"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
-
---==================================================
--- MINI ANTI-AFK INDICATOR
---==================================================
-
-local miniGui = Instance.new("ScreenGui")
-miniGui.Name = "DiceGachaMiniAFK"
-miniGui.ResetOnSpawn = false
-miniGui.IgnoreGuiInset = true
-miniGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-miniGui.DisplayOrder = 999999
-miniGui.Parent = player:WaitForChild("PlayerGui")
-
-local miniAFK = Instance.new("TextLabel")
-miniAFK.Name = "MiniAntiAFK"
-miniAFK.AnchorPoint = Vector2.new(0.5, 0)
-miniAFK.Size = UDim2.new(0, 245, 0, 34)
-miniAFK.Position = UDim2.new(0.5, 0, 0, 8)
-miniAFK.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-miniAFK.BackgroundTransparency = 0.05
-miniAFK.BorderSizePixel = 0
-miniAFK.Text = "🛡️ AFK 00m 00s | Server OK"
-miniAFK.TextColor3 = Color3.fromRGB(120, 255, 150)
-miniAFK.TextSize = 13
-miniAFK.Font = Enum.Font.GothamBold
-miniAFK.TextXAlignment = Enum.TextXAlignment.Center
-miniAFK.ZIndex = 100
-miniAFK.Parent = miniGui
-Instance.new("UICorner", miniAFK).CornerRadius = UDim.new(0, 8)
 
 local main = Instance.new("Frame")
 main.Name = "MainFrame"
@@ -777,35 +746,6 @@ toggle(
 )
 
 --==================================================
--- ANTI AFK GUI
---==================================================
-
-antiAFKButton = Instance.new("TextButton")
-antiAFKButton.Size = UDim2.new(1, -20, 0, 42)
-antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
-antiAFKButton.Text = "🛡️ Anti AFK : ON | 00m 00s"
-antiAFKButton.TextColor3 = Color3.new(1, 1, 1)
-antiAFKButton.TextSize = 13
-antiAFKButton.Font = Enum.Font.GothamBold
-antiAFKButton.BorderSizePixel = 0
-antiAFKButton.LayoutOrder = #left:GetChildren()
-antiAFKButton.Parent = left
-Instance.new("UICorner", antiAFKButton).CornerRadius = UDim.new(0, 8)
-
-antiAFKButton.MouseButton1Click:Connect(function()
-    antiAFKOn = not antiAFKOn
-
-    if antiAFKOn then
-        antiAFKStartedAt = os.time()
-        antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
-        status("Anti-AFK: ON")
-    else
-        antiAFKButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-        status("Anti-AFK: OFF")
-    end
-end)
-
---==================================================
 -- RIGHT: DICE SHOP
 --==================================================
 
@@ -866,9 +806,9 @@ local function formatMoney(value)
     value = tonumber(value) or 0
 
     local suffixes = {
-        {1e20, "sx"},
+        {1e21, "sx"},
         {1e18, "qi"},
-        {1e15, "qa"},
+        {1e15, "qd"},
         {1e12, "T"},
         {1e9, "B"},
         {1e6, "M"},
@@ -920,7 +860,7 @@ for i = #ALL_DICES, 1, -1 do
         "%s  %s  | $%s  | Luck x%s",
         d.emoji,
         d.name,
-        formatMoney(d.price),
+        d.displayPrice or formatMoney(d.price),
         d.luckStr or tostring(d.luck)
     )
     b.TextColor3 = Color3.new(1, 1, 1)
@@ -986,115 +926,25 @@ end)
 -- ANTI AFK
 --==================================================
 
-local TeleportService = game:GetService("TeleportService")
-local lastJobId = game.JobId
-local lastPlaceId = game.PlaceId
-local serverChanged = false
-
-local function afkTime()
-    local elapsed = os.time() - antiAFKStartedAt
-    return string.format("%02dm %02ds", math.floor(elapsed / 60), elapsed % 60)
-end
-
-local function updateAFKUI()
-    if closed then return end
-
-    if antiAFKButton and antiAFKButton.Parent then
-        if antiAFKOn then
-            antiAFKButton.Text = "🛡️ Anti AFK : ON | " .. afkTime()
-            antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
-        else
-            antiAFKButton.Text = "🛡️ Anti AFK : OFF"
-            antiAFKButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-        end
-    end
-
-    if miniAFK and miniAFK.Parent then
-        miniAFK.Text = "🛡️ AFK " .. afkTime() .. " | " .. (serverChanged and "⚠️ SERVER CHANGED" or "Server OK")
-        miniAFK.TextColor3 = serverChanged and Color3.fromRGB(255, 190, 90) or Color3.fromRGB(120, 255, 150)
-    end
-end
-
-local function antiAFKAction()
-    if not antiAFKOn or closed then return end
-
-    pcall(function()
-        local camera = workspace.CurrentCamera
-        if not camera then return end
-
-        VirtualUser:CaptureController()
-        VirtualUser:Button2Down(Vector2.zero, camera.CFrame)
-        task.wait(1)
-        camera = workspace.CurrentCamera or camera
-        VirtualUser:Button2Up(Vector2.zero, camera.CFrame)
-    end)
-
-    updateAFKUI()
-end
-
 pcall(function()
     player.Idled:Connect(function()
-        if antiAFKOn and not closed then
-            print("[ANTI-AFK] Player.Idled triggered | AFK:", afkTime())
-            antiAFKAction()
-        end
-    end)
-end)
-
--- Periodic Button2 activity every 30 seconds.
-task.spawn(function()
-    while not closed do
-        task.wait(30)
-        if antiAFKOn and not closed then
-            antiAFKAction()
-            print("[ANTI-AFK] Button2 activity sent | AFK:", afkTime(), "| JobId:", game.JobId)
-        end
-    end
-end)
-
--- Keep the visible indicators updated every second.
-task.spawn(function()
-    while not closed and gui.Parent do
-        updateAFKUI()
-        task.wait(1)
-    end
-end)
-
-pcall(function()
-    TeleportService.TeleportInitFailed:Connect(function(result, message, placeId)
-        warn("[TELEPORT FAILED]", result, message, placeId)
-    end)
-end)
-
-pcall(function()
-    player.CharacterAdded:Connect(function()
-        print("[SERVER CHECK] CharacterAdded | AFK:", afkTime(), "| JobId:", game.JobId, "| PlaceId:", game.PlaceId)
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
     end)
 end)
 
 task.spawn(function()
     while not closed do
-        task.wait(10)
-        local currentJobId = game.JobId
-        local currentPlaceId = game.PlaceId
+        task.wait(60)
 
-        if currentJobId ~= lastJobId then
-            serverChanged = true
-            warn("[SERVER CHANGE DETECTED] Old JobId:", lastJobId, "New JobId:", currentJobId, "AFK:", afkTime())
-            lastJobId = currentJobId
+        if not closed then
+            pcall(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
         end
-
-        if currentPlaceId ~= lastPlaceId then
-            serverChanged = true
-            warn("[PLACE CHANGE DETECTED] Old PlaceId:", lastPlaceId, "New PlaceId:", currentPlaceId, "AFK:", afkTime())
-            lastPlaceId = currentPlaceId
-        end
-
-        updateAFKUI()
     end
 end)
-
-print("[ANTI-AFK] V14 Button2Down/Button2Up loaded | interval: 30s")
 
 --==================================================
 -- DRAG
@@ -1162,7 +1012,6 @@ UserInputService.InputBegan:Connect(function(input)
 
     guiHidden = not guiHidden
     gui.Enabled = not guiHidden
-    miniGui.Enabled = true
 
     task.delay(0.2, function()
         ctrlDebounce = false
@@ -1211,12 +1060,8 @@ close.MouseButton1Click:Connect(function()
     autoEquipBestOn = false
     autoSellOn = false
     autoRebirthOn = false
-    antiAFKOn = false
 
     gui:Destroy()
-    if miniGui and miniGui.Parent then
-        miniGui:Destroy()
-    end
 end)
 
 print("========================================")
