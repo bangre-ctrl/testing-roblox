@@ -1,15 +1,10 @@
---// STANDALONE AUTO ROLL
---// Drag + Minimize + Close
+--// ROLL TEST - SPEED CONTROL
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 local UIS = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
-
---==================================================
--- ROLL REMOTE
---==================================================
 
 local RollDice = RS
     :WaitForChild("Network")
@@ -22,20 +17,18 @@ local RollDice = RS
 --==================================================
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "SimpleAutoRoll"
+gui.Name = "RollSpeedTest"
 gui.ResetOnSpawn = false
 gui.Parent = Player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 140)
-frame.Position = UDim2.new(0.5, -130, 0.5, -70)
+frame.Size = UDim2.new(0, 280, 0, 235)
+frame.Position = UDim2.new(0.5, -140, 0.5, -117)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = frame
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 --==================================================
 -- TITLE BAR
@@ -47,77 +40,184 @@ titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = frame
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 10)
-titleCorner.Parent = titleBar
-
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -75, 1, 0)
 title.Position = UDim2.new(0, 10, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "🎲  AUTO ROLL"
-title.TextColor3 = Color3.new(1, 1, 1)
+title.Text = "🎲  ROLL SPEED TEST"
+title.TextColor3 = Color3.new(1,1,1)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = titleBar
 
---==================================================
--- MINIMIZE
---==================================================
-
 local minimize = Instance.new("TextButton")
-minimize.Size = UDim2.new(0, 32, 0, 30)
-minimize.Position = UDim2.new(1, -68, 0, 4)
-minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 90)
+minimize.Size = UDim2.new(0, 30, 0, 30)
+minimize.Position = UDim2.new(1, -65, 0, 4)
+minimize.BackgroundColor3 = Color3.fromRGB(80,80,90)
 minimize.Text = "—"
-minimize.TextColor3 = Color3.new(1, 1, 1)
-minimize.TextSize = 20
+minimize.TextColor3 = Color3.new(1,1,1)
+minimize.TextSize = 18
 minimize.Font = Enum.Font.GothamBold
 minimize.BorderSizePixel = 0
 minimize.Parent = titleBar
 
-Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 6)
-
---==================================================
--- CLOSE
---==================================================
+Instance.new("UICorner", minimize).CornerRadius = UDim.new(0,6)
 
 local close = Instance.new("TextButton")
-close.Size = UDim2.new(0, 32, 0, 30)
-close.Position = UDim2.new(1, -34, 0, 4)
-close.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+close.Size = UDim2.new(0, 30, 0, 30)
+close.Position = UDim2.new(1, -33, 0, 4)
+close.BackgroundColor3 = Color3.fromRGB(180,50,50)
 close.Text = "X"
-close.TextColor3 = Color3.new(1, 1, 1)
-close.TextSize = 16
+close.TextColor3 = Color3.new(1,1,1)
+close.TextSize = 15
 close.Font = Enum.Font.GothamBold
 close.BorderSizePixel = 0
 close.Parent = titleBar
 
-Instance.new("UICorner", close).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", close).CornerRadius = UDim.new(0,6)
 
 --==================================================
--- CONTENT
+-- STATUS
 --==================================================
 
-local content = Instance.new("Frame")
-content.Size = UDim2.new(1, 0, 1, -38)
-content.Position = UDim2.new(0, 0, 0, 38)
-content.BackgroundTransparency = 1
-content.Parent = frame
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 30)
+status.Position = UDim2.new(0, 10, 0, 48)
+status.BackgroundTransparency = 1
+status.Text = "● OFF"
+status.TextColor3 = Color3.fromRGB(255,80,80)
+status.TextSize = 15
+status.Font = Enum.Font.GothamBold
+status.Parent = frame
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -30, 0, 55)
-button.Position = UDim2.new(0, 15, 0, 20)
-button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
-button.Text = "🎲 AUTO ROLL : OFF"
-button.TextColor3 = Color3.new(1, 1, 1)
-button.TextSize = 17
-button.Font = Enum.Font.GothamBold
-button.BorderSizePixel = 0
-button.Parent = content
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, -20, 0, 25)
+speedLabel.Position = UDim2.new(0, 10, 0, 75)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Roll Delay: 0.30s"
+speedLabel.TextColor3 = Color3.new(1,1,1)
+speedLabel.TextSize = 14
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.Parent = frame
 
-Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+--==================================================
+-- PRESET BUTTONS
+--==================================================
+
+local delays = {
+    {text = "0.30s", value = 0.30},
+    {text = "0.20s", value = 0.20},
+    {text = "0.10s", value = 0.10},
+    {text = "0.05s", value = 0.05}
+}
+
+local buttons = {}
+
+for i, data in ipairs(delays) do
+
+    local b = Instance.new("TextButton")
+
+    b.Size = UDim2.new(0, 58, 0, 35)
+    b.Position = UDim2.new(0, 10 + ((i-1) * 66), 0, 105)
+
+    b.BackgroundColor3 = Color3.fromRGB(55,55,65)
+    b.Text = data.text
+    b.TextColor3 = Color3.new(1,1,1)
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.Parent = frame
+
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,7)
+
+    buttons[i] = b
+
+    b.MouseButton1Click:Connect(function()
+
+        -- Jangan mengubah speed saat sedang running
+        -- supaya loop tetap stabil; speed baru berlaku
+        -- pada roll berikutnya.
+        rollDelay = data.value
+
+        speedLabel.Text =
+            string.format("Roll Delay: %.2fs", rollDelay)
+
+        for _, other in ipairs(buttons) do
+            other.BackgroundColor3 = Color3.fromRGB(55,55,65)
+        end
+
+        b.BackgroundColor3 = Color3.fromRGB(45,140,75)
+
+        print("[RollSpeed] Delay:", rollDelay)
+    end)
+end
+
+--==================================================
+-- ON / OFF
+--==================================================
+
+local toggle = Instance.new("TextButton")
+
+toggle.Size = UDim2.new(1, -20, 0, 42)
+toggle.Position = UDim2.new(0, 10, 0, 150)
+
+toggle.BackgroundColor3 = Color3.fromRGB(170,45,45)
+toggle.Text = "🎲 AUTO ROLL : OFF"
+toggle.TextColor3 = Color3.new(1,1,1)
+toggle.TextSize = 16
+toggle.Font = Enum.Font.GothamBold
+toggle.BorderSizePixel = 0
+toggle.Parent = frame
+
+Instance.new("UICorner", toggle).CornerRadius = UDim.new(0,8)
+
+--==================================================
+-- AUTO ROLL
+--==================================================
+
+local running = false
+local rollDelay = 0.30
+
+toggle.MouseButton1Click:Connect(function()
+
+    running = not running
+
+    if running then
+
+        toggle.Text = "🎲 AUTO ROLL : ON"
+        toggle.BackgroundColor3 = Color3.fromRGB(40,170,75)
+
+        status.Text = "● ON"
+        status.TextColor3 = Color3.fromRGB(80,255,100)
+
+        task.spawn(function()
+
+            while running do
+
+                local ok, result = pcall(function()
+                    return RollDice:InvokeServer()
+                end)
+
+                if not ok then
+                    warn("[AutoRoll] ERROR:", result)
+                end
+
+                task.wait(rollDelay)
+            end
+
+        end)
+
+    else
+
+        toggle.Text = "🎲 AUTO ROLL : OFF"
+        toggle.BackgroundColor3 = Color3.fromRGB(170,45,45)
+
+        status.Text = "● OFF"
+        status.TextColor3 = Color3.fromRGB(255,80,80)
+
+    end
+end)
 
 --==================================================
 -- DRAG
@@ -137,19 +237,18 @@ titleBar.InputBegan:Connect(function(input)
         startPos = frame.Position
 
         input.Changed:Connect(function()
+
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
             end
-        end)
 
+        end)
     end
 end)
 
 UIS.InputChanged:Connect(function(input)
 
-    if not dragging then
-        return
-    end
+    if not dragging then return end
 
     if input.UserInputType == Enum.UserInputType.MouseMovement
     or input.UserInputType == Enum.UserInputType.Touch then
@@ -162,44 +261,6 @@ UIS.InputChanged:Connect(function(input)
             startPos.Y.Scale,
             startPos.Y.Offset + delta.Y
         )
-
-    end
-end)
-
---==================================================
--- AUTO ROLL
---==================================================
-
-local running = false
-
-button.MouseButton1Click:Connect(function()
-
-    running = not running
-
-    if running then
-
-        button.Text = "🎲 AUTO ROLL : ON"
-        button.BackgroundColor3 = Color3.fromRGB(40, 170, 75)
-
-        task.spawn(function()
-
-            while running do
-
-                pcall(function()
-                    RollDice:InvokeServer()
-                end)
-
-                task.wait(0.3)
-
-            end
-
-        end)
-
-    else
-
-        button.Text = "🎲 AUTO ROLL : OFF"
-        button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
-
     end
 end)
 
@@ -215,18 +276,26 @@ minimize.MouseButton1Click:Connect(function()
 
     if minimized then
 
-        content.Visible = false
-        frame.Size = UDim2.new(0, 260, 0, 38)
+        for _, child in ipairs(frame:GetChildren()) do
+            if child ~= titleBar then
+                child.Visible = false
+            end
+        end
+
+        titleBar.Visible = true
+        frame.Size = UDim2.new(0, 280, 0, 38)
         minimize.Text = "□"
 
     else
 
-        content.Visible = true
-        frame.Size = UDim2.new(0, 260, 0, 140)
+        frame.Size = UDim2.new(0, 280, 0, 235)
+
+        for _, child in ipairs(frame:GetChildren()) do
+            child.Visible = true
+        end
+
         minimize.Text = "—"
-
     end
-
 end)
 
 --==================================================
@@ -240,4 +309,4 @@ close.MouseButton1Click:Connect(function()
 
 end)
 
-print("[SimpleAutoRoll] Loaded successfully!")
+print("[RollSpeedTest] Loaded successfully!")
