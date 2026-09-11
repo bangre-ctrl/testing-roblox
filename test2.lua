@@ -84,6 +84,9 @@ local autoCollectOn = false
 local autoEquipBestOn = false
 local autoSellOn = false
 local autoRebirthOn = false
+local antiAFKOn = true
+local antiAFKStartedAt = os.time()
+local antiAFKButton = nil
 local closed = false
 
 --==================================================
@@ -153,6 +156,40 @@ gui.Name = "DiceGachaHub"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
+
+--==================================================
+-- MINI ANTI-AFK INDICATOR
+--==================================================
+
+local miniAFK = Instance.new("TextLabel")
+miniAFK.Name = "MiniAntiAFK"
+miniAFK.Size = UDim2.new(0, 210, 0, 30)
+miniAFK.Position = UDim2.new(1, -220, 0, 12)
+miniAFK.BackgroundColor3 = Color3.fromRGB(31, 31, 39)
+miniAFK.BackgroundTransparency = 0.1
+miniAFK.BorderSizePixel = 0
+miniAFK.Text = "🛡️ AFK 00m 00s | Server OK"
+miniAFK.TextColor3 = Color3.fromRGB(120, 255, 150)
+miniAFK.TextSize = 12
+miniAFK.Font = Enum.Font.GothamBold
+miniAFK.ZIndex = 100
+local miniGui = Instance.new("ScreenGui")
+miniGui.Name = "DiceGachaMiniAFK"
+miniGui.ResetOnSpawn = false
+miniGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+miniGui.DisplayOrder = 999
+miniGui.Parent = player:WaitForChild("PlayerGui")
+miniAFK.Parent = miniGui
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(0, 8)
+miniCorner.Parent = miniAFK
+
+local miniStroke = Instance.new("UIStroke")
+miniStroke.Thickness = 1
+miniStroke.Transparency = 0.35
+miniStroke.Parent = miniAFK
+
 
 local main = Instance.new("Frame")
 main.Name = "MainFrame"
@@ -746,6 +783,55 @@ toggle(
 )
 
 --==================================================
+-- ANTI AFK GUI
+--==================================================
+
+antiAFKButton = Instance.new("TextButton")
+antiAFKButton.Size = UDim2.new(1, -20, 0, 42)
+antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
+antiAFKButton.Text = "🛡️ Anti AFK : ON | 00m 00s"
+antiAFKButton.TextColor3 = Color3.new(1, 1, 1)
+antiAFKButton.TextSize = 13
+antiAFKButton.Font = Enum.Font.GothamBold
+antiAFKButton.BorderSizePixel = 0
+antiAFKButton.LayoutOrder = #left:GetChildren()
+antiAFKButton.Parent = left
+Instance.new("UICorner", antiAFKButton).CornerRadius = UDim.new(0, 8)
+
+antiAFKButton.MouseButton1Click:Connect(function()
+    antiAFKOn = not antiAFKOn
+
+    if antiAFKOn then
+        antiAFKStartedAt = os.time()
+        antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
+        antiAFKButton.Text = "🛡️ Anti AFK : ON | 00m 00s"
+        status("Anti-AFK: ON")
+    else
+        antiAFKButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+        antiAFKButton.Text = "🛡️ Anti AFK : OFF"
+        status("Anti-AFK: OFF")
+    end
+end)
+
+task.spawn(function()
+    while not closed and antiAFKButton and antiAFKButton.Parent do
+        if antiAFKOn then
+            local elapsed = os.time() - antiAFKStartedAt
+            local minutes = math.floor(elapsed / 60)
+            local seconds = elapsed % 60
+            antiAFKButton.Text = string.format(
+                "🛡️ Anti AFK : ON | %02dm %02ds",
+                minutes,
+                seconds
+            )
+        else
+            antiAFKButton.Text = "🛡️ Anti AFK : OFF"
+        end
+        task.wait(1)
+    end
+end)
+
+--==================================================
 -- RIGHT: DICE SHOP
 --==================================================
 
@@ -931,6 +1017,30 @@ local TeleportService = game:GetService("TeleportService")
 local afkStartedAt = os.time()
 local lastJobId = game.JobId
 local lastPlaceId = game.PlaceId
+local serverChanged = false
+
+local function updateMiniAFK()
+    if closed or not miniAFK.Parent then
+        return
+    end
+
+    local elapsed = os.time() - afkStartedAt
+    local minutes = math.floor(elapsed / 60)
+    local seconds = elapsed % 60
+    local serverText = serverChanged and "⚠️ SERVER CHANGED" or "Server OK"
+
+    miniAFK.Text = string.format(
+        "🛡️ AFK %02dm %02ds | %s",
+        minutes,
+        seconds,
+        serverText
+    )
+
+    miniAFK.TextColor3 = serverChanged
+        and Color3.fromRGB(255, 190, 90)
+        or Color3.fromRGB(120, 255, 150)
+end
+
 
 local function afkTime()
     local elapsed = os.time() - afkStartedAt
@@ -940,6 +1050,10 @@ local function afkTime()
 end
 
 local function antiAFKAction()
+    if not antiAFKOn or closed then
+        return
+    end
+
     pcall(function()
         VirtualUser:CaptureController()
         VirtualUser:ClickButton2(Vector2.new(0, 0))
@@ -1027,6 +1141,8 @@ task.spawn(function()
         local currentPlaceId = game.PlaceId
 
         if currentJobId ~= lastJobId then
+            serverChanged = true
+            updateMiniAFK()
             warn("========================================")
             warn("[SERVER CHANGE DETECTED]")
             warn("Old JobId:", lastJobId)
@@ -1173,6 +1289,10 @@ close.MouseButton1Click:Connect(function()
     autoEquipBestOn = false
     autoSellOn = false
     autoRebirthOn = false
+
+    if miniGui then
+        miniGui:Destroy()
+    end
 
     gui:Destroy()
 end)
