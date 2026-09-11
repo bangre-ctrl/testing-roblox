@@ -926,23 +926,149 @@ end)
 -- ANTI AFK
 --==================================================
 
+-- Anti-AFK runs independently from the main GUI.
+-- The indicator is in a separate ScreenGui, so pressing
+-- LeftControl to hide the main hub does NOT hide this indicator.
+--
+-- Normal heartbeat:
+--   every 30 seconds -> right mouse button down
+--   wait 1 second    -> right mouse button up
+--
+-- Player.Idled is also handled as a backup.
+
+local antiAFKEnabled = true
+local antiAFKClosed = false
+local antiAFKStartedAt = time()
+local antiAFKLastActionAt = 0
+
+local function getCamera()
+    return workspace.CurrentCamera
+end
+
+local function antiAFKAction()
+    if antiAFKClosed or not antiAFKEnabled then
+        return false
+    end
+
+    local camera = getCamera()
+    if not camera then
+        return false
+    end
+
+    local ok = pcall(function()
+        VirtualUser:CaptureController()
+
+        local cameraCFrame = camera.CFrame
+
+        VirtualUser:Button2Down(Vector2.zero, cameraCFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.zero, cameraCFrame)
+    end)
+
+    if ok then
+        antiAFKLastActionAt = time()
+    end
+
+    return ok
+end
+
+--==================================================
+-- ANTI AFK MINI INDICATOR
+--==================================================
+
+local afkGui = Instance.new("ScreenGui")
+afkGui.Name = "DiceGachaAntiAFK"
+afkGui.ResetOnSpawn = false
+afkGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+afkGui.DisplayOrder = 999
+afkGui.Parent = player:WaitForChild("PlayerGui")
+
+local afkFrame = Instance.new("Frame")
+afkFrame.Name = "Status"
+afkFrame.Size = UDim2.new(0, 368, 0, 40)
+afkFrame.Position = UDim2.new(0.5, -184, 0, 0)
+afkFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 31)
+afkFrame.BackgroundTransparency = 0.05
+afkFrame.BorderSizePixel = 0
+afkFrame.Parent = afkGui
+
+Instance.new("UICorner", afkFrame).CornerRadius = UDim.new(0, 8)
+
+local afkStroke = Instance.new("UIStroke")
+afkStroke.Color = Color3.fromRGB(55, 60, 75)
+afkStroke.Thickness = 1
+afkStroke.Transparency = 0.2
+afkStroke.Parent = afkFrame
+
+local afkLabel = Instance.new("TextLabel")
+afkLabel.Size = UDim2.new(1, -16, 1, 0)
+afkLabel.Position = UDim2.new(0, 8, 0, 0)
+afkLabel.BackgroundTransparency = 1
+afkLabel.Text = "🛡️ Anti AFK ON | 00m 00s | Server OK"
+afkLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
+afkLabel.TextSize = 14
+afkLabel.Font = Enum.Font.GothamBold
+afkLabel.TextXAlignment = Enum.TextXAlignment.Center
+afkLabel.Parent = afkFrame
+
+local function formatAFKTime()
+    local elapsed = math.max(0, math.floor(time() - antiAFKStartedAt))
+    local minutes = math.floor(elapsed / 60)
+    local seconds = elapsed % 60
+
+    return string.format("%02dm %02ds", minutes, seconds)
+end
+
+local function updateAFKIndicator()
+    if not afkLabel.Parent then
+        return
+    end
+
+    local lastActionText = ""
+
+    if antiAFKLastActionAt > 0 then
+        local sinceAction = math.max(0, math.floor(time() - antiAFKLastActionAt))
+        lastActionText = string.format(" | Ping %02ds", sinceAction)
+    end
+
+    afkLabel.Text =
+        "🛡️ Anti AFK ON | "
+        .. formatAFKTime()
+        .. " | Server OK"
+        .. lastActionText
+end
+
+-- Roblox idle event: backup trigger.
 pcall(function()
     player.Idled:Connect(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
+        if not antiAFKClosed and antiAFKEnabled then
+            task.spawn(function()
+                antiAFKAction()
+            end)
+        end
     end)
 end)
 
+-- Main Anti-AFK heartbeat: every 30 seconds.
 task.spawn(function()
-    while not closed do
-        task.wait(60)
+    while not antiAFKClosed and not closed do
+        task.wait(30)
 
-        if not closed then
-            pcall(function()
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
+        if antiAFKClosed or closed or not antiAFKEnabled then
+            break
         end
+
+        task.spawn(function()
+            antiAFKAction()
+        end)
+    end
+end)
+
+-- UI timer updater. Uses Roblox time(), not os.time().
+task.spawn(function()
+    while not antiAFKClosed and not closed do
+        updateAFKIndicator()
+        task.wait(1)
     end
 end)
 
@@ -1053,6 +1179,7 @@ end)
 
 close.MouseButton1Click:Connect(function()
     closed = true
+    antiAFKClosed = true
 
     autoRollOn = false
     autoFarmOn = false
@@ -1060,6 +1187,10 @@ close.MouseButton1Click:Connect(function()
     autoEquipBestOn = false
     autoSellOn = false
     autoRebirthOn = false
+
+    if afkGui then
+        afkGui:Destroy()
+    end
 
     gui:Destroy()
 end)
