@@ -48,7 +48,6 @@ local function getNetwork()
     return ReplicatedStorage:WaitForChild("Network", 9e9)
 end
 
--- RemoteEvent:
 -- Network > Service > RE > RemoteEvent
 local function fireRE(serviceName, remoteName, ...)
     local network = getNetwork()
@@ -68,7 +67,6 @@ local function fireRE(serviceName, remoteName, ...)
     return remote:FireServer(...)
 end
 
--- RemoteFunction:
 -- Network > Service > RF > RemoteFunction
 local function invokeRF(serviceName, remoteName, ...)
     local network = getNetwork()
@@ -193,6 +191,7 @@ title.Parent = TitleBar
 
 local function makeTitleBtn(name, text, color, px)
     local b = Instance.new("TextButton")
+
     b.Name = name
     b.Size = UDim2.new(0, 28, 0, 22)
     b.Position = UDim2.new(1, px, 0.5, -11)
@@ -264,28 +263,39 @@ RollsLabel.Parent = StatsBar
 
 local function updateStats()
     pcall(function()
-        local ls = player:WaitForChild("leaderstats", 5)
+
+        local ls = player:WaitForChild(
+            "leaderstats",
+            5
+        )
 
         if ls then
+
             local money = ls:FindFirstChild("Money")
             local rolls = ls:FindFirstChild("Rolls")
 
             if money then
-                MoneyLabel.Text = "💰 Money: " .. tostring(money.Value)
+                MoneyLabel.Text =
+                    "💰 Money: "
+                    .. tostring(money.Value)
             end
 
             if rolls then
-                RollsLabel.Text = "🎲 Rolls: " .. tostring(rolls.Value)
+                RollsLabel.Text =
+                    "🎲 Rolls: "
+                    .. tostring(rolls.Value)
             end
         end
     end)
 end
 
 task.spawn(function()
+
     while ScreenGui and ScreenGui.Parent do
         updateStats()
         task.wait(1)
     end
+
 end)
 
 -- ═══════════════════════════════════════════════════════
@@ -304,7 +314,11 @@ Content.CanvasSize = UDim2.new(0, 0, 0, 0)
 Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 Content.Parent = MainFrame
 
-local layout = Instance.new("UIListLayout", Content)
+local layout = Instance.new(
+    "UIListLayout",
+    Content
+)
+
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0, 5)
 
@@ -320,7 +334,9 @@ local function nextO()
 end
 
 local function section(text, o)
+
     local l = Instance.new("TextLabel")
+
     l.Size = UDim2.new(1, 0, 0, 24)
     l.BackgroundTransparency = 1
     l.Text = "  " .. text
@@ -330,19 +346,25 @@ local function section(text, o)
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.LayoutOrder = o
     l.Parent = Content
+
 end
 
 local function sep(o)
+
     local s = Instance.new("Frame")
+
     s.Size = UDim2.new(1, -10, 0, 1)
     s.BackgroundColor3 = C.SEP
     s.BorderSizePixel = 0
     s.LayoutOrder = o
     s.Parent = Content
+
 end
 
 local function btn(text, o, callback)
+
     local b = Instance.new("TextButton")
+
     b.Size = UDim2.new(1, 0, 0, 32)
     b.BackgroundColor3 = C.BTN
     b.BorderSizePixel = 0
@@ -357,6 +379,7 @@ local function btn(text, o, callback)
     pad.PaddingLeft = UDim.new(0, 12)
 
     local tl = Instance.new("TextLabel")
+
     tl.Size = UDim2.new(1, -12, 1, 0)
     tl.BackgroundTransparency = 1
     tl.Text = text
@@ -367,18 +390,23 @@ local function btn(text, o, callback)
     tl.Parent = b
 
     b.MouseEnter:Connect(function()
+
         TweenService:Create(b, TweenInfo.new(0.12), {
             BackgroundColor3 = C.BTN_HOVER
         }):Play()
+
     end)
 
     b.MouseLeave:Connect(function()
+
         TweenService:Create(b, TweenInfo.new(0.12), {
             BackgroundColor3 = C.BTN
         }):Play()
+
     end)
 
     b.MouseButton1Click:Connect(function()
+
         TweenService:Create(b, TweenInfo.new(0.06), {
             BackgroundColor3 = C.ACCENT
         }):Play()
@@ -390,11 +418,22 @@ local function btn(text, o, callback)
         }):Play()
 
         if callback then
+
             local ok, err = pcall(callback)
 
             if not ok then
-                warn("[GUI] " .. tostring(err))
-                status("Error: " .. tostring(err))
+
+                warn(
+                    "[GUI ERROR]",
+                    tostring(err)
+                )
+
+                if StatusLabel then
+                    status(
+                        "Error: "
+                        .. tostring(err)
+                    )
+                end
             end
         end
     end)
@@ -402,10 +441,17 @@ local function btn(text, o, callback)
     return b
 end
 
-local function toggle(text, o, onCb, offCb)
+local function toggle(
+    text,
+    o,
+    onCb,
+    offCb
+)
+
     local isOn = false
 
     local b = Instance.new("TextButton")
+
     b.Size = UDim2.new(1, 0, 0, 32)
     b.BackgroundColor3 = C.BTN
     b.BorderSizePixel = 0
@@ -420,6 +466,7 @@ local function toggle(text, o, onCb, offCb)
     pad.PaddingLeft = UDim.new(0, 12)
 
     local tl = Instance.new("TextLabel")
+
     tl.Name = "Label"
     tl.Size = UDim2.new(1, -60, 1, 0)
     tl.BackgroundTransparency = 1
@@ -431,6 +478,7 @@ local function toggle(text, o, onCb, offCb)
     tl.Parent = b
 
     local ind = Instance.new("TextLabel")
+
     ind.Name = "Indicator"
     ind.Size = UDim2.new(0, 40, 0, 20)
     ind.Position = UDim2.new(1, -52, 0.5, -10)
@@ -444,25 +492,35 @@ local function toggle(text, o, onCb, offCb)
     Instance.new("UICorner", ind).CornerRadius = UDim.new(0, 6)
 
     b.MouseEnter:Connect(function()
+
         if not isOn then
+
             TweenService:Create(b, TweenInfo.new(0.12), {
                 BackgroundColor3 = C.BTN_HOVER
             }):Play()
+
         end
+
     end)
 
     b.MouseLeave:Connect(function()
+
         if not isOn then
+
             TweenService:Create(b, TweenInfo.new(0.12), {
                 BackgroundColor3 = C.BTN
             }):Play()
+
         end
+
     end)
 
     b.MouseButton1Click:Connect(function()
+
         isOn = not isOn
 
         if isOn then
+
             ind.Text = "ON"
 
             TweenService:Create(ind, TweenInfo.new(0.15), {
@@ -476,7 +534,9 @@ local function toggle(text, o, onCb, offCb)
             if onCb then
                 pcall(onCb)
             end
+
         else
+
             ind.Text = "OFF"
 
             TweenService:Create(ind, TweenInfo.new(0.15), {
@@ -490,6 +550,7 @@ local function toggle(text, o, onCb, offCb)
             if offCb then
                 pcall(offCb)
             end
+
         end
     end)
 
@@ -503,6 +564,7 @@ end
 -- ═══════════════════════════════════════════════════════
 
 local StatusLabel = Instance.new("TextLabel")
+
 StatusLabel.Name = "Status"
 StatusLabel.Size = UDim2.new(1, 0, 0, 20)
 StatusLabel.BackgroundTransparency = 1
@@ -514,60 +576,107 @@ StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 StatusLabel.LayoutOrder = 9999
 StatusLabel.Parent = Content
 
-local function status(msg)
-    if StatusLabel and StatusLabel.Parent then
-        StatusLabel.Text = "⏺ " .. msg
+function status(msg)
 
-        task.delay(4, function()
-            if StatusLabel and StatusLabel.Parent then
-                if StatusLabel.Text == "⏺ " .. msg then
-                    StatusLabel.Text = "⏺ Ready"
-                end
-            end
-        end)
+    if not StatusLabel
+        or not StatusLabel.Parent then
+        return
     end
+
+    StatusLabel.Text = "⏺ " .. msg
+
+    task.delay(4, function()
+
+        if StatusLabel
+            and StatusLabel.Parent
+            and StatusLabel.Text
+                == "⏺ " .. msg then
+
+            StatusLabel.Text = "⏺ Ready"
+        end
+
+    end)
 end
 
 -- ═══════════════════════════════════════════════════════
 --  GACHA / ROLL
 -- ═══════════════════════════════════════════════════════
 
-section("🎰  GACHA / ROLL", nextO())
+section(
+    "🎰  GACHA / ROLL",
+    nextO()
+)
 
-btn("🎲  Roll Dice", nextO(), function()
-    status("Rolling dice...")
-
-    local ok, result = pcall(function()
-        return invokeRF("RollService", "RollDice")
-    end)
-
-    if ok then
-        status("Dice rolled!")
-    else
-        status("Roll failed!")
-        warn("[ROLL ERROR]", result)
-    end
-end)
-
-toggle("🔄  Auto Roll", nextO(),
+btn(
+    "🎲  Roll Dice",
+    nextO(),
     function()
+
+        status("Rolling dice...")
+
+        local ok, result = pcall(function()
+
+            return invokeRF(
+                "RollService",
+                "RollDice"
+            )
+
+        end)
+
+        if ok then
+            status("Dice rolled!")
+        else
+            status("Roll failed!")
+            warn(
+                "[ROLL ERROR]",
+                tostring(result)
+            )
+        end
+    end
+)
+
+toggle(
+    "🔄  Auto Roll",
+    nextO(),
+
+    function()
+
         status("Auto Roll: ON")
 
         local ok, err = pcall(function()
-            fireRE("RollService", "SetAutoRoll", true)
+
+            fireRE(
+                "RollService",
+                "SetAutoRoll",
+                true
+            )
+
         end)
 
         if not ok then
             status("Auto Roll error!")
-            warn("[AUTO ROLL ERROR]", err)
+            warn(
+                "[AUTO ROLL ERROR]",
+                tostring(err)
+            )
         end
+
     end,
+
     function()
+
         status("Auto Roll: OFF")
 
         pcall(function()
-            fireRE("RollService", "SetAutoRoll", false)
+
+            fireRE(
+                "RollService",
+                "SetAutoRoll",
+                false
+            )
+
         end)
+
     end
 )
 
@@ -577,51 +686,82 @@ sep(nextO())
 --  EQUIP
 -- ═══════════════════════════════════════════════════════
 
-section("⚔️  EQUIP", nextO())
+section(
+    "⚔️  EQUIP",
+    nextO()
+)
 
-btn("📦  Buka Tas (Equip 1 per 1)", nextO(), function()
-    status("Opening bag...")
+btn(
+    "📦  Buka Tas (Equip 1 per 1)",
+    nextO(),
+    function()
 
-    fireRE(
-        "OnboardingService",
-        "Advance",
-        2
-    )
+        status("Opening bag...")
 
-    status("Bag opened!")
-end)
+        fireRE(
+            "OnboardingService",
+            "Advance",
+            2
+        )
 
-btn("⚡  Equip Best → Slot Tanam", nextO(), function()
-    status("Equipping best to slots...")
+        status("Bag opened!")
 
-    fireRE(
-        "PlotService",
-        "EquipBest"
-    )
+    end
+)
 
-    status("All slots filled!")
-end)
+btn(
+    "⚡  Equip Best → Slot Tanam",
+    nextO(),
+    function()
+
+        status(
+            "Equipping best to slots..."
+        )
+
+        fireRE(
+            "PlotService",
+            "EquipBest"
+        )
+
+        status("All slots filled!")
+
+    end
+)
 
 local autoEquipBestOn = false
 
-toggle("🔄  Auto Equip Best", nextO(),
+toggle(
+    "🔄  Auto Equip Best",
+    nextO(),
+
     function()
+
         autoEquipBestOn = true
         status("Auto Equip Best: ON")
 
         task.spawn(function()
+
             while autoEquipBestOn do
 
                 pcall(function()
+
                     fireRE(
                         "PlotService",
                         "EquipBest"
                     )
+
                 end)
 
-                local nextDelay = math.random(60, 300)
-                local minutes = math.floor(nextDelay / 60)
-                local seconds = nextDelay % 60
+                local nextDelay =
+                    math.random(60, 300)
+
+                local minutes =
+                    math.floor(
+                        nextDelay / 60
+                    )
+
+                local seconds =
+                    nextDelay % 60
 
                 status(string.format(
                     "Equip Best fired! Next in: %dm %ds",
@@ -631,18 +771,29 @@ toggle("🔄  Auto Equip Best", nextO(),
 
                 local elapsed = 0
 
-                while autoEquipBestOn and elapsed < nextDelay do
+                while autoEquipBestOn
+                    and elapsed < nextDelay do
+
                     task.wait(1)
                     elapsed += 1
+
                 end
             end
 
-            status("Auto Equip Best: OFF")
+            status(
+                "Auto Equip Best: OFF"
+            )
+
         end)
     end,
+
     function()
+
         autoEquipBestOn = false
-        status("Auto Equip Best: OFF")
+        status(
+            "Auto Equip Best: OFF"
+        )
+
     end
 )
 
@@ -652,7 +803,10 @@ sep(nextO())
 --  SELL
 -- ═══════════════════════════════════════════════════════
 
-section("💰  SELL", nextO())
+section(
+    "💰  SELL",
+    nextO()
+)
 
 local function getSellableUUIDs()
 
@@ -666,53 +820,77 @@ local function getSellableUUIDs()
             ReplicatedStorage.Framework.Features.Selling.SellUtil
         )
 
-        local inventory = dataCtrl.Inventory()
-        local slots = dataCtrl.Slots()
+        local inventory =
+            dataCtrl.Inventory()
+
+        local slots =
+            dataCtrl.Slots()
 
         if not inventory then
-            error("Inventory data tidak ditemukan")
+            error(
+                "Inventory data tidak ditemukan"
+            )
         end
 
-        local summary = sellUtil.CreateSummary(
-            inventory,
-            slots
-        )
+        local summary =
+            sellUtil.CreateSummary(
+                inventory,
+                slots
+            )
 
         if not summary then
-            error("SellUtil.CreateSummary gagal")
+            error(
+                "SellUtil.CreateSummary gagal"
+            )
         end
 
         local uuids = {}
 
         if summary.sales then
-            for _, sale in ipairs(summary.sales) do
+
+            for _, sale in ipairs(
+                summary.sales
+            ) do
+
                 if sale.key then
+
                     table.insert(
                         uuids,
                         sale.key
                     )
+
                 end
             end
         end
 
         return uuids
+
     end)
 
     if success then
         return result or {}
     end
 
-    warn("[SELL SCAN ERROR]", result)
-    status("Sell scan error!")
+    warn(
+        "[SELL SCAN ERROR]",
+        tostring(result)
+    )
+
+    status(
+        "Sell scan error!"
+    )
 
     return {}
 end
 
 local function sellInventory()
 
-    status("Scanning inventory...")
+    status(
+        "Scanning inventory..."
+    )
 
-    local uuids = getSellableUUIDs()
+    local uuids =
+        getSellableUUIDs()
 
     print(
         "[SELL] Sellable items:",
@@ -720,7 +898,11 @@ local function sellInventory()
     )
 
     if #uuids == 0 then
-        status("Tidak ada hero yang bisa dijual!")
+
+        status(
+            "Tidak ada hero yang bisa dijual!"
+        )
+
         return
     end
 
@@ -730,15 +912,16 @@ local function sellInventory()
         .. " heroes..."
     )
 
-    local success, result = pcall(function()
+    local success, result =
+        pcall(function()
 
-        return invokeRF(
-            "SellService",
-            "SellInventory",
-            uuids
-        )
+            return invokeRF(
+                "SellService",
+                "SellInventory",
+                uuids
+            )
 
-    end)
+        end)
 
     if success then
 
@@ -755,12 +938,15 @@ local function sellInventory()
 
     else
 
-        status("Sell failed!")
+        status(
+            "Sell failed!"
+        )
 
         warn(
             "[SELL ERROR]",
             tostring(result)
         )
+
     end
 end
 
@@ -777,29 +963,42 @@ btn(
     nextO(),
     function()
 
-        status("Selling equipped...")
+        status(
+            "Selling equipped..."
+        )
 
-        local success, result = pcall(function()
+        local success, result =
+            pcall(function()
 
-            return invokeRF(
-                "SellService",
-                "SellEquipped"
-            )
+                return invokeRF(
+                    "SellService",
+                    "SellEquipped"
+                )
 
-        end)
+            end)
 
         if success then
-            status("Equipped sold!")
+
+            status(
+                "Equipped sold!"
+            )
+
             print(
                 "[SELL] SellEquipped success:",
                 result
             )
+
         else
-            status("Sell equipped failed!")
+
+            status(
+                "Sell equipped failed!"
+            )
+
             warn(
                 "[SELL EQUIPPED ERROR]",
                 tostring(result)
             )
+
         end
     end
 )
@@ -813,7 +1012,9 @@ toggle(
     function()
 
         autoSellInvOn = true
-        status("Auto Sell Inv: ON")
+        status(
+            "Auto Sell Inv: ON"
+        )
 
         task.spawn(function()
 
@@ -855,6 +1056,7 @@ toggle(
                             status(
                                 "Auto Sell failed!"
                             )
+
                         end
                     end
 
@@ -863,14 +1065,20 @@ toggle(
                 task.wait(3)
             end
 
-            status("Auto Sell Inv: OFF")
+            status(
+                "Auto Sell Inv: OFF"
+            )
+
         end)
     end,
 
     function()
 
         autoSellInvOn = false
-        status("Auto Sell Inv: OFF")
+
+        status(
+            "Auto Sell Inv: OFF"
+        )
 
     end
 )
@@ -881,14 +1089,19 @@ sep(nextO())
 --  COLLECT BALANCE
 -- ═══════════════════════════════════════════════════════
 
-section("💎  COLLECT BALANCE", nextO())
+section(
+    "💎  COLLECT BALANCE",
+    nextO()
+)
 
 btn(
     "💵  Collect ALL Slots (1-8)",
     nextO(),
     function()
 
-        status("Collecting all slots...")
+        status(
+            "Collecting all slots..."
+        )
 
         for i = 1, 8 do
 
@@ -905,7 +1118,10 @@ btn(
             task.wait(0.08)
         end
 
-        status("All 8 slots collected!")
+        status(
+            "All 8 slots collected!"
+        )
+
     end
 )
 
@@ -915,33 +1131,49 @@ sep(nextO())
 --  REBIRTH
 -- ═══════════════════════════════════════════════════════
 
-section("🌟  REBIRTH", nextO())
+section(
+    "🌟  REBIRTH",
+    nextO()
+)
 
 btn(
     "♻️  Rebirth (1x)",
     nextO(),
     function()
 
-        status("Attempting Rebirth...")
+        status(
+            "Attempting Rebirth..."
+        )
 
-        local success, result = pcall(function()
+        local success, result =
+            pcall(function()
 
-            return fireRE(
-                "RebirthService",
-                "Rebirth"
-            )
+                return fireRE(
+                    "RebirthService",
+                    "Rebirth"
+                )
 
-        end)
+            end)
 
         if success then
-            status("Rebirth request sent!")
+
+            status(
+                "Rebirth request sent!"
+            )
+
         else
-            status("Rebirth failed!")
+
+            status(
+                "Rebirth failed!"
+            )
+
             warn(
                 "[REBIRTH ERROR]",
                 tostring(result)
             )
+
         end
+
     end
 )
 
@@ -954,7 +1186,9 @@ toggle(
     function()
 
         autoRebirthOn = true
-        status("Auto Rebirth: ON")
+        status(
+            "Auto Rebirth: ON"
+        )
 
         task.spawn(function()
 
@@ -973,7 +1207,9 @@ toggle(
                     math.random(60, 300)
 
                 local minutes =
-                    math.floor(nextDelay / 60)
+                    math.floor(
+                        nextDelay / 60
+                    )
 
                 local seconds =
                     nextDelay % 60
@@ -993,16 +1229,23 @@ toggle(
                     elapsed += 1
 
                 end
+
             end
 
-            status("Auto Rebirth: OFF")
+            status(
+                "Auto Rebirth: OFF"
+            )
+
         end)
     end,
 
     function()
 
         autoRebirthOn = false
-        status("Auto Rebirth: OFF")
+
+        status(
+            "Auto Rebirth: OFF"
+        )
 
     end
 )
@@ -1013,7 +1256,10 @@ sep(nextO())
 --  BUY DICE
 -- ═══════════════════════════════════════════════════════
 
-section("🛒  BUY DICE", nextO())
+section(
+    "🛒  BUY DICE",
+    nextO()
+)
 
 local ALL_DICES = {
 
@@ -1242,6 +1488,10 @@ local function formatNumber(n)
     end
 end
 
+-- ═══════════════════════════════════════════════════════
+--  AUTO BUY BEST DICE
+-- ═══════════════════════════════════════════════════════
+
 local autoBuyBestOn = false
 
 toggle(
@@ -1251,32 +1501,72 @@ toggle(
     function()
 
         autoBuyBestOn = true
-        status("Auto Buy Best: ON")
+
+        status(
+            "Auto Buy Best: ON"
+        )
 
         task.spawn(function()
 
             while autoBuyBestOn do
 
-                pcall(function()
+                local success, err =
+                    pcall(function()
 
-                    local ls =
-                        player:FindFirstChild(
-                            "leaderstats"
-                        )
+                        local ls =
+                            player:FindFirstChild(
+                                "leaderstats"
+                            )
 
-                    local moneyVal =
-                        ls
-                        and ls:FindFirstChild(
-                            "Money"
-                        )
+                        local moneyVal =
+                            ls
+                            and ls:FindFirstChild(
+                                "Money"
+                            )
 
-                    if moneyVal then
+                        if not moneyVal then
+
+                            status(
+                                "Money tidak ditemukan!"
+                            )
+
+                            warn(
+                                "[AUTO BUY] Money tidak ditemukan"
+                            )
+
+                            return
+                        end
 
                         local money =
                             tonumber(
                                 moneyVal.Value
-                            ) or 0
+                            )
 
+                        print(
+                            "[AUTO BUY] Money:",
+                            moneyVal.Value,
+                            "=>",
+                            money
+                        )
+
+                        if not money then
+
+                            status(
+                                "Money bukan angka!"
+                            )
+
+                            warn(
+                                "[AUTO BUY] Invalid Money:",
+                                moneyVal.Value
+                            )
+
+                            return
+                        end
+
+                        local selectedDice = nil
+
+                        -- Cari dice TERMAHAL
+                        -- yang mampu dibeli
                         for i = #ALL_DICES, 1, -1 do
 
                             local d =
@@ -1284,42 +1574,77 @@ toggle(
 
                             if money >= d.price then
 
-                                fireRE(
-                                    "DiceShopService",
-                                    "BuyDice",
-                                    d.name
-                                )
-
-                                status(
-                                    "Auto Bought: "
-                                    .. d.name
-                                )
-
+                                selectedDice = d
                                 break
+
                             end
                         end
-                    end
 
-                end)
+                        if not selectedDice then
 
-                local nextDelay =
-                    math.random(60, 300)
+                            status(
+                                "Money kurang untuk dice!"
+                            )
 
-                local minutes =
-                    math.floor(
-                        nextDelay / 60
+                            return
+                        end
+
+                        print(
+                            "[AUTO BUY] Selected:",
+                            selectedDice.name,
+                            "| Price:",
+                            selectedDice.price,
+                            "| Money:",
+                            money
+                        )
+
+                        status(
+                            "Buying "
+                            .. selectedDice.name
+                            .. " ($"
+                            .. formatNumber(
+                                selectedDice.price
+                            )
+                            .. ")..."
+                        )
+
+                        -- BuyDice terbukti berada di:
+                        -- Network > DiceShopService
+                        -- > RE > BuyDice
+                        fireRE(
+                            "DiceShopService",
+                            "BuyDice",
+                            selectedDice.name
+                        )
+
+                        print(
+                            "[AUTO BUY] BuyDice fired:",
+                            selectedDice.name
+                        )
+
+                        status(
+                            "BuyDice fired: "
+                            .. selectedDice.name
+                        )
+
+                    end)
+
+                if not success then
+
+                    warn(
+                        "[AUTO BUY ERROR]",
+                        tostring(err)
                     )
 
-                local seconds =
-                    nextDelay % 60
+                    status(
+                        "Auto Buy error!"
+                    )
 
-                status(string.format(
-                    "Dice checked! Next in: %dm %ds",
-                    minutes,
-                    seconds
-                ))
+                end
 
+                -- Cek kembali setiap 60 detik
                 local elapsed = 0
+                local nextDelay = 60
 
                 while autoBuyBestOn
                     and elapsed < nextDelay do
@@ -1328,19 +1653,30 @@ toggle(
                     elapsed += 1
 
                 end
+
             end
 
-            status("Auto Buy Best: OFF")
+            status(
+                "Auto Buy Best: OFF"
+            )
+
         end)
     end,
 
     function()
 
         autoBuyBestOn = false
-        status("Auto Buy Best: OFF")
+
+        status(
+            "Auto Buy Best: OFF"
+        )
 
     end
 )
+
+-- ═══════════════════════════════════════════════════════
+--  INDIVIDUAL DICE BUTTONS
+-- ═══════════════════════════════════════════════════════
 
 for _, d in ipairs(ALL_DICES) do
 
@@ -1380,6 +1716,11 @@ for _, d in ipairs(ALL_DICES) do
                     .. " purchased!"
                 )
 
+                print(
+                    "[BUY] BuyDice fired:",
+                    d.name
+                )
+
             else
 
                 status(
@@ -1392,7 +1733,9 @@ for _, d in ipairs(ALL_DICES) do
                     "[BUY ERROR]",
                     tostring(result)
                 )
+
             end
+
         end
     )
 end
@@ -1403,7 +1746,10 @@ sep(nextO())
 --  AUTOMATION
 -- ═══════════════════════════════════════════════════════
 
-section("🤖  AUTOMATION", nextO())
+section(
+    "🤖  AUTOMATION",
+    nextO()
+)
 
 local autoFarmOn = false
 
@@ -1414,13 +1760,16 @@ toggle(
     function()
 
         autoFarmOn = true
-        status("Auto Farm STARTED")
+
+        status(
+            "Auto Farm STARTED"
+        )
 
         task.spawn(function()
 
             while autoFarmOn do
 
-                -- 1. Roll Dice
+                -- 1. Roll
                 pcall(function()
 
                     invokeRF(
@@ -1481,16 +1830,23 @@ toggle(
                 end)
 
                 task.wait(0.8)
+
             end
 
-            status("Auto Farm STOPPED")
+            status(
+                "Auto Farm STOPPED"
+            )
+
         end)
     end,
 
     function()
 
         autoFarmOn = false
-        status("Auto Farm STOPPING...")
+
+        status(
+            "Auto Farm STOPPING..."
+        )
 
     end
 )
@@ -1504,7 +1860,10 @@ toggle(
     function()
 
         autoCollectOn = true
-        status("Auto Collect STARTED")
+
+        status(
+            "Auto Collect STARTED"
+        )
 
         task.spawn(function()
 
@@ -1523,19 +1882,27 @@ toggle(
                     end)
 
                     task.wait(0.05)
+
                 end
 
                 task.wait(3)
+
             end
 
-            status("Auto Collect STOPPED")
+            status(
+                "Auto Collect STOPPED"
+            )
+
         end)
     end,
 
     function()
 
         autoCollectOn = false
-        status("Auto Collect STOPPING...")
+
+        status(
+            "Auto Collect STOPPING..."
+        )
 
     end
 )
@@ -1549,7 +1916,10 @@ toggle(
     function()
 
         autoRollBuyOn = true
-        status("Auto Roll+Buy STARTED")
+
+        status(
+            "Auto Roll+Buy STARTED"
+        )
 
         task.spawn(function()
 
@@ -1577,17 +1947,20 @@ toggle(
                 end)
 
                 task.wait(0.5)
+
             end
 
             status(
                 "Auto Roll+Buy STOPPED"
             )
+
         end)
     end,
 
     function()
 
         autoRollBuyOn = false
+
         status(
             "Auto Roll+Buy STOPPING..."
         )
@@ -1601,7 +1974,7 @@ sep(nextO())
 --  DRAGGING
 -- ═══════════════════════════════════════════════════════
 
-local dragging
+local dragging = false
 local dragInput
 local dragStart
 local startPos
@@ -1623,6 +1996,7 @@ TitleBar.InputBegan:Connect(function(input)
                 == Enum.UserInputState.End then
 
                 dragging = false
+
             end
 
         end)
@@ -1637,6 +2011,7 @@ TitleBar.InputChanged:Connect(function(input)
         == Enum.UserInputType.Touch then
 
         dragInput = input
+
     end
 
 end)
@@ -1656,6 +2031,7 @@ UserInputService.InputChanged:Connect(function(input)
                 startPos.Y.Scale,
                 startPos.Y.Offset + d.Y
             )
+
     end
 
 end)
@@ -1710,13 +2086,19 @@ MinBtn.MouseButton1Click:Connect(function()
 
         task.delay(TWEEN, function()
 
-            Content.Visible = true
-            StatsBar.Visible = true
-            accent.Visible = true
+            if MainFrame
+                and MainFrame.Parent then
+
+                Content.Visible = true
+                StatsBar.Visible = true
+                accent.Visible = true
+
+            end
 
         end)
 
         MinBtn.Text = "—"
+
     end
 
 end)
@@ -1751,13 +2133,16 @@ ClsBtn.MouseButton1Click:Connect(function()
     task.wait(0.2)
 
     ScreenGui:Destroy()
+
 end)
 
 -- ═══════════════════════════════════════════════════════
 --  DONE
 -- ═══════════════════════════════════════════════════════
 
-status("GUI Loaded! 🎲")
+status(
+    "GUI Loaded! 🎲"
+)
 
 print(
     "[DiceGachaHub] Loaded successfully!"
