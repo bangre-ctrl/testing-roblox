@@ -9,8 +9,30 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
 
 local player = Players.LocalPlayer
+
+-- ═══════════════════════════════════════════════════════
+--  ANTI-AFK SYSTEM (Anti 20-Minutes Kick)
+-- ═══════════════════════════════════════════════════════
+
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+    print("[DiceGachaHub] Anti-AFK: Keystroke/Click dispatched to prevent disconnect!")
+end)
+
+-- Backup timer agar tidak pernah idle
+task.spawn(function()
+    while true do
+        task.wait(600) -- Setiap 10 menit
+        pcall(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+        end)
+    end
+end)
 
 -- ═══════════════════════════════════════════════════════
 --  NETWORK HELPERS
@@ -451,6 +473,39 @@ btn("⚡  Equip Best → Slot Tanam", nextO(), function()
     status("All slots filled!")
 end)
 
+local autoEquipBestOn = false
+
+toggle("🔄  Auto Equip Best", nextO(),
+    function()
+        autoEquipBestOn = true
+        status("Auto Equip Best: ON")
+        task.spawn(function()
+            while autoEquipBestOn do
+                pcall(function()
+                    fireRE("PlotService", "EquipBest")
+                end)
+
+                local nextDelay = math.random(60, 300) -- Acak antara 1 sampai 5 menit
+                local minutes = math.floor(nextDelay / 60)
+                local seconds = nextDelay % 60
+                status(string.format("Equip Best fired! Next in: %dm %ds", minutes, seconds))
+
+                -- Tunggu dengan break-check jika toggle dimatikan
+                local elapsed = 0
+                while autoEquipBestOn and elapsed < nextDelay do
+                    task.wait(1)
+                    elapsed = elapsed + 1
+                end
+            end
+            status("Auto Equip Best: OFF")
+        end)
+    end,
+    function()
+        autoEquipBestOn = false
+        status("Auto Equip Best: OFF")
+    end
+)
+
 sep(nextO())
 
 -- ═══════════════════════════════════════════════════════
@@ -459,20 +514,70 @@ sep(nextO())
 
 section("💰  SELL", nextO())
 
+local function getSellableUUIDs()
+    local success, result = pcall(function()
+        local dataCtrl = require(ReplicatedStorage.Framework.Features.Data.DataController)
+        local sellUtil = require(ReplicatedStorage.Framework.Features.Selling.SellUtil)
+        local summary = sellUtil.CreateSummary(dataCtrl.Inventory(), dataCtrl.Slots())
+        local uuids = {}
+        for _, sale in ipairs(summary.sales) do
+            table.insert(uuids, sale.key)
+        end
+        return uuids
+    end)
+    if success and result then
+        return result
+    end
+    return {}
+end
+
+btn("🎒  Sell Inventory (All Heroes)", nextO(), function()
+    status("Scanning inventory...")
+    local uuids = getSellableUUIDs()
+    if #uuids > 0 then
+        status("Selling " .. #uuids .. " heroes...")
+        local ok, err = pcall(function()
+            invokeRF("SellService", "SellInventory", uuids)
+        end)
+        if ok then
+            status("Sold " .. #uuids .. " heroes!")
+        else
+            status("Sell failed: " .. tostring(err))
+        end
+    else
+        status("Tas kosong / aman!")
+    end
+end)
+
 btn("🗑️  Sell Equipped (Tangan)", nextO(), function()
     status("Selling equipped...")
     invokeRF("SellService", "SellEquipped")
     status("Equipped sold!")
 end)
 
-toggle("🔄  Auto Sell", nextO(),
+local autoSellInvOn = false
+
+toggle("🔄  Auto Sell Inventory", nextO(),
     function()
-        status("Auto Sell: ON")
-        fireRE("SellService", "UpdateAutoSell", true)
+        autoSellInvOn = true
+        status("Auto Sell Inv: ON")
+        task.spawn(function()
+            while autoSellInvOn do
+                pcall(function()
+                    local uuids = getSellableUUIDs()
+                    if #uuids > 0 then
+                        invokeRF("SellService", "SellInventory", uuids)
+                        status("Auto Sold: " .. #uuids .. " units")
+                    end
+                end)
+                task.wait(3) -- Cek dan jual setiap 3 detik
+            end
+            status("Auto Sell Inv: OFF")
+        end)
     end,
     function()
-        status("Auto Sell: OFF")
-        fireRE("SellService", "UpdateAutoSell", false)
+        autoSellInvOn = false
+        status("Auto Sell Inv: OFF")
     end
 )
 
@@ -496,46 +601,151 @@ end)
 sep(nextO())
 
 -- ═══════════════════════════════════════════════════════
+--  MENU: REBIRTH
+-- ═══════════════════════════════════════════════════════
+
+section("🌟  REBIRTH", nextO())
+
+btn("♻️  Rebirth (1x)", nextO(), function()
+    status("Attempting Rebirth...")
+    pcall(function()
+        fireRE("RebirthService", "Rebirth")
+    end)
+    status("Rebirth request sent!")
+end)
+
+local autoRebirthOn = false
+
+toggle("🔄  Auto Rebirth", nextO(),
+    function()
+        autoRebirthOn = true
+        status("Auto Rebirth: ON")
+        task.spawn(function()
+                pcall(function()
+                    fireRE("RebirthService", "Rebirth")
+                end)
+                local nextDelay = math.random(60, 300) -- Acak antara 1 sampai 5 menit
+                local minutes = math.floor(nextDelay / 60)
+                local seconds = nextDelay % 60
+                status(string.format("Rebirth fired! Next in: %dm %ds", minutes, seconds))
+                
+                -- Tunggu dengan break-check jika toggle dimatikan
+                local elapsed = 0
+                while autoRebirthOn and elapsed < nextDelay do
+                    task.wait(1)
+                    elapsed = elapsed + 1
+                end
+            end
+            status("Auto Rebirth: OFF")
+        end)
+    end,
+    function()
+        autoRebirthOn = false
+        status("Auto Rebirth: OFF")
+    end
+)
+
+sep(nextO())
+
+-- ═══════════════════════════════════════════════════════
 --  MENU: BUY DICE
 -- ═══════════════════════════════════════════════════════
 
 section("🛒  BUY DICE", nextO())
 
--- Read dice types from game if available, fallback to known ones
-local diceList = {}
-pcall(function()
-    local unitsFolder = ReplicatedStorage:FindFirstChild("Assets")
-        and ReplicatedStorage.Assets:FindFirstChild("Models")
-        and ReplicatedStorage.Assets.Models:FindFirstChild("Units")
-    -- Also check DiceShop in Zones
-    local zones = game.Workspace:FindFirstChild("Zones")
-    local diceShop = zones and zones:FindFirstChild("DiceShop")
-    if diceShop then
-        for _, child in ipairs(diceShop:GetChildren()) do
-            table.insert(diceList, child.Name)
-        end
-    end
-end)
-
--- Fallback dice types if can't read from game
-if #diceList == 0 then
-    diceList = {"Normal", "Fire"}
-end
-
--- Emoji map
-local emojiMap = {
-    Normal = "🎲", Fire = "🔥", Ice = "❄️", Electric = "⚡",
-    Wind = "🌪️", Dark = "🌑", Light = "✨", Poison = "☠️",
-    Nature = "🌿", Crystal = "💠", Water = "💧", Earth = "🪨",
-    Shadow = "👤", Holy = "😇", Thunder = "⛈️", Lava = "🌋",
+-- Complete Dice list sorted by progression/strength (terlemah -> terkuat)
+local ALL_DICES = {
+    {name = "Normal",      price = 1,                 luck = 2,       emoji = "🎲"},
+    {name = "Fire",        price = 2500,              luck = 5,       emoji = "🔥"},
+    {name = "Water",       price = 10000,             luck = 10,      emoji = "💧"},
+    {name = "Nature",      price = 75000,             luck = 20,      emoji = "🌿"},
+    {name = "Lightning",   price = 500000,            luck = 42.5,    emoji = "⚡"},
+    {name = "Ice",         price = 4000000,           luck = 100,     emoji = "❄️"},
+    {name = "Magma",       price = 30000000,          luck = 200,     emoji = "🌋"},
+    {name = "Storm",       price = 200000000,         luck = 400,     emoji = "🌪️"},
+    {name = "Light",       price = 1200000000,        luck = 1500,    emoji = "✨"},
+    {name = "Shadow",      price = 1500000000,        luck = 750,     emoji = "🌑"},
+    {name = "Blood Moon",  price = 10000000000,       luck = 3000,    emoji = "🔴"},
+    {name = "Void",        price = 75000000000,       luck = 6000,    emoji = "🕳️"},
+    {name = "Solar",       price = 500000000000,      luck = 12500,   luckStr = "12.5k", emoji = "☀️"},
+    {name = "Lunar",       price = 3750000000000,     luck = 25000,   emoji = "🌙"},
+    {name = "Galaxy",      price = 15000000000000,    luck = 50000,   emoji = "🌌"},
+    {name = "Black Hole",  price = 100000000000000,   luck = 100000,  emoji = "⚫"},
+    {name = "Dragon",      price = 850000000000000,   luck = 200000,  emoji = "🐉"},
+    {name = "Royal",       price = 10000000000000000, luck = 400000,  emoji = "👑"},
+    {name = "Prismatic",   price = 100000000000000000,luck = 1000000, emoji = "🌈"},
+    {name = "Arcane",      price = 1.25e18,           luck = 2000000, emoji = "🔮"},
+    {name = "Corrupted",   price = 1.5e19,            luck = 5000000, emoji = "☣️"},
+    {name = "Titan",       price = 1e21,              luck = 10000000,emoji = "🗿"},
+    {name = "Chrono",      price = 1.5e22,            luck = 25000000,emoji = "⏳"},
 }
 
-for _, dice in ipairs(diceList) do
-    local emoji = emojiMap[dice] or "🎲"
-    btn(emoji .. "  Buy " .. dice .. " Dice", nextO(), function()
-        status("Buying " .. dice .. " Dice...")
-        fireRE("DiceShopService", "BuyDice", dice)
-        status(dice .. " Dice purchased!")
+local function formatNumber(n)
+    if not n then return "0" end
+    if n >= 1e21 then return string.format("%.1fSx", n / 1e21)
+    elseif n >= 1e18 then return string.format("%.1fQi", n / 1e18)
+    elseif n >= 1e15 then return string.format("%.1fQa", n / 1e15)
+    elseif n >= 1e12 then return string.format("%.1fT", n / 1e12)
+    elseif n >= 1e9 then return string.format("%.1fB", n / 1e9)
+    elseif n >= 1e6 then return string.format("%.1fM", n / 1e6)
+    elseif n >= 1e3 then return string.format("%.1fK", n / 1e3)
+    else return tostring(n) end
+end
+
+-- Auto Buy Best Dice Toggle
+local autoBuyBestOn = false
+
+toggle("🎯  Auto Buy Best Dice", nextO(),
+    function()
+        autoBuyBestOn = true
+        status("Auto Buy Best: ON")
+        task.spawn(function()
+            while autoBuyBestOn do
+                pcall(function()
+                    local ls = player:FindFirstChild("leaderstats")
+                    local moneyVal = ls and ls:FindFirstChild("Money")
+                    if moneyVal then
+                        local money = tonumber(moneyVal.Value) or 0
+                        -- Loop dari dice termahal ke termurah
+                        for i = #ALL_DICES, 1, -1 do
+                            local d = ALL_DICES[i]
+                            if money >= d.price then
+                                fireRE("DiceShopService", "BuyDice", d.name)
+                                status("Auto Bought: " .. d.name)
+                                break -- Beli yang terbaik saja
+                            end
+                        end
+                    end
+                end)
+
+                local nextDelay = math.random(60, 300) -- Acak antara 1 sampai 5 menit
+                local minutes = math.floor(nextDelay / 60)
+                local seconds = nextDelay % 60
+                status(string.format("Dice checked! Next in: %dm %ds", minutes, seconds))
+
+                -- Tunggu dengan break-check jika toggle dimatikan
+                local elapsed = 0
+                while autoBuyBestOn and elapsed < nextDelay do
+                    task.wait(1)
+                    elapsed = elapsed + 1
+                end
+            end
+            status("Auto Buy Best: OFF")
+        end)
+    end,
+    function()
+        autoBuyBestOn = false
+        status("Auto Buy Best: OFF")
+    end
+)
+
+-- Individual buttons for all 23 Dices
+for _, d in ipairs(ALL_DICES) do
+    local text = string.format("%s  Buy %s ($%s)", d.emoji, d.name, formatNumber(d.price))
+    btn(text, nextO(), function()
+        status("Buying " .. d.name .. "...")
+        fireRE("DiceShopService", "BuyDice", d.name)
+        status(d.name .. " purchased!")
     end)
 end
 
@@ -570,8 +780,13 @@ toggle("🔁  Auto Farm Loop", nextO(),
                 end
                 task.wait(0.2)
 
-                -- 4. Sell Equipped (tangan)
-                pcall(function() invokeRF("SellService", "SellEquipped") end)
+                -- 4. Sell Inventory Heroes
+                pcall(function()
+                    local uuids = getSellableUUIDs()
+                    if #uuids > 0 then
+                        invokeRF("SellService", "SellInventory", uuids)
+                    end
+                end)
                 task.wait(0.8)
             end
             status("Auto Farm STOPPED")
@@ -703,7 +918,10 @@ ClsBtn.MouseButton1Click:Connect(function()
     -- Stop all loops
     autoFarmOn = false
     autoCollectOn = false
-    autoRollBuyOn = false
+    autoBuyBestOn = false
+    autoSellInvOn = false
+    autoRebirthOn = false
+    autoEquipBestOn = false
 
     -- Animate close
     TweenService:Create(MainFrame, TweenInfo.new(0.18, Enum.EasingStyle.Quart), {
