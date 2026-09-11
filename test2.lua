@@ -476,7 +476,7 @@ toggle(
                     fireRE("PlotService", "EquipBest")
                 end)
 
-                task.wait(10)
+                task.wait(3)
             end
         end)
     end,
@@ -524,7 +524,7 @@ toggle(
                     sellInventory()
                 end)
 
-                task.wait(3)
+                task.wait(30)
             end
         end)
     end,
@@ -569,7 +569,7 @@ toggle(
                     task.wait(0.05)
                 end
 
-                task.wait(120)
+                task.wait(10)
             end
         end)
     end,
@@ -986,6 +986,23 @@ UserInputService.InputChanged:Connect(function(input)
             startPos.Y.Scale,
             startPos.Y.Offset + delta.Y
         )
+    end
+end)
+
+--==================================================
+-- RIGHT CTRL: HIDE / SHOW GUI
+--==================================================
+
+local guiHidden = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        guiHidden = not guiHidden
+        gui.Enabled = not guiHidden
     end
 end)
 
