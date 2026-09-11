@@ -73,6 +73,12 @@ local autoEquipBestOn = false
 local autoSellOn = false
 local autoBuyBestOn = false
 local autoRebirthOn = false
+local towerAuto = {
+    ["Dragon Tower"] = false,
+    ["Cursed Tower"] = false,
+    ["Pirate Tower"] = false,
+    ["Infinity Tower"] = false,
+}
 local closed = false
 
 --==================================================
@@ -465,7 +471,7 @@ toggle(
                     fireRE("PlotService", "EquipBest")
                 end)
 
-                task.wait(5)
+                task.wait(10)
             end
         end)
     end,
@@ -513,7 +519,7 @@ toggle(
                     sellInventory()
                 end)
 
-                task.wait(60)
+                task.wait(3)
             end
         end)
     end,
@@ -558,7 +564,7 @@ toggle(
                     task.wait(0.05)
                 end
 
-                task.wait(10)
+                task.wait(120)
             end
         end)
     end,
@@ -604,6 +610,125 @@ toggle(
     function()
         autoRebirthOn = false
         status("Auto Rebirth: OFF")
+    end
+)
+
+section(right, "🏰 TOWER")
+
+button(right, "⚔️ Equip Best Tower Team", function()
+    local ok, result = pcall(function()
+        return fireRE("Towers", "EquipBestTowerTeam")
+    end)
+
+    if ok then
+        status("Equip Best Tower Team")
+    else
+        status("Equip Tower Failed")
+        warn("[TOWER EQUIP]", result)
+    end
+end)
+
+local function runTower(name)
+    task.spawn(function()
+        while towerAuto[name] and not closed do
+            -- Equip best tower team before starting/restarting this tower.
+            pcall(function()
+                fireRE("Towers", "EquipBestTowerTeam")
+            end)
+            task.wait(0.2)
+
+            if not towerAuto[name] or closed then
+                break
+            end
+
+            -- Start the selected tower.
+            local started = pcall(function()
+                return invokeRF("Towers", "PlayTower", name)
+            end)
+
+            if not started then
+                task.wait(1)
+            else
+                -- During battle, the game repeatedly uses CompleteTowerFloor.
+                -- Keep this loop limited to the selected tower; never switch towers.
+                while towerAuto[name] and not closed do
+                    local ok = pcall(function()
+                        return invokeRF("Towers", "CompleteTowerFloor")
+                    end)
+
+                    if not ok then
+                        break
+                    end
+
+                    task.wait(0.5)
+                end
+            end
+
+            -- Give the game a moment to award the reward/reset the tower state.
+            if towerAuto[name] and not closed then
+                task.wait(0.8)
+            end
+        end
+    end)
+end
+
+toggle(
+    right,
+    "🐉 Dragon Tower",
+    nextRight(),
+    function()
+        towerAuto["Dragon Tower"] = true
+        status("Dragon Tower: ON")
+        runTower("Dragon Tower")
+    end,
+    function()
+        towerAuto["Dragon Tower"] = false
+        status("Dragon Tower: OFF")
+    end
+)
+
+toggle(
+    right,
+    "☠️ Cursed Tower",
+    nextRight(),
+    function()
+        towerAuto["Cursed Tower"] = true
+        status("Cursed Tower: ON")
+        runTower("Cursed Tower")
+    end,
+    function()
+        towerAuto["Cursed Tower"] = false
+        status("Cursed Tower: OFF")
+    end
+)
+
+toggle(
+    right,
+    "🏴‍☠️ Pirate Tower",
+    nextRight(),
+    function()
+        towerAuto["Pirate Tower"] = true
+        status("Pirate Tower: ON")
+        runTower("Pirate Tower")
+    end,
+    function()
+        towerAuto["Pirate Tower"] = false
+        status("Pirate Tower: OFF")
+    end
+)
+
+toggle(
+    right,
+    "♾️ Infinity Tower",
+    nextRight(),
+    function()
+        towerAuto["Infinity Tower"] = true
+        status("Infinity Tower: ON")
+        runTower("Infinity Tower")
+    end,
+    function()
+        towerAuto["Infinity Tower"] = false
+        status("Infinity Tower: OFF")
     end
 )
 
