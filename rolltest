@@ -1,0 +1,30 @@
+local autoRollOn = false
+
+toggle(
+    Left,
+    "🎲  Auto Roll Dice",
+    nextLeft(),
+
+    function()
+        autoRollOn = true
+        status("Auto Roll Dice: ON")
+
+        task.spawn(function()
+            while autoRollOn do
+                pcall(function()
+                    invokeRF("RollService", "RollDice")
+                end)
+
+                -- SATSET
+                task.wait(0.05)
+            end
+
+            status("Auto Roll Dice: OFF")
+        end)
+    end,
+
+    function()
+        autoRollOn = false
+        status("Auto Roll Dice: STOPPING...")
+    end
+)
