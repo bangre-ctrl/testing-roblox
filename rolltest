@@ -1,105 +1,64 @@
---// STANDALONE AUTO ROLL TEST
+--// STANDALONE - COPY ROLL METHOD FROM DICE GACHA HUB
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
-local player = Players.LocalPlayer
+local Player = Players.LocalPlayer
 
---==================================================
--- NETWORK
---==================================================
+--========================================
+-- SAME METHOD AS AUTOFARM
+--========================================
 
 local function getNetwork()
-    return ReplicatedStorage:WaitForChild("Network", 10)
+    return ReplicatedStorage:WaitForChild("Network", 9e9)
 end
 
 local function invokeRF(serviceName, remoteName, ...)
     local network = getNetwork()
 
-    if not network then
-        error("Network tidak ditemukan")
-    end
-
-    local service = network:WaitForChild(serviceName, 10)
-
-    if not service then
-        error(serviceName .. " tidak ditemukan")
-    end
-
-    local folder = service:WaitForChild("RF", 10)
-
-    if not folder then
-        error(serviceName .. " > RF tidak ditemukan")
-    end
-
-    local remote = folder:WaitForChild(remoteName, 10)
-
-    if not remote then
-        error(serviceName .. " > RF > " .. remoteName .. " tidak ditemukan")
-    end
+    local service = network:WaitForChild(serviceName, 9e9)
+    local folder = service:WaitForChild("RF", 9e9)
+    local remote = folder:WaitForChild(remoteName, 9e9)
 
     if not remote:IsA("RemoteFunction") then
-        error(remote:GetFullName() .. " bukan RemoteFunction")
+        error(remote:GetFullName() .. " is " .. remote.ClassName)
     end
 
     return remote:InvokeServer(...)
 end
 
---==================================================
--- TEST REMOTE
---==================================================
-
-local success, result = pcall(function()
-    return invokeRF("RollService", "RollDice")
-end)
-
-if success then
-    print("[AutoRollTest] Roll berhasil!")
-    print("[AutoRollTest] Result:", result)
-else
-    warn("[AutoRollTest] Roll gagal:", result)
-end
-
---==================================================
+--========================================
 -- GUI
---==================================================
+--========================================
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "AutoRollTest"
+gui.Name = "StandaloneAutoRoll"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = Player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 240, 0, 150)
-frame.Position = UDim2.new(0.5, -120, 0.5, -75)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+frame.Size = UDim2.new(0, 220, 0, 120)
+frame.Position = UDim2.new(0.5, -110, 0.5, -60)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
+title.Size = UDim2.new(1, 0, 0, 35)
 title.BackgroundTransparency = 1
-title.Text = "🎲 AUTO ROLL TEST"
+title.Text = "🎲 AUTO ROLL"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.TextSize = 18
 title.Font = Enum.Font.GothamBold
 title.Parent = frame
 
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, 0, 0, 30)
-status.Position = UDim2.new(0, 0, 0, 40)
-status.BackgroundTransparency = 1
-status.Text = "OFF"
-status.TextColor3 = Color3.fromRGB(255, 80, 80)
-status.TextSize = 15
-status.Font = Enum.Font.GothamBold
-status.Parent = frame
-
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -30, 0, 50)
-button.Position = UDim2.new(0, 15, 0, 85)
+button.Size = UDim2.new(1, -30, 0, 45)
+button.Position = UDim2.new(0, 15, 0, 55)
 button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
 button.Text = "OFF"
 button.TextColor3 = Color3.new(1, 1, 1)
@@ -108,62 +67,52 @@ button.Font = Enum.Font.GothamBold
 button.BorderSizePixel = 0
 button.Parent = frame
 
-Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.Parent = button
 
---==================================================
+--========================================
 -- AUTO ROLL
---==================================================
+--========================================
 
 local autoRoll = false
-
-local function updateGUI()
-    if autoRoll then
-        status.Text = "● ON"
-        status.TextColor3 = Color3.fromRGB(80, 255, 100)
-
-        button.Text = "ON"
-        button.BackgroundColor3 = Color3.fromRGB(45, 170, 75)
-    else
-        status.Text = "● OFF"
-        status.TextColor3 = Color3.fromRGB(255, 80, 80)
-
-        button.Text = "OFF"
-        button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
-    end
-end
 
 button.MouseButton1Click:Connect(function()
 
     autoRoll = not autoRoll
-    updateGUI()
 
     if autoRoll then
+
+        button.Text = "ON"
+        button.BackgroundColor3 = Color3.fromRGB(45, 170, 75)
+
+        print("[StandaloneAutoRoll] ON")
 
         task.spawn(function()
 
             while autoRoll do
 
-                local success, result = pcall(function()
-                    return invokeRF("RollService", "RollDice")
+                -- EXACT SAME CALL AS AUTOFARM
+                pcall(function()
+                    invokeRF("RollService", "RollDice")
                 end)
 
-                if success then
-                    print("[AutoRoll] Roll OK", result)
-                else
-                    warn("[AutoRoll] Roll ERROR:", result)
-                end
-
                 task.wait(0.3)
+
             end
 
         end)
 
+    else
+
+        button.Text = "OFF"
+        button.BackgroundColor3 = Color3.fromRGB(170, 45, 45)
+
+        print("[StandaloneAutoRoll] OFF")
+
     end
+
 end)
 
-updateGUI()
-
-print("================================")
-print("[AutoRollTest] Loaded successfully!")
-print("[AutoRollTest] RollDice standalone test")
-print("================================")
+print("[StandaloneAutoRoll] Loaded!")
+print("[StandaloneAutoRoll] Using same RollDice method as AutoFarm")
