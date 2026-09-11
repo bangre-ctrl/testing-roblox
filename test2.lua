@@ -1,4 +1,4 @@
--- Dice Gacha Hub V10 - Enhanced Anti-AFK
+-- Dice Gacha Hub V9
 -- Auto Roll Dice uses RollService > RF > RollDice
 -- Auto Roll UI (SetAutoRoll) removed.
 
@@ -57,20 +57,20 @@ local ALL_DICES = {
     {name = "Ice",          price = 4000000,            luck = 100,      emoji = "❄️"},
     {name = "Magma",        price = 30000000,           luck = 200,      emoji = "🌋"},
     {name = "Storm",        price = 200000000,          luck = 400,      emoji = "🌪️"},
-    {name = "Light",        price = 12000000000,        luck = 1500,     emoji = "✨"},
+    {name = "Light",        price = 1200000000,         luck = 1500,     emoji = "✨"},
     {name = "Shadow",       price = 1500000000,         luck = 750,      emoji = "🌑"},
-    {name = "Blood Moon",   price = 100000000000,       luck = 3000,     emoji = "🔴"},
-    {name = "Void",         price = 750000000000,        luck = 6000,     emoji = "🕳️"},
-    {name = "Solar",        price = 5000000000000,       luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
-    {name = "Lunar",        price = 37500000000000,      luck = 25000,    emoji = "🌙"},
-    {name = "Galaxy",       price = 150000000000000,     luck = 50000,    emoji = "🌌"},
-    {name = "Black Hole",   price = 1000000000000000,    luck = 100000,   emoji = "⚫"},
-    {name = "Dragon",       price = 8500000000000000,    luck = 200000,   emoji = "🐉"},
-    {name = "Royal",        price = 1e17,                luck = 400000,   emoji = "👑"},
-    {name = "Prismatic",    price = 1e18,                luck = 1000000,  emoji = "🌈"},
-    {name = "Arcane",       price = 1.25e19,             luck = 2000000,  emoji = "🔮"},
-    {name = "Corrupted",    price = 1.5e20,              luck = 5000000,  emoji = "☣️"},
-    {name = "Titan",        price = 1e21,                luck = 10000000, emoji = "🗿"},
+    {name = "Blood Moon",   price = 10000000000,        luck = 3000,     emoji = "🔴"},
+    {name = "Void",         price = 75000000000,        luck = 6000,     emoji = "🕳️"},
+    {name = "Solar",        price = 500000000000,       luck = 12500,    luckStr = "12.5k", emoji = "☀️"},
+    {name = "Lunar",        price = 3750000000000,      luck = 25000,    emoji = "🌙"},
+    {name = "Galaxy",       price = 15000000000000,     luck = 50000,    emoji = "🌌"},
+    {name = "Black Hole",   price = 100000000000000,    luck = 100000,   emoji = "⚫"},
+    {name = "Dragon",       price = 850000000000000,    luck = 200000,   emoji = "🐉"},
+    {name = "Royal",        price = 10000000000000000,  luck = 400000,   emoji = "👑"},
+    {name = "Prismatic",    price = 100000000000000000, luck = 1000000, emoji = "🌈"},
+    {name = "Arcane",       price = 1.25e18,            luck = 2000000,  emoji = "🔮"},
+    {name = "Corrupted",    price = 1.5e20,             luck = 5000000,  emoji = "☣️"},
+    {name = "Titan",        price = 1.5e22,              luck = 10000000, emoji = "🗿"},
     {name = "Chrono",       price = 1.5e22,              luck = 25000000, emoji = "⏳"},
 }
 
@@ -167,7 +167,6 @@ miniGui.ResetOnSpawn = false
 miniGui.IgnoreGuiInset = true
 miniGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 miniGui.DisplayOrder = 999999
-miniGui.Enabled = true
 miniGui.Parent = player:WaitForChild("PlayerGui")
 
 local miniAFK = Instance.new("TextLabel")
@@ -185,16 +184,7 @@ miniAFK.Font = Enum.Font.GothamBold
 miniAFK.TextXAlignment = Enum.TextXAlignment.Center
 miniAFK.ZIndex = 100
 miniAFK.Parent = miniGui
-
-local miniCorner = Instance.new("UICorner")
-miniCorner.CornerRadius = UDim.new(0, 8)
-miniCorner.Parent = miniAFK
-
-local miniStroke = Instance.new("UIStroke")
-miniStroke.Thickness = 1
-miniStroke.Transparency = 0.35
-miniStroke.Parent = miniAFK
-
+Instance.new("UICorner", miniAFK).CornerRadius = UDim.new(0, 8)
 
 local main = Instance.new("Frame")
 main.Name = "MainFrame"
@@ -809,30 +799,10 @@ antiAFKButton.MouseButton1Click:Connect(function()
     if antiAFKOn then
         antiAFKStartedAt = os.time()
         antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
-        antiAFKButton.Text = "🛡️ Anti AFK : ON | 00m 00s"
         status("Anti-AFK: ON")
     else
         antiAFKButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-        antiAFKButton.Text = "🛡️ Anti AFK : OFF"
         status("Anti-AFK: OFF")
-    end
-end)
-
-task.spawn(function()
-    while not closed and antiAFKButton and antiAFKButton.Parent do
-        if antiAFKOn then
-            local elapsed = os.time() - antiAFKStartedAt
-            local minutes = math.floor(elapsed / 60)
-            local seconds = elapsed % 60
-            antiAFKButton.Text = string.format(
-                "🛡️ Anti AFK : ON | %02dm %02ds",
-                minutes,
-                seconds
-            )
-        else
-            antiAFKButton.Text = "🛡️ Anti AFK : OFF"
-        end
-        task.wait(1)
     end
 end)
 
@@ -897,9 +867,9 @@ local function formatMoney(value)
     value = tonumber(value) or 0
 
     local suffixes = {
-        {1e21, "sx"},
+        {1e20, "sx"},
         {1e18, "qi"},
-        {1e15, "qd"},
+        {1e15, "qa"},
         {1e12, "T"},
         {1e9, "B"},
         {1e6, "M"},
@@ -1014,206 +984,118 @@ task.spawn(function()
 end)
 
 --==================================================
--- ANTI AFK + SERVER / TELEPORT DETECTOR
+-- ANTI AFK
 --==================================================
 
 local TeleportService = game:GetService("TeleportService")
-
-local afkStartedAt = os.time()
 local lastJobId = game.JobId
 local lastPlaceId = game.PlaceId
 local serverChanged = false
 
-local function updateMiniAFK()
-    if closed or not miniAFK.Parent then
-        return
-    end
-
-    local elapsed = os.time() - afkStartedAt
-    local minutes = math.floor(elapsed / 60)
-    local seconds = elapsed % 60
-    local serverText = serverChanged and "⚠️ SERVER CHANGED" or "Server OK"
-
-    miniAFK.Text = string.format(
-        "🛡️ AFK %02dm %02ds | %s",
-        minutes,
-        seconds,
-        serverText
-    )
-
-    miniAFK.TextColor3 = serverChanged
-        and Color3.fromRGB(255, 190, 90)
-        or Color3.fromRGB(120, 255, 150)
+local function afkTime()
+    local elapsed = os.time() - antiAFKStartedAt
+    return string.format("%02dm %02ds", math.floor(elapsed / 60), elapsed % 60)
 end
 
--- Keep the mini indicator alive and updating even when the main GUI is hidden.
+local function updateAFKUI()
+    if closed then return end
+
+    if antiAFKButton and antiAFKButton.Parent then
+        if antiAFKOn then
+            antiAFKButton.Text = "🛡️ Anti AFK : ON | " .. afkTime()
+            antiAFKButton.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
+        else
+            antiAFKButton.Text = "🛡️ Anti AFK : OFF"
+            antiAFKButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+        end
+    end
+
+    if miniAFK and miniAFK.Parent then
+        miniAFK.Text = "🛡️ AFK " .. afkTime() .. " | " .. (serverChanged and "⚠️ SERVER CHANGED" or "Server OK")
+        miniAFK.TextColor3 = serverChanged and Color3.fromRGB(255, 190, 90) or Color3.fromRGB(120, 255, 150)
+    end
+end
+
+local function antiAFKAction()
+    if not antiAFKOn or closed then return end
+
+    pcall(function()
+        local camera = workspace.CurrentCamera
+        if not camera then return end
+
+        VirtualUser:CaptureController()
+        VirtualUser:Button2Down(Vector2.zero, camera.CFrame)
+        task.wait(1)
+        camera = workspace.CurrentCamera or camera
+        VirtualUser:Button2Up(Vector2.zero, camera.CFrame)
+    end)
+
+    updateAFKUI()
+end
+
+pcall(function()
+    player.Idled:Connect(function()
+        if antiAFKOn and not closed then
+            print("[ANTI-AFK] Player.Idled triggered | AFK:", afkTime())
+            antiAFKAction()
+        end
+    end)
+end)
+
+-- Periodic Button2 activity every 30 seconds.
 task.spawn(function()
-    while not closed and miniGui.Parent do
-        updateMiniAFK()
+    while not closed do
+        task.wait(30)
+        if antiAFKOn and not closed then
+            antiAFKAction()
+            print("[ANTI-AFK] Button2 activity sent | AFK:", afkTime(), "| JobId:", game.JobId)
+        end
+    end
+end)
+
+-- Keep the visible indicators updated every second.
+task.spawn(function()
+    while not closed and gui.Parent do
+        updateAFKUI()
         task.wait(1)
     end
 end)
 
-
-local function afkTime()
-    local elapsed = os.time() - afkStartedAt
-    local minutes = math.floor(elapsed / 60)
-    local seconds = elapsed % 60
-    return string.format("%02dm %02ds", minutes, seconds)
-end
-
--- Small real mouse/camera movement.
--- Uses executor mouse APIs when available, then falls back to VirtualUser.
-local function antiAFKAction()
-    if not antiAFKOn or closed then
-        return
-    end
-
-    local movedMouse = false
-
-    pcall(function()
-        if type(mouse2press) == "function"
-        and type(mouse2release) == "function"
-        and type(mousemoverel) == "function" then
-
-            -- Hold right mouse, make a tiny camera movement, then return.
-            mouse2press()
-            task.wait(0.08)
-
-            mousemoverel(2, 0)
-            task.wait(0.08)
-            mousemoverel(-2, 0)
-
-            task.wait(0.08)
-            mouse2release()
-
-            movedMouse = true
-        end
-    end)
-
-    -- Fallback for executors without mouse2press/mousemoverel.
-    if not movedMouse then
-        pcall(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new(0, 0))
-        end)
-    end
-end
-
--- Roblox idle event
 pcall(function()
-    player.Idled:Connect(function()
-        print("[ANTI-AFK] Player.Idled triggered at:", afkTime())
-        antiAFKAction()
-        status("Anti-AFK active | " .. afkTime())
+    TeleportService.TeleportInitFailed:Connect(function(result, message, placeId)
+        warn("[TELEPORT FAILED]", result, message, placeId)
     end)
 end)
 
--- Periodic activity every 20 seconds
-task.spawn(function()
-    while not closed do
-        task.wait(30)
-
-        if closed then
-            break
-        end
-
-        antiAFKAction()
-
-        print(
-            "[ANTI-AFK] Activity sent | AFK:",
-            afkTime(),
-            "| JobId:",
-            game.JobId
-        )
-
-        status("Anti-AFK active | " .. afkTime())
-    end
-end)
-
--- Teleport failure detector
 pcall(function()
-    TeleportService.TeleportInitFailed:Connect(function(
-        teleportResult,
-        teleportErrorMessage,
-        placeId,
-        teleportOptions
-    )
-        warn(
-            "[TELEPORT FAILED]",
-            "Result:",
-            teleportResult,
-            "Error:",
-            teleportErrorMessage,
-            "PlaceId:",
-            placeId
-        )
+    player.CharacterAdded:Connect(function()
+        print("[SERVER CHECK] CharacterAdded | AFK:", afkTime(), "| JobId:", game.JobId, "| PlaceId:", game.PlaceId)
     end)
 end)
 
--- Character respawn detector
-pcall(function()
-    player.CharacterAdded:Connect(function(character)
-        print(
-            "[SERVER CHECK] CharacterAdded",
-            "| AFK:",
-            afkTime(),
-            "| JobId:",
-            game.JobId,
-            "| PlaceId:",
-            game.PlaceId
-        )
-
-        status("Character respawned | AFK " .. afkTime())
-    end)
-end)
-
--- Server / place ID monitor
 task.spawn(function()
     while not closed do
         task.wait(10)
-
-        if closed then
-            break
-        end
-
         local currentJobId = game.JobId
         local currentPlaceId = game.PlaceId
 
         if currentJobId ~= lastJobId then
             serverChanged = true
-            updateMiniAFK()
-            warn("========================================")
-            warn("[SERVER CHANGE DETECTED]")
-            warn("Old JobId:", lastJobId)
-            warn("New JobId:", currentJobId)
-            warn("AFK Duration:", afkTime())
-            warn("PlaceId:", currentPlaceId)
-            warn("========================================")
-
+            warn("[SERVER CHANGE DETECTED] Old JobId:", lastJobId, "New JobId:", currentJobId, "AFK:", afkTime())
             lastJobId = currentJobId
-            lastPlaceId = currentPlaceId
         end
 
         if currentPlaceId ~= lastPlaceId then
-            warn("========================================")
-            warn("[PLACE CHANGE DETECTED]")
-            warn("Old PlaceId:", lastPlaceId)
-            warn("New PlaceId:", currentPlaceId)
-            warn("AFK Duration:", afkTime())
-            warn("========================================")
-
+            serverChanged = true
+            warn("[PLACE CHANGE DETECTED] Old PlaceId:", lastPlaceId, "New PlaceId:", currentPlaceId, "AFK:", afkTime())
             lastPlaceId = currentPlaceId
         end
+
+        updateAFKUI()
     end
 end)
 
-print("========================================")
-print("[ANTI-AFK] Enhanced Mouse/Camera Anti-AFK loaded")
-print("[ANTI-AFK] Activity interval: 30 seconds")
-print("[ANTI-AFK] Start JobId:", game.JobId)
-print("[ANTI-AFK] Start PlaceId:", game.PlaceId)
-print("========================================")
+print("[ANTI-AFK] V14 Button2Down/Button2Up loaded | interval: 30s")
 
 --==================================================
 -- DRAG
@@ -1330,13 +1212,9 @@ close.MouseButton1Click:Connect(function()
     autoEquipBestOn = false
     autoSellOn = false
     autoRebirthOn = false
-
-    if miniGui then
-        miniGui:Destroy()
-    end
+    antiAFKOn = false
 
     gui:Destroy()
-
     if miniGui and miniGui.Parent then
         miniGui:Destroy()
     end
