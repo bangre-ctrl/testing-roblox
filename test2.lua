@@ -161,24 +161,29 @@ gui.Parent = player:WaitForChild("PlayerGui")
 -- MINI ANTI-AFK INDICATOR
 --==================================================
 
-local miniAFK = Instance.new("TextLabel")
-miniAFK.Name = "MiniAntiAFK"
-miniAFK.Size = UDim2.new(0, 210, 0, 30)
-miniAFK.Position = UDim2.new(1, -220, 0, 12)
-miniAFK.BackgroundColor3 = Color3.fromRGB(31, 31, 39)
-miniAFK.BackgroundTransparency = 0.1
-miniAFK.BorderSizePixel = 0
-miniAFK.Text = "🛡️ AFK 00m 00s | Server OK"
-miniAFK.TextColor3 = Color3.fromRGB(120, 255, 150)
-miniAFK.TextSize = 12
-miniAFK.Font = Enum.Font.GothamBold
-miniAFK.ZIndex = 100
 local miniGui = Instance.new("ScreenGui")
 miniGui.Name = "DiceGachaMiniAFK"
 miniGui.ResetOnSpawn = false
+miniGui.IgnoreGuiInset = true
 miniGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-miniGui.DisplayOrder = 999
+miniGui.DisplayOrder = 999999
+miniGui.Enabled = true
 miniGui.Parent = player:WaitForChild("PlayerGui")
+
+local miniAFK = Instance.new("TextLabel")
+miniAFK.Name = "MiniAntiAFK"
+miniAFK.AnchorPoint = Vector2.new(0.5, 0)
+miniAFK.Size = UDim2.new(0, 245, 0, 34)
+miniAFK.Position = UDim2.new(0.5, 0, 0, 8)
+miniAFK.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+miniAFK.BackgroundTransparency = 0.05
+miniAFK.BorderSizePixel = 0
+miniAFK.Text = "🛡️ AFK 00m 00s | Server OK"
+miniAFK.TextColor3 = Color3.fromRGB(120, 255, 150)
+miniAFK.TextSize = 13
+miniAFK.Font = Enum.Font.GothamBold
+miniAFK.TextXAlignment = Enum.TextXAlignment.Center
+miniAFK.ZIndex = 100
 miniAFK.Parent = miniGui
 
 local miniCorner = Instance.new("UICorner")
@@ -1041,6 +1046,14 @@ local function updateMiniAFK()
         or Color3.fromRGB(120, 255, 150)
 end
 
+-- Keep the mini indicator alive and updating even when the main GUI is hidden.
+task.spawn(function()
+    while not closed and miniGui.Parent do
+        updateMiniAFK()
+        task.wait(1)
+    end
+end)
+
 
 local function afkTime()
     local elapsed = os.time() - afkStartedAt
@@ -1241,6 +1254,7 @@ UserInputService.InputBegan:Connect(function(input)
 
     guiHidden = not guiHidden
     gui.Enabled = not guiHidden
+    miniGui.Enabled = true
 
     task.delay(0.2, function()
         ctrlDebounce = false
@@ -1295,6 +1309,10 @@ close.MouseButton1Click:Connect(function()
     end
 
     gui:Destroy()
+
+    if miniGui and miniGui.Parent then
+        miniGui:Destroy()
+    end
 end)
 
 print("========================================")
