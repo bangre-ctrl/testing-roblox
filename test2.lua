@@ -1062,15 +1062,42 @@ local function afkTime()
     return string.format("%02dm %02ds", minutes, seconds)
 end
 
+-- Small real mouse/camera movement.
+-- Uses executor mouse APIs when available, then falls back to VirtualUser.
 local function antiAFKAction()
     if not antiAFKOn or closed then
         return
     end
 
+    local movedMouse = false
+
     pcall(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new(0, 0))
+        if type(mouse2press) == "function"
+        and type(mouse2release) == "function"
+        and type(mousemoverel) == "function" then
+
+            -- Hold right mouse, make a tiny camera movement, then return.
+            mouse2press()
+            task.wait(0.08)
+
+            mousemoverel(2, 0)
+            task.wait(0.08)
+            mousemoverel(-2, 0)
+
+            task.wait(0.08)
+            mouse2release()
+
+            movedMouse = true
+        end
     end)
+
+    -- Fallback for executors without mouse2press/mousemoverel.
+    if not movedMouse then
+        pcall(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new(0, 0))
+        end)
+    end
 end
 
 -- Roblox idle event
@@ -1082,7 +1109,7 @@ pcall(function()
     end)
 end)
 
--- Periodic activity every 30 seconds
+-- Periodic activity every 20 seconds
 task.spawn(function()
     while not closed do
         task.wait(30)
@@ -1182,7 +1209,7 @@ task.spawn(function()
 end)
 
 print("========================================")
-print("[ANTI-AFK] Enhanced Anti-AFK loaded")
+print("[ANTI-AFK] Enhanced Mouse/Camera Anti-AFK loaded")
 print("[ANTI-AFK] Activity interval: 30 seconds")
 print("[ANTI-AFK] Start JobId:", game.JobId)
 print("[ANTI-AFK] Start PlaceId:", game.PlaceId)
