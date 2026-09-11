@@ -1,649 +1,720 @@
---========================================================
--- REBIRTH TEST
---
--- BOSS MENANG:
---     ContinueBossResult(27) = Next Wave
---
--- BOSS TIMEOUT:
---     00:00
---     ContinueBossResult(7) = Previous Wave
---     lalu Rebirth
---
--- 33 / 35 / 38 / 39 TIDAK dipanggil manual.
---========================================================
+-- ═══════════════════════════════════════════════════════
+--  🎲 Dice Gacha Hub GUI
+--  Auto: Roll, EquipBest, Collect, Sell, BuyDice
+--  GUI: Draggable, Minimize, Close, Stats Display
+-- ═══════════════════════════════════════════════════════
 
+-- Services
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
 
---========================================================
--- CLEAN OLD GUI
---========================================================
+-- ═══════════════════════════════════════════════════════
+--  NETWORK HELPERS
+-- ═══════════════════════════════════════════════════════
 
-local OldGui = PlayerGui:FindFirstChild("RebirthTest")
-
-if OldGui then
-    OldGui:Destroy()
+local function getNetwork()
+    return ReplicatedStorage:WaitForChild("Network", 9e9)
 end
 
---========================================================
--- NETWORK
---========================================================
+local function fireRE(serviceName, remoteName, ...)
+    getNetwork():WaitForChild(serviceName, 9e9)
+        :WaitForChild("RE", 9e9)
+        :WaitForChild(remoteName, 9e9)
+        :FireServer(...)
+end
 
-local Network = workspace:WaitForChild("Network", 9e9)
+local function invokeRF(serviceName, remoteName, ...)
+    return getNetwork():WaitForChild(serviceName, 9e9)
+        :WaitForChild("RF", 9e9)
+        :WaitForChild(remoteName, 9e9)
+        :InvokeServer(...)
+end
 
-local GetRebirthState =
-    Network:WaitForChild(
-        "GetRebirthState-RemoteFunction",
-        9e9
-    )
+-- ═══════════════════════════════════════════════════════
+--  DESTROY OLD GUI
+-- ═══════════════════════════════════════════════════════
 
-local TutorialUiAction =
-    Network:WaitForChild(
-        "TutorialUiAction-RemoteEvent",
-        9e9
-    )
-
-local AttemptRebirth =
-    Network:WaitForChild(
-        "AttemptRebirth-RemoteFunction",
-        9e9
-    )
-
-local ContinueBossResult =
-    Network:WaitForChild(
-        "ContinueBossResult-RemoteEvent",
-        9e9
-    )
-
---========================================================
--- SETTINGS
---========================================================
-
-local ENABLED = false
-local CLOSED = false
-local MINIMIZED = false
-
---========================================================
--- GUI
---========================================================
+if player.PlayerGui:FindFirstChild("DiceGachaGUI") then
+    player.PlayerGui:FindFirstChild("DiceGachaGUI"):Destroy()
+end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RebirthTest"
+ScreenGui.Name = "DiceGachaGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = PlayerGui
+ScreenGui.Parent = player.PlayerGui
 
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 280, 0, 165)
-Main.Position = UDim2.new(0.5, -140, 0.5, -82)
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Main.BorderSizePixel = 0
-Main.Parent = ScreenGui
+-- ═══════════════════════════════════════════════════════
+--  COLORS & STYLE
+-- ═══════════════════════════════════════════════════════
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 8)
-MainCorner.Parent = Main
+local C = {
+    BG          = Color3.fromRGB(20, 20, 30),
+    BAR         = Color3.fromRGB(30, 30, 45),
+    ACCENT      = Color3.fromRGB(88, 101, 242),
+    BTN         = Color3.fromRGB(40, 40, 58),
+    BTN_HOVER   = Color3.fromRGB(55, 55, 78),
+    BTN_ON      = Color3.fromRGB(46, 160, 87),
+    BTN_ON_HVR  = Color3.fromRGB(56, 180, 100),
+    RED         = Color3.fromRGB(210, 55, 55),
+    YELLOW      = Color3.fromRGB(220, 170, 40),
+    GREEN       = Color3.fromRGB(46, 160, 87),
+    TEXT        = Color3.fromRGB(225, 225, 235),
+    TEXT_DIM    = Color3.fromRGB(120, 120, 145),
+    SECTION     = Color3.fromRGB(140, 160, 255),
+    SEP         = Color3.fromRGB(45, 45, 65),
+    STATS_BG    = Color3.fromRGB(30, 32, 48),
+}
 
---========================================================
--- TITLE BAR
---========================================================
+local FONT_B = Enum.Font.GothamBold
+local FONT = Enum.Font.GothamMedium
+local TWEEN = 0.22
+
+-- ═══════════════════════════════════════════════════════
+--  MAIN FRAME
+-- ═══════════════════════════════════════════════════════
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 300, 0, 500)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -250)
+MainFrame.BackgroundColor3 = C.BG
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+local stroke = Instance.new("UIStroke", MainFrame)
+stroke.Color = C.ACCENT
+stroke.Thickness = 1.5
+stroke.Transparency = 0.3
+
+-- ═══════════════════════════════════════════════════════
+--  TITLE BAR
+-- ═══════════════════════════════════════════════════════
 
 local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 35)
-TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 38)
+TitleBar.BackgroundColor3 = C.BAR
 TitleBar.BorderSizePixel = 0
-TitleBar.Parent = Main
+TitleBar.Parent = MainFrame
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -75, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Rebirth Test"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 16
-Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
 
---========================================================
--- MINIMIZE
---========================================================
+-- Fix bottom corners
+local fix = Instance.new("Frame")
+fix.Size = UDim2.new(1, 0, 0, 12)
+fix.Position = UDim2.new(0, 0, 1, -12)
+fix.BackgroundColor3 = C.BAR
+fix.BorderSizePixel = 0
+fix.Parent = TitleBar
 
-local Minimize = Instance.new("TextButton")
-Minimize.Size = UDim2.new(0, 30, 0, 30)
-Minimize.Position = UDim2.new(1, -65, 0, 2)
-Minimize.BackgroundTransparency = 1
-Minimize.Text = "—"
-Minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
-Minimize.TextSize = 20
-Minimize.Font = Enum.Font.GothamBold
-Minimize.Parent = TitleBar
+-- Accent underline
+local accent = Instance.new("Frame")
+accent.Name = "AccentLine"
+accent.Size = UDim2.new(1, 0, 0, 2)
+accent.Position = UDim2.new(0, 0, 1, 0)
+accent.BackgroundColor3 = C.ACCENT
+accent.BorderSizePixel = 0
+accent.Parent = TitleBar
 
---========================================================
--- CLOSE
---========================================================
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -100, 1, 0)
+title.Position = UDim2.new(0, 14, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🎲 Dice Gacha Hub"
+title.TextSize = 14
+title.Font = FONT_B
+title.TextColor3 = C.TEXT
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = TitleBar
 
-local Close = Instance.new("TextButton")
-Close.Size = UDim2.new(0, 30, 0, 30)
-Close.Position = UDim2.new(1, -32, 0, 2)
-Close.BackgroundTransparency = 1
-Close.Text = "×"
-Close.TextColor3 = Color3.fromRGB(255, 80, 80)
-Close.TextSize = 22
-Close.Font = Enum.Font.GothamBold
-Close.Parent = TitleBar
+-- ═══════════════════════════════════════════════════════
+--  TITLE BAR BUTTONS
+-- ═══════════════════════════════════════════════════════
 
---========================================================
--- CONTENT
---========================================================
+local function makeTitleBtn(name, text, color, px)
+    local b = Instance.new("TextButton")
+    b.Name = name
+    b.Size = UDim2.new(0, 28, 0, 22)
+    b.Position = UDim2.new(1, px, 0.5, -11)
+    b.BackgroundColor3 = color
+    b.BorderSizePixel = 0
+    b.Text = text
+    b.TextSize = 13
+    b.Font = FONT_B
+    b.TextColor3 = C.TEXT
+    b.AutoButtonColor = false
+    b.Parent = TitleBar
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
 
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, 0, 1, -35)
-Content.Position = UDim2.new(0, 0, 0, 35)
-Content.BackgroundTransparency = 1
-Content.Parent = Main
-
---========================================================
--- ON / OFF
---========================================================
-
-local RebirthButton = Instance.new("TextButton")
-RebirthButton.Size = UDim2.new(0, 230, 0, 48)
-RebirthButton.Position = UDim2.new(0.5, -115, 0, 18)
-RebirthButton.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-RebirthButton.BorderSizePixel = 0
-RebirthButton.Text = "Rebirth : OFF"
-RebirthButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-RebirthButton.TextSize = 17
-RebirthButton.Font = Enum.Font.GothamBold
-RebirthButton.Parent = Content
-
-local ButtonCorner = Instance.new("UICorner")
-ButtonCorner.CornerRadius = UDim.new(0, 7)
-ButtonCorner.Parent = RebirthButton
-
---========================================================
--- STATUS
---========================================================
-
-local Status = Instance.new("TextLabel")
-Status.Size = UDim2.new(1, -20, 0, 30)
-Status.Position = UDim2.new(0, 10, 0, 78)
-Status.BackgroundTransparency = 1
-Status.Text = "Status : OFF"
-Status.TextColor3 = Color3.fromRGB(180, 180, 180)
-Status.TextSize = 13
-Status.Font = Enum.Font.Gotham
-Status.Parent = Content
-
-local function SetStatus(text)
-
-    if not CLOSED and Status then
-        Status.Text = "Status : " .. text
-    end
-
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.12), {
+            BackgroundColor3 = Color3.fromRGB(
+                math.min(color.R*255+35, 255),
+                math.min(color.G*255+35, 255),
+                math.min(color.B*255+35, 255))
+        }):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = color}):Play()
+    end)
+    return b
 end
 
---========================================================
--- FIND BOSS TIMER
---========================================================
+local MinBtn = makeTitleBtn("Min", "—", C.YELLOW, -66)
+local ClsBtn = makeTitleBtn("Cls", "✕", C.RED, -34)
 
-local function GetBossTimer()
+-- ═══════════════════════════════════════════════════════
+--  STATS BAR (Money & Rolls)
+-- ═══════════════════════════════════════════════════════
 
-    for _, Object in ipairs(PlayerGui:GetDescendants()) do
+local StatsBar = Instance.new("Frame")
+StatsBar.Name = "StatsBar"
+StatsBar.Size = UDim2.new(1, -16, 0, 32)
+StatsBar.Position = UDim2.new(0, 8, 0, 42)
+StatsBar.BackgroundColor3 = C.STATS_BG
+StatsBar.BorderSizePixel = 0
+StatsBar.Parent = MainFrame
+Instance.new("UICorner", StatsBar).CornerRadius = UDim.new(0, 8)
 
-        if Object:IsA("TextLabel")
-        or Object:IsA("TextButton") then
+local MoneyLabel = Instance.new("TextLabel")
+MoneyLabel.Size = UDim2.new(0.5, 0, 1, 0)
+MoneyLabel.BackgroundTransparency = 1
+MoneyLabel.Text = "💰 Money: ---"
+MoneyLabel.TextSize = 12
+MoneyLabel.Font = FONT_B
+MoneyLabel.TextColor3 = C.YELLOW
+MoneyLabel.Parent = StatsBar
 
-            local Text = Object.Text
+local RollsLabel = Instance.new("TextLabel")
+RollsLabel.Size = UDim2.new(0.5, 0, 1, 0)
+RollsLabel.Position = UDim2.new(0.5, 0, 0, 0)
+RollsLabel.BackgroundTransparency = 1
+RollsLabel.Text = "🎲 Rolls: ---"
+RollsLabel.TextSize = 12
+RollsLabel.Font = FONT_B
+RollsLabel.TextColor3 = C.SECTION
+RollsLabel.Parent = StatsBar
 
-            if typeof(Text) == "string" then
-
-                local Minutes, Seconds =
-                    string.match(
-                        Text,
-                        "^(%d%d):(%d%d)$"
-                    )
-
-                if Minutes and Seconds then
-
-                    Minutes = tonumber(Minutes)
-                    Seconds = tonumber(Seconds)
-
-                    local Total =
-                        Minutes * 60 + Seconds
-
-                    -- Timer boss 00:00 - 01:00
-                    if Total >= 0 and Total <= 60 then
-                        return Total
-                    end
-                end
-            end
+-- Update stats from leaderstats
+local function updateStats()
+    pcall(function()
+        local ls = player:WaitForChild("leaderstats", 5)
+        if ls then
+            local money = ls:FindFirstChild("Money")
+            local rolls = ls:FindFirstChild("Rolls")
+            if money then MoneyLabel.Text = "💰 Money: " .. tostring(money.Value) end
+            if rolls then RollsLabel.Text = "🎲 Rolls: " .. tostring(rolls.Value) end
         end
-    end
-
-    return nil
-end
-
---========================================================
--- SEND NEXT WAVE
---========================================================
-
-local function SendNextWave()
-
-    if not ENABLED or CLOSED then
-        return
-    end
-
-    SetStatus("WIN → Next Wave (27)")
-
-    pcall(function()
-
-        local args = {
-            [1] = 27;
-        }
-
-        ContinueBossResult:FireServer(unpack(args))
-
     end)
-
 end
 
---========================================================
--- SEND PREVIOUS WAVE
---========================================================
-
-local function SendPreviousWave()
-
-    if not ENABLED or CLOSED then
-        return
-    end
-
-    SetStatus("TIMEOUT → Previous Wave (7)")
-
-    pcall(function()
-
-        local args = {
-            [1] = 7;
-        }
-
-        ContinueBossResult:FireServer(unpack(args))
-
-    end)
-
-end
-
---========================================================
--- REBIRTH
---========================================================
-
-local function DoRebirth()
-
-    if not ENABLED or CLOSED then
-        return
-    end
-
-    -- GET REBIRTH STATE
-    SetStatus("Getting Rebirth State...")
-
-    pcall(function()
-
-        local args = {}
-
-        GetRebirthState:InvokeServer(unpack(args))
-
-    end)
-
-    task.wait(0.3)
-
-    if not ENABLED or CLOSED then
-        return
-    end
-
-    -- YES REBIRTH
-    SetStatus("Confirming Rebirth...")
-
-    pcall(function()
-
-        local args = {
-            [1] = {
-                ["actionId"] = "contextual_rebirth_opened";
-            };
-        }
-
-        TutorialUiAction:FireServer(unpack(args))
-
-    end)
-
-    task.wait(0.3)
-
-    if not ENABLED or CLOSED then
-        return
-    end
-
-    -- ATTEMPT REBIRTH
-    SetStatus("Attempting Rebirth...")
-
-    pcall(function()
-
-        local args = {}
-
-        AttemptRebirth:InvokeServer(unpack(args))
-
-    end)
-
-    task.wait(1)
-
-    if ENABLED and not CLOSED then
-        SetStatus("Waiting Next Boss...")
-    end
-
-end
-
---========================================================
--- WAIT FOR TIMER
---========================================================
-
-local function WaitForBoss()
-
-    SetStatus("Waiting Boss Timer...")
-
-    while ENABLED and not CLOSED do
-
-        local Timer = GetBossTimer()
-
-        if Timer ~= nil then
-            return Timer
-        end
-
-        task.wait(0.2)
-    end
-
-    return nil
-end
-
---========================================================
--- DETECT BOSS RESULT
---========================================================
-
-local function WaitForResult()
-
-    local TimerStarted = false
-    local PreviousTimer = nil
-
-    while ENABLED and not CLOSED do
-
-        local Timer = GetBossTimer()
-
-        --================================================
-        -- TIMER ADA
-        --================================================
-
-        if Timer ~= nil then
-
-            TimerStarted = true
-
-            if PreviousTimer == nil then
-                PreviousTimer = Timer
-            end
-
-            -- Update status
-            SetStatus(
-                string.format(
-                    "Boss Timer : %02d:%02d",
-                    math.floor(Timer / 60),
-                    Timer % 60
-                )
-            )
-
-            --================================================
-            -- TIMER HABIS
-            --================================================
-
-            if Timer <= 0 then
-                return "TIMEOUT"
-            end
-
-            PreviousTimer = Timer
-
-        --================================================
-        -- TIMER HILANG
-        --================================================
-
-        elseif TimerStarted then
-
-            -- Timer sebelumnya ada.
-            -- Kalau hilang sebelum 00:00,
-            -- kita anggap boss menang.
-
-            SetStatus("Boss Result...")
-
-            task.wait(0.5)
-
-            local CheckTimer = GetBossTimer()
-
-            if CheckTimer == nil then
-                return "WIN"
-            end
-        end
-
-        task.wait(0.15)
-    end
-
-    return nil
-end
-
---========================================================
--- MAIN LOOP
---========================================================
-
+-- Auto update stats every 1 second
 task.spawn(function()
+    while ScreenGui and ScreenGui.Parent do
+        updateStats()
+        task.wait(1)
+    end
+end)
 
-    while not CLOSED do
+-- ═══════════════════════════════════════════════════════
+--  CONTENT SCROLL
+-- ═══════════════════════════════════════════════════════
 
-        if ENABLED then
+local Content = Instance.new("ScrollingFrame")
+Content.Name = "Content"
+Content.Size = UDim2.new(1, -16, 1, -84)
+Content.Position = UDim2.new(0, 8, 0, 78)
+Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+Content.ScrollBarThickness = 3
+Content.ScrollBarImageColor3 = C.ACCENT
+Content.CanvasSize = UDim2.new(0, 0, 0, 0)
+Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Content.Parent = MainFrame
 
-            --============================================
-            -- WAIT BOSS
-            --============================================
+local layout = Instance.new("UIListLayout", Content)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 5)
 
-            local Timer = WaitForBoss()
+-- ═══════════════════════════════════════════════════════
+--  UI BUILDERS
+-- ═══════════════════════════════════════════════════════
 
-            if not Timer then
-                task.wait(0.2)
-                continue
-            end
+local order = 0
+local function nextO() order += 1 return order end
 
-            if not ENABLED or CLOSED then
-                break
-            end
+local function section(text, o)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, 0, 0, 24)
+    l.BackgroundTransparency = 1
+    l.Text = "  " .. text
+    l.TextSize = 11
+    l.Font = FONT_B
+    l.TextColor3 = C.SECTION
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.LayoutOrder = o
+    l.Parent = Content
+end
 
-            --============================================
-            -- WAIT RESULT
-            --============================================
+local function sep(o)
+    local s = Instance.new("Frame")
+    s.Size = UDim2.new(1, -10, 0, 1)
+    s.BackgroundColor3 = C.SEP
+    s.BorderSizePixel = 0
+    s.LayoutOrder = o
+    s.Parent = Content
+end
 
-            local Result = WaitForResult()
+local function btn(text, o, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 32)
+    b.BackgroundColor3 = C.BTN
+    b.BorderSizePixel = 0
+    b.Text = ""
+    b.AutoButtonColor = false
+    b.LayoutOrder = o
+    b.Parent = Content
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
 
-            if not ENABLED or CLOSED then
-                break
-            end
+    local pad = Instance.new("UIPadding", b)
+    pad.PaddingLeft = UDim.new(0, 12)
 
-            --============================================
-            -- TIMEOUT
-            --============================================
+    local tl = Instance.new("TextLabel")
+    tl.Size = UDim2.new(1, -12, 1, 0)
+    tl.BackgroundTransparency = 1
+    tl.Text = text
+    tl.TextSize = 12
+    tl.Font = FONT
+    tl.TextColor3 = C.TEXT
+    tl.TextXAlignment = Enum.TextXAlignment.Left
+    tl.Parent = b
 
-            if Result == "TIMEOUT" then
-
-                -- Previous Wave
-                SendPreviousWave()
-
-                -- Tunggu game balik
-                task.wait(2)
-
-                if not ENABLED or CLOSED then
-                    break
-                end
-
-                -- Baru Rebirth
-                DoRebirth()
-
-                task.wait(1)
-
-            --============================================
-            -- WIN
-            --============================================
-
-            elseif Result == "WIN" then
-
-                -- Next Wave
-                SendNextWave()
-
-                -- Tunggu wave berikutnya
-                task.wait(2)
-
-                if ENABLED and not CLOSED then
-                    SetStatus("Next Wave → Waiting Boss...")
-                end
-
-            end
-
-        else
-
-            task.wait(0.2)
-
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = C.BTN_HOVER}):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = C.BTN}):Play()
+    end)
+    b.MouseButton1Click:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.06), {BackgroundColor3 = C.ACCENT}):Play()
+        task.wait(0.06)
+        TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = C.BTN}):Play()
+        if callback then
+            local ok, err = pcall(callback)
+            if not ok then warn("[GUI] " .. tostring(err)) end
         end
+    end)
+    return b
+end
 
+local function toggle(text, o, onCb, offCb)
+    local isOn = false
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 32)
+    b.BackgroundColor3 = C.BTN
+    b.BorderSizePixel = 0
+    b.Text = ""
+    b.AutoButtonColor = false
+    b.LayoutOrder = o
+    b.Parent = Content
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+
+    local pad = Instance.new("UIPadding", b)
+    pad.PaddingLeft = UDim.new(0, 12)
+
+    local tl = Instance.new("TextLabel")
+    tl.Name = "Label"
+    tl.Size = UDim2.new(1, -60, 1, 0)
+    tl.BackgroundTransparency = 1
+    tl.Text = text
+    tl.TextSize = 12
+    tl.Font = FONT
+    tl.TextColor3 = C.TEXT
+    tl.TextXAlignment = Enum.TextXAlignment.Left
+    tl.Parent = b
+
+    -- Toggle indicator
+    local ind = Instance.new("TextLabel")
+    ind.Name = "Indicator"
+    ind.Size = UDim2.new(0, 40, 0, 20)
+    ind.Position = UDim2.new(1, -52, 0.5, -10)
+    ind.BackgroundColor3 = C.RED
+    ind.Text = "OFF"
+    ind.TextSize = 10
+    ind.Font = FONT_B
+    ind.TextColor3 = C.TEXT
+    ind.Parent = b
+    Instance.new("UICorner", ind).CornerRadius = UDim.new(0, 6)
+
+    b.MouseEnter:Connect(function()
+        if not isOn then
+            TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = C.BTN_HOVER}):Play()
+        end
+    end)
+    b.MouseLeave:Connect(function()
+        if not isOn then
+            TweenService:Create(b, TweenInfo.new(0.12), {BackgroundColor3 = C.BTN}):Play()
+        end
+    end)
+
+    b.MouseButton1Click:Connect(function()
+        isOn = not isOn
+        if isOn then
+            ind.Text = "ON"
+            TweenService:Create(ind, TweenInfo.new(0.15), {BackgroundColor3 = C.GREEN}):Play()
+            TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = C.BTN_ON}):Play()
+            if onCb then pcall(onCb) end
+        else
+            ind.Text = "OFF"
+            TweenService:Create(ind, TweenInfo.new(0.15), {BackgroundColor3 = C.RED}):Play()
+            TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = C.BTN}):Play()
+            if offCb then pcall(offCb) end
+        end
+    end)
+    return b, function() return isOn end
+end
+
+-- ═══════════════════════════════════════════════════════
+--  STATUS BAR
+-- ═══════════════════════════════════════════════════════
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "Status"
+StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "⏺ Ready"
+StatusLabel.TextSize = 10
+StatusLabel.Font = FONT
+StatusLabel.TextColor3 = C.TEXT_DIM
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.LayoutOrder = 9999
+StatusLabel.Parent = Content
+
+local function status(msg)
+    StatusLabel.Text = "⏺ " .. msg
+    task.delay(4, function()
+        if StatusLabel.Text == "⏺ " .. msg then
+            StatusLabel.Text = "⏺ Ready"
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════
+--  MENU: GACHA / ROLL
+-- ═══════════════════════════════════════════════════════
+
+section("🎰  GACHA / ROLL", nextO())
+
+btn("🎲  Roll Dice", nextO(), function()
+    status("Rolling dice...")
+    invokeRF("RollService", "RollDice")
+    status("Dice rolled!")
+end)
+
+toggle("🔄  Auto Roll", nextO(),
+    function()
+        status("Auto Roll: ON")
+        fireRE("RollService", "SetAutoRoll", true)
+    end,
+    function()
+        status("Auto Roll: OFF")
+        fireRE("RollService", "SetAutoRoll", false)
     end
+)
 
+sep(nextO())
+
+-- ═══════════════════════════════════════════════════════
+--  MENU: EQUIP
+-- ═══════════════════════════════════════════════════════
+
+section("⚔️  EQUIP", nextO())
+
+btn("📦  Buka Tas (Equip 1 per 1)", nextO(), function()
+    status("Opening bag...")
+    fireRE("OnboardingService", "Advance", 2)
+    status("Bag opened!")
 end)
 
---========================================================
--- ON / OFF BUTTON
---========================================================
+btn("⚡  Equip Best → Slot Tanam", nextO(), function()
+    status("Equipping best to slots...")
+    fireRE("PlotService", "EquipBest")
+    status("All slots filled!")
+end)
 
-RebirthButton.MouseButton1Click:Connect(function()
+sep(nextO())
 
-    ENABLED = not ENABLED
+-- ═══════════════════════════════════════════════════════
+--  MENU: SELL
+-- ═══════════════════════════════════════════════════════
 
-    if ENABLED then
+section("💰  SELL", nextO())
 
-        RebirthButton.Text = "Rebirth : ON"
+btn("🗑️  Sell Equipped (Tangan)", nextO(), function()
+    status("Selling equipped...")
+    invokeRF("SellService", "SellEquipped")
+    status("Equipped sold!")
+end)
 
-        RebirthButton.BackgroundColor3 =
-            Color3.fromRGB(40, 150, 70)
-
-        SetStatus("Waiting Boss Timer...")
-
-    else
-
-        RebirthButton.Text = "Rebirth : OFF"
-
-        RebirthButton.BackgroundColor3 =
-            Color3.fromRGB(55, 55, 55)
-
-        SetStatus("OFF")
-
+toggle("🔄  Auto Sell", nextO(),
+    function()
+        status("Auto Sell: ON")
+        fireRE("SellService", "UpdateAutoSell", true)
+    end,
+    function()
+        status("Auto Sell: OFF")
+        fireRE("SellService", "UpdateAutoSell", false)
     end
+)
 
-end)
+sep(nextO())
 
---========================================================
--- MINIMIZE
---========================================================
+-- ═══════════════════════════════════════════════════════
+--  MENU: COLLECT BALANCE
+-- ═══════════════════════════════════════════════════════
 
-Minimize.MouseButton1Click:Connect(function()
+section("💎  COLLECT BALANCE", nextO())
 
-    MINIMIZED = not MINIMIZED
-
-    if MINIMIZED then
-
-        Content.Visible = false
-
-        Main.Size =
-            UDim2.new(0, 280, 0, 35)
-
-        Minimize.Text = "+"
-
-    else
-
-        Content.Visible = true
-
-        Main.Size =
-            UDim2.new(0, 280, 0, 165)
-
-        Minimize.Text = "—"
-
+btn("💵  Collect ALL Slots (1-8)", nextO(), function()
+    status("Collecting all slots...")
+    for i = 1, 8 do
+        pcall(function() fireRE("PlotService", "CollectBalance", i) end)
+        task.wait(0.08)
     end
-
+    status("All 8 slots collected!")
 end)
 
---========================================================
--- CLOSE
---========================================================
+sep(nextO())
 
-Close.MouseButton1Click:Connect(function()
+-- ═══════════════════════════════════════════════════════
+--  MENU: BUY DICE
+-- ═══════════════════════════════════════════════════════
 
-    CLOSED = true
-    ENABLED = false
+section("🛒  BUY DICE", nextO())
 
-    ScreenGui:Destroy()
-
+-- Read dice types from game if available, fallback to known ones
+local diceList = {}
+pcall(function()
+    local unitsFolder = ReplicatedStorage:FindFirstChild("Assets")
+        and ReplicatedStorage.Assets:FindFirstChild("Models")
+        and ReplicatedStorage.Assets.Models:FindFirstChild("Units")
+    -- Also check DiceShop in Zones
+    local zones = game.Workspace:FindFirstChild("Zones")
+    local diceShop = zones and zones:FindFirstChild("DiceShop")
+    if diceShop then
+        for _, child in ipairs(diceShop:GetChildren()) do
+            table.insert(diceList, child.Name)
+        end
+    end
 end)
 
---========================================================
--- DRAG WINDOW
---========================================================
+-- Fallback dice types if can't read from game
+if #diceList == 0 then
+    diceList = {"Normal", "Fire"}
+end
 
-local Dragging = false
-local DragStart
-local StartPosition
+-- Emoji map
+local emojiMap = {
+    Normal = "🎲", Fire = "🔥", Ice = "❄️", Electric = "⚡",
+    Wind = "🌪️", Dark = "🌑", Light = "✨", Poison = "☠️",
+    Nature = "🌿", Crystal = "💠", Water = "💧", Earth = "🪨",
+    Shadow = "👤", Holy = "😇", Thunder = "⛈️", Lava = "🌋",
+}
 
-TitleBar.InputBegan:Connect(function(Input)
+for _, dice in ipairs(diceList) do
+    local emoji = emojiMap[dice] or "🎲"
+    btn(emoji .. "  Buy " .. dice .. " Dice", nextO(), function()
+        status("Buying " .. dice .. " Dice...")
+        fireRE("DiceShopService", "BuyDice", dice)
+        status(dice .. " Dice purchased!")
+    end)
+end
 
-    if Input.UserInputType ==
-        Enum.UserInputType.MouseButton1 then
+sep(nextO())
 
-        Dragging = true
-        DragStart = Input.Position
-        StartPosition = Main.Position
+-- ═══════════════════════════════════════════════════════
+--  MENU: AUTOMATION
+-- ═══════════════════════════════════════════════════════
 
-        Input.Changed:Connect(function()
+section("🤖  AUTOMATION", nextO())
 
-            if Input.UserInputState ==
-                Enum.UserInputState.End then
+local autoFarmOn = false
 
-                Dragging = false
+toggle("🔁  Auto Farm Loop", nextO(),
+    function()
+        autoFarmOn = true
+        status("Auto Farm STARTED")
+        task.spawn(function()
+            while autoFarmOn do
+                -- 1. Roll Dice
+                pcall(function() invokeRF("RollService", "RollDice") end)
+                task.wait(0.3)
 
+                -- 2. Equip Best → slot tanam
+                pcall(function() fireRE("PlotService", "EquipBest") end)
+                task.wait(0.2)
+
+                -- 3. Collect all balance
+                for i = 1, 8 do
+                    pcall(function() fireRE("PlotService", "CollectBalance", i) end)
+                    task.wait(0.05)
+                end
+                task.wait(0.2)
+
+                -- 4. Sell Equipped (tangan)
+                pcall(function() invokeRF("SellService", "SellEquipped") end)
+                task.wait(0.8)
             end
+            status("Auto Farm STOPPED")
+        end)
+    end,
+    function()
+        autoFarmOn = false
+        status("Auto Farm STOPPING...")
+    end
+)
 
+local autoCollectOn = false
+
+toggle("💰  Auto Collect Loop", nextO(),
+    function()
+        autoCollectOn = true
+        status("Auto Collect STARTED")
+        task.spawn(function()
+            while autoCollectOn do
+                for i = 1, 8 do
+                    pcall(function() fireRE("PlotService", "CollectBalance", i) end)
+                    task.wait(0.05)
+                end
+                task.wait(3) -- collect every 3 seconds
+            end
+            status("Auto Collect STOPPED")
+        end)
+    end,
+    function()
+        autoCollectOn = false
+        status("Auto Collect STOPPING...")
+    end
+)
+
+local autoRollBuyOn = false
+
+toggle("🎰  Auto Roll + Buy Normal", nextO(),
+    function()
+        autoRollBuyOn = true
+        status("Auto Roll+Buy STARTED")
+        task.spawn(function()
+            while autoRollBuyOn do
+                pcall(function() invokeRF("RollService", "RollDice") end)
+                task.wait(0.2)
+                pcall(function() fireRE("DiceShopService", "BuyDice", "Normal") end)
+                task.wait(0.5)
+            end
+            status("Auto Roll+Buy STOPPED")
+        end)
+    end,
+    function()
+        autoRollBuyOn = false
+        status("Auto Roll+Buy STOPPING...")
+    end
+)
+
+sep(nextO())
+
+-- ═══════════════════════════════════════════════════════
+--  DRAGGING
+-- ═══════════════════════════════════════════════════════
+
+local dragging, dragInput, dragStart, startPos
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
         end)
     end
-
 end)
 
-UserInputService.InputChanged:Connect(function(Input)
-
-    if Dragging
-    and Input.UserInputType ==
-        Enum.UserInputType.MouseMovement then
-
-        local Delta =
-            Input.Position - DragStart
-
-        Main.Position = UDim2.new(
-
-            StartPosition.X.Scale,
-            StartPosition.X.Offset + Delta.X,
-
-            StartPosition.Y.Scale,
-            StartPosition.Y.Offset + Delta.Y
-
-        )
-
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
     end
-
 end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local d = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + d.X,
+            startPos.Y.Scale, startPos.Y.Offset + d.Y
+        )
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════
+--  MINIMIZE / CLOSE
+-- ═══════════════════════════════════════════════════════
+
+local minimized = false
+local fullSize = MainFrame.Size
+
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        -- Collapse → hanya title bar
+        Content.Visible = false
+        StatsBar.Visible = false
+        accent.Visible = false
+        TweenService:Create(MainFrame, TweenInfo.new(TWEEN, Enum.EasingStyle.Quart), {
+            Size = UDim2.new(0, 300, 0, 38)
+        }):Play()
+        MinBtn.Text = "+"
+    else
+        -- Restore → full size
+        TweenService:Create(MainFrame, TweenInfo.new(TWEEN, Enum.EasingStyle.Quart), {
+            Size = fullSize
+        }):Play()
+        task.delay(TWEEN, function()
+            Content.Visible = true
+            StatsBar.Visible = true
+            accent.Visible = true
+        end)
+        MinBtn.Text = "—"
+    end
+end)
+
+ClsBtn.MouseButton1Click:Connect(function()
+    -- Stop all loops
+    autoFarmOn = false
+    autoCollectOn = false
+    autoRollBuyOn = false
+
+    -- Animate close
+    TweenService:Create(MainFrame, TweenInfo.new(0.18, Enum.EasingStyle.Quart), {
+        Size = UDim2.new(0, 300, 0, 0)
+    }):Play()
+    task.wait(0.2)
+    ScreenGui:Destroy()
+end)
+
+-- ═══════════════════════════════════════════════════════
+--  DONE
+-- ═══════════════════════════════════════════════════════
+status("GUI Loaded! 🎲")
+print("[DiceGachaHub] Loaded successfully!")
