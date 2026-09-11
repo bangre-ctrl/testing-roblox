@@ -1,20 +1,6 @@
--- ═══════════════════════════════════════════════════════════════
--- 🎲 DICE GACHA HUB
--- 2 COLUMN VERSION
---
--- LEFT  : Gacha / Equip / Sell / Collect / Rebirth / Automation
--- RIGHT : Buy Dice
---
--- AUTOMATION:
--- Roll → Equip Best → Collect 1-8 → Sell Inventory → Repeat
---
--- AUTO EQUIP BEST : Every 10 seconds
--- AUTO COLLECT    : Every 2 minutes
--- ═══════════════════════════════════════════════════════════════
-
--- ═══════════════════════════════════════════════════════════════
--- SERVICES
--- ═══════════════════════════════════════════════════════════════
+-- Dice Gacha Hub
+-- Auto Roll Dice uses RollService > RF > RollDice
+-- Auto Roll UI (SetAutoRoll) removed.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,3028 +9,911 @@ local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 
 local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
 
--- ═══════════════════════════════════════════════════════════════
--- ANTI AFK
--- ═══════════════════════════════════════════════════════════════
-
-pcall(function()
-
-    player.Idled:Connect(function()
-
-        pcall(function()
-
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new(0, 0))
-
-            print("[AntiAFK] Idle input sent")
-
-        end)
-
-    end)
-
-end)
-
-task.spawn(function()
-
-    while player and player.Parent do
-
-        task.wait(60)
-
-        pcall(function()
-
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new(0, 0))
-
-        end)
-
-    end
-
-end)
-
-print("[AntiAFK] Enabled")
-
--- ═══════════════════════════════════════════════════════════════
--- NETWORK
--- ═══════════════════════════════════════════════════════════════
+--==================================================
+-- REMOTE HELPERS
+--==================================================
 
 local function getNetwork()
-
-    return ReplicatedStorage:WaitForChild(
-        "Network",
-        9e9
-    )
-
+    return ReplicatedStorage:WaitForChild("Network", 9e9)
 end
 
--- RemoteEvent
--- Network > Service > RE > RemoteEvent
 local function fireRE(serviceName, remoteName, ...)
-
     local network = getNetwork()
-
-    local service =
-        network:WaitForChild(
-            serviceName,
-            9e9
-        )
-
-    local folder =
-        service:WaitForChild(
-            "RE",
-            9e9
-        )
-
-    local remote =
-        folder:WaitForChild(
-            remoteName,
-            9e9
-        )
+    local service = network:WaitForChild(serviceName, 9e9)
+    local folder = service:WaitForChild("RE", 9e9)
+    local remote = folder:WaitForChild(remoteName, 9e9)
 
     if not remote:IsA("RemoteEvent") then
-
-        error(
-            remote:GetFullName()
-            .. " is "
-            .. remote.ClassName
-            .. ", expected RemoteEvent"
-        )
-
+        error(remote:GetFullName() .. " is " .. remote.ClassName .. ", expected RemoteEvent")
     end
 
     return remote:FireServer(...)
-
 end
 
--- RemoteFunction
--- Network > Service > RF > RemoteFunction
 local function invokeRF(serviceName, remoteName, ...)
-
     local network = getNetwork()
-
-    local service =
-        network:WaitForChild(
-            serviceName,
-            9e9
-        )
-
-    local folder =
-        service:WaitForChild(
-            "RF",
-            9e9
-        )
-
-    local remote =
-        folder:WaitForChild(
-            remoteName,
-            9e9
-        )
+    local service = network:WaitForChild(serviceName, 9e9)
+    local folder = service:WaitForChild("RF", 9e9)
+    local remote = folder:WaitForChild(remoteName, 9e9)
 
     if not remote:IsA("RemoteFunction") then
-
-        error(
-            remote:GetFullName()
-            .. " is "
-            .. remote.ClassName
-            .. ", expected RemoteFunction"
-        )
-
+        error(remote:GetFullName() .. " is " .. remote.ClassName .. ", expected RemoteFunction")
     end
 
     return remote:InvokeServer(...)
-
 end
 
--- ═══════════════════════════════════════════════════════════════
--- REMOVE OLD GUI
--- ═══════════════════════════════════════════════════════════════
+--==================================================
+-- DICE DATA
+--==================================================
 
-local oldGui =
-    PlayerGui:FindFirstChild(
-        "DiceGachaGUI"
-    )
-
-if oldGui then
-    oldGui:Destroy()
-end
-
--- ═══════════════════════════════════════════════════════════════
--- GUI
--- ═══════════════════════════════════════════════════════════════
-
-local ScreenGui =
-    Instance.new("ScreenGui")
-
-ScreenGui.Name =
-    "DiceGachaGUI"
-
-ScreenGui.ResetOnSpawn =
-    false
-
-ScreenGui.ZIndexBehavior =
-    Enum.ZIndexBehavior.Sibling
-
-ScreenGui.Parent =
-    PlayerGui
-
--- ═══════════════════════════════════════════════════════════════
--- COLORS
--- ═══════════════════════════════════════════════════════════════
-
-local C = {
-
-    BG =
-        Color3.fromRGB(
-            20,
-            20,
-            30
-        ),
-
-    BAR =
-        Color3.fromRGB(
-            30,
-            30,
-            45
-        ),
-
-    ACCENT =
-        Color3.fromRGB(
-            88,
-            101,
-            242
-        ),
-
-    BTN =
-        Color3.fromRGB(
-            40,
-            40,
-            58
-        ),
-
-    BTN_HOVER =
-        Color3.fromRGB(
-            55,
-            55,
-            78
-        ),
-
-    BTN_ON =
-        Color3.fromRGB(
-            46,
-            160,
-            87
-        ),
-
-    RED =
-        Color3.fromRGB(
-            210,
-            55,
-            55
-        ),
-
-    YELLOW =
-        Color3.fromRGB(
-            220,
-            170,
-            40
-        ),
-
-    GREEN =
-        Color3.fromRGB(
-            46,
-            160,
-            87
-        ),
-
-    TEXT =
-        Color3.fromRGB(
-            225,
-            225,
-            235
-        ),
-
-    TEXT_DIM =
-        Color3.fromRGB(
-            120,
-            120,
-            145
-        ),
-
-    SECTION =
-        Color3.fromRGB(
-            140,
-            160,
-            255
-        ),
-
-    SEP =
-        Color3.fromRGB(
-            45,
-            45,
-            65
-        ),
-
-    STATS_BG =
-        Color3.fromRGB(
-            30,
-            32,
-            48
-        )
+local ALL_DICES = {
+    {name = "Normal", price = 0, luck = 1, emoji = "⚪"},
+    {name = "Bronze", price = 1000, luck = 1.1, emoji = "🟤"},
+    {name = "Silver", price = 5000, luck = 1.25, emoji = "⚪"},
+    {name = "Gold", price = 25000, luck = 1.5, emoji = "🟡"},
+    {name = "Platinum", price = 100000, luck = 2, emoji = "💠"},
+    {name = "Diamond", price = 500000, luck = 3, emoji = "💎"},
+    {name = "Emerald", price = 2500000, luck = 4, emoji = "🟢"},
+    {name = "Ruby", price = 10000000, luck = 5, emoji = "🔴"},
+    {name = "Void", price = 50000000, luck = 7, emoji = "🟣"},
+    {name = "Celestial", price = 250000000, luck = 10, emoji = "🌌"},
+    {name = "Chrono", price = 1000000000, luck = 15, emoji = "⏳"},
 }
 
-local FONT_B =
-    Enum.Font.GothamBold
-
-local FONT =
-    Enum.Font.GothamMedium
-
-local TWEEN =
-    0.22
-
--- ═══════════════════════════════════════════════════════════════
--- MAIN FRAME
--- ═══════════════════════════════════════════════════════════════
-
-local MainFrame =
-    Instance.new("Frame")
-
-MainFrame.Name =
-    "MainFrame"
-
-MainFrame.Size =
-    UDim2.new(
-        0,
-        680,
-        0,
-        540
-    )
-
-MainFrame.Position =
-    UDim2.new(
-        0.5,
-        -340,
-        0.5,
-        -270
-    )
-
-MainFrame.BackgroundColor3 =
-    C.BG
-
-MainFrame.BorderSizePixel =
-    0
-
-MainFrame.ClipsDescendants =
-    true
-
-MainFrame.Parent =
-    ScreenGui
-
-Instance.new(
-    "UICorner",
-    MainFrame
-).CornerRadius =
-    UDim.new(
-        0,
-        10
-    )
-
-local stroke =
-    Instance.new(
-        "UIStroke",
-        MainFrame
-    )
-
-stroke.Color =
-    C.ACCENT
-
-stroke.Thickness =
-    1.5
-
-stroke.Transparency =
-    0.3
-
--- ═══════════════════════════════════════════════════════════════
--- TITLE BAR
--- ═══════════════════════════════════════════════════════════════
-
-local TitleBar =
-    Instance.new("Frame")
-
-TitleBar.Size =
-    UDim2.new(
-        1,
-        0,
-        0,
-        40
-    )
-
-TitleBar.BackgroundColor3 =
-    C.BAR
-
-TitleBar.BorderSizePixel =
-    0
-
-TitleBar.Parent =
-    MainFrame
-
-Instance.new(
-    "UICorner",
-    TitleBar
-).CornerRadius =
-    UDim.new(
-        0,
-        10
-    )
-
-local titleFix =
-    Instance.new("Frame")
-
-titleFix.Size =
-    UDim2.new(
-        1,
-        0,
-        0,
-        12
-    )
-
-titleFix.Position =
-    UDim2.new(
-        0,
-        0,
-        1,
-        -12
-    )
-
-titleFix.BackgroundColor3 =
-    C.BAR
-
-titleFix.BorderSizePixel =
-    0
-
-titleFix.Parent =
-    TitleBar
-
-local accentLine =
-    Instance.new("Frame")
-
-accentLine.Size =
-    UDim2.new(
-        1,
-        0,
-        0,
-        2
-    )
-
-accentLine.Position =
-    UDim2.new(
-        0,
-        0,
-        1,
-        0
-    )
-
-accentLine.BackgroundColor3 =
-    C.ACCENT
-
-accentLine.BorderSizePixel =
-    0
-
-accentLine.Parent =
-    TitleBar
-
-local title =
-    Instance.new("TextLabel")
-
-title.Size =
-    UDim2.new(
-        1,
-        -110,
-        1,
-        0
-    )
-
-title.Position =
-    UDim2.new(
-        0,
-        14,
-        0,
-        0
-    )
-
-title.BackgroundTransparency =
-    1
-
-title.Text =
-    "🎲 Dice Gacha Hub"
-
-title.TextSize =
-    14
-
-title.Font =
-    FONT_B
-
-title.TextColor3 =
-    C.TEXT
-
-title.TextXAlignment =
-    Enum.TextXAlignment.Left
-
-title.Parent =
-    TitleBar
-
--- ═══════════════════════════════════════════════════════════════
--- TITLE BUTTON
--- ═══════════════════════════════════════════════════════════════
-
-local function makeTitleBtn(
-    name,
-    textValue,
-    color,
-    x
-)
-
-    local b =
-        Instance.new("TextButton")
-
-    b.Name =
-        name
-
-    b.Size =
-        UDim2.new(
-            0,
-            28,
-            0,
-            22
-        )
-
-    b.Position =
-        UDim2.new(
-            1,
-            x,
-            0.5,
-            -11
-        )
-
-    b.BackgroundColor3 =
-        color
-
-    b.BorderSizePixel =
-        0
-
-    b.Text =
-        textValue
-
-    b.TextSize =
-        13
-
-    b.Font =
-        FONT_B
-
-    b.TextColor3 =
-        C.TEXT
-
-    b.AutoButtonColor =
-        false
-
-    b.Parent =
-        TitleBar
-
-    Instance.new(
-        "UICorner",
-        b
-    ).CornerRadius =
-        UDim.new(
-            0,
-            6
-        )
-
-    b.MouseEnter:Connect(function()
-
-        TweenService:Create(
-            b,
-            TweenInfo.new(0.12),
-            {
-                BackgroundColor3 =
-                    Color3.fromRGB(
-                        math.min(
-                            color.R * 255 + 35,
-                            255
-                        ),
-                        math.min(
-                            color.G * 255 + 35,
-                            255
-                        ),
-                        math.min(
-                            color.B * 255 + 35,
-                            255
-                        )
-                    )
-            }
-        ):Play()
-
-    end)
-
-    b.MouseLeave:Connect(function()
-
-        TweenService:Create(
-            b,
-            TweenInfo.new(0.12),
-            {
-                BackgroundColor3 =
-                    color
-            }
-        ):Play()
-
-    end)
-
-    return b
-
-end
-
-local MinBtn =
-    makeTitleBtn(
-        "Min",
-        "—",
-        C.YELLOW,
-        -66
-    )
-
-local ClsBtn =
-    makeTitleBtn(
-        "Cls",
-        "✕",
-        C.RED,
-        -34
-    )
-
--- ═══════════════════════════════════════════════════════════════
--- STATS
--- ═══════════════════════════════════════════════════════════════
-
-local StatsBar =
-    Instance.new("Frame")
-
-StatsBar.Size =
-    UDim2.new(
-        1,
-        -16,
-        0,
-        34
-    )
-
-StatsBar.Position =
-    UDim2.new(
-        0,
-        8,
-        0,
-        45
-    )
-
-StatsBar.BackgroundColor3 =
-    C.STATS_BG
-
-StatsBar.BorderSizePixel =
-    0
-
-StatsBar.Parent =
-    MainFrame
-
-Instance.new(
-    "UICorner",
-    StatsBar
-).CornerRadius =
-    UDim.new(
-        0,
-        8
-    )
-
-local MoneyLabel =
-    Instance.new("TextLabel")
-
-MoneyLabel.Size =
-    UDim2.new(
-        0.5,
-        0,
-        1,
-        0
-    )
-
-MoneyLabel.BackgroundTransparency =
-    1
-
-MoneyLabel.Text =
-    "💰 Money: ---"
-
-MoneyLabel.TextSize =
-    12
-
-MoneyLabel.Font =
-    FONT_B
-
-MoneyLabel.TextColor3 =
-    C.YELLOW
-
-MoneyLabel.Parent =
-    StatsBar
-
-local RollsLabel =
-    Instance.new("TextLabel")
-
-RollsLabel.Size =
-    UDim2.new(
-        0.5,
-        0,
-        1,
-        0
-    )
-
-RollsLabel.Position =
-    UDim2.new(
-        0.5,
-        0,
-        0,
-        0
-    )
-
-RollsLabel.BackgroundTransparency =
-    1
-
-RollsLabel.Text =
-    "🎲 Rolls: ---"
-
-RollsLabel.TextSize =
-    12
-
-RollsLabel.Font =
-    FONT_B
-
-RollsLabel.TextColor3 =
-    C.SECTION
-
-RollsLabel.Parent =
-    StatsBar
-
-local function updateStats()
-
-    pcall(function()
-
-        local ls =
-            player:FindFirstChild(
-                "leaderstats"
-            )
-
-        if not ls then
-            return
-        end
-
-        local money =
-            ls:FindFirstChild(
-                "Money"
-            )
-
-        local rolls =
-            ls:FindFirstChild(
-                "Rolls"
-            )
-
-        if money then
-
-            MoneyLabel.Text =
-                "💰 Money: "
-                .. tostring(
-                    money.Value
-                )
-
-        end
-
-        if rolls then
-
-            RollsLabel.Text =
-                "🎲 Rolls: "
-                .. tostring(
-                    rolls.Value
-                )
-
-        end
-
-    end)
-
-end
-
-task.spawn(function()
-
-    while ScreenGui
-        and ScreenGui.Parent do
-
-        updateStats()
-
-        task.wait(1)
-
-    end
-
-end)
-
--- ═══════════════════════════════════════════════════════════════
--- STATUS
--- ═══════════════════════════════════════════════════════════════
-
-local StatusLabel =
-    Instance.new("TextLabel")
-
-StatusLabel.Size =
-    UDim2.new(
-        1,
-        -20,
-        0,
-        22
-    )
-
-StatusLabel.Position =
-    UDim2.new(
-        0,
-        10,
-        1,
-        -26
-    )
-
-StatusLabel.BackgroundTransparency =
-    1
-
-StatusLabel.Text =
-    "⏺ Ready"
-
-StatusLabel.TextSize =
-    10
-
-StatusLabel.Font =
-    FONT
-
-StatusLabel.TextColor3 =
-    C.TEXT_DIM
-
-StatusLabel.TextXAlignment =
-    Enum.TextXAlignment.Left
-
-StatusLabel.Parent =
-    MainFrame
-
-local function status(msg)
-
-    if not StatusLabel
-        or not StatusLabel.Parent then
-        return
-    end
-
-    StatusLabel.Text =
-        "⏺ " .. msg
-
-end
-
--- ═══════════════════════════════════════════════════════════════
--- TWO COLUMN CONTAINER
--- ═══════════════════════════════════════════════════════════════
-
-local Columns =
-    Instance.new("Frame")
-
-Columns.Size =
-    UDim2.new(
-        1,
-        -16,
-        1,
-        -113
-    )
-
-Columns.Position =
-    UDim2.new(
-        0,
-        8,
-        0,
-        85
-    )
-
-Columns.BackgroundTransparency =
-    1
-
-Columns.Parent =
-    MainFrame
-
--- LEFT
-local Left =
-    Instance.new("ScrollingFrame")
-
-Left.Name =
-    "LeftColumn"
-
-Left.Size =
-    UDim2.new(
-        0.5,
-        -6,
-        1,
-        0
-    )
-
-Left.Position =
-    UDim2.new(
-        0,
-        0,
-        0,
-        0
-    )
-
-Left.BackgroundTransparency =
-    1
-
-Left.BorderSizePixel =
-    0
-
-Left.ScrollBarThickness =
-    3
-
-Left.ScrollBarImageColor3 =
-    C.ACCENT
-
-Left.AutomaticCanvasSize =
-    Enum.AutomaticSize.Y
-
-Left.CanvasSize =
-    UDim2.new(
-        0,
-        0,
-        0,
-        0
-    )
-
-Left.Parent =
-    Columns
-
--- RIGHT
-local Right =
-    Instance.new("ScrollingFrame")
-
-Right.Name =
-    "DiceColumn"
-
-Right.Size =
-    UDim2.new(
-        0.5,
-        -6,
-        1,
-        0
-    )
-
-Right.Position =
-    UDim2.new(
-        0.5,
-        6,
-        0,
-        0
-    )
-
-Right.BackgroundTransparency =
-    1
-
-Right.BorderSizePixel =
-    0
-
-Right.ScrollBarThickness =
-    3
-
-Right.ScrollBarImageColor3 =
-    C.ACCENT
-
-Right.AutomaticCanvasSize =
-    Enum.AutomaticSize.Y
-
-Right.CanvasSize =
-    UDim2.new(
-        0,
-        0,
-        0,
-        0
-    )
-
-Right.Parent =
-    Columns
-
-local leftLayout =
-    Instance.new(
-        "UIListLayout",
-        Left
-    )
-
-leftLayout.SortOrder =
-    Enum.SortOrder.LayoutOrder
-
-leftLayout.Padding =
-    UDim.new(
-        0,
-        5
-    )
-
-local rightLayout =
-    Instance.new(
-        "UIListLayout",
-        Right
-    )
-
-rightLayout.SortOrder =
-    Enum.SortOrder.LayoutOrder
-
-rightLayout.Padding =
-    UDim.new(
-        0,
-        5
-    )
-
--- ═══════════════════════════════════════════════════════════════
--- BUILDERS
--- ═══════════════════════════════════════════════════════════════
-
-local leftOrder = 0
-local rightOrder = 0
-
-local function nextLeft()
-
-    leftOrder += 1
-
-    return leftOrder
-
-end
-
-local function nextRight()
-
-    rightOrder += 1
-
-    return rightOrder
-
-end
-
-local function sectionLeft(text)
-
-    local l =
-        Instance.new("TextLabel")
-
-    l.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            25
-        )
-
-    l.BackgroundTransparency =
-        1
-
-    l.Text =
-        "  " .. text
-
-    l.TextSize =
-        11
-
-    l.Font =
-        FONT_B
-
-    l.TextColor3 =
-        C.SECTION
-
-    l.TextXAlignment =
-        Enum.TextXAlignment.Left
-
-    l.LayoutOrder =
-        nextLeft()
-
-    l.Parent =
-        Left
-
-end
-
-local function sectionRight(text)
-
-    local l =
-        Instance.new("TextLabel")
-
-    l.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            25
-        )
-
-    l.BackgroundTransparency =
-        1
-
-    l.Text =
-        "  " .. text
-
-    l.TextSize =
-        11
-
-    l.Font =
-        FONT_B
-
-    l.TextColor3 =
-        C.SECTION
-
-    l.TextXAlignment =
-        Enum.TextXAlignment.Left
-
-    l.LayoutOrder =
-        nextRight()
-
-    l.Parent =
-        Right
-
-end
-
-local function separator(parent, order)
-
-    local s =
-        Instance.new("Frame")
-
-    s.Size =
-        UDim2.new(
-            1,
-            -8,
-            0,
-            1
-        )
-
-    s.BackgroundColor3 =
-        C.SEP
-
-    s.BorderSizePixel =
-        0
-
-    s.LayoutOrder =
-        order
-
-    s.Parent =
-        parent
-
-end
-
-local function button(
-    parent,
-    textValue,
-    order,
-    callback
-)
-
-    local b =
-        Instance.new("TextButton")
-
-    b.Size =
-        UDim2.new(
-            1,
-            -2,
-            0,
-            34
-        )
-
-    b.BackgroundColor3 =
-        C.BTN
-
-    b.BorderSizePixel =
-        0
-
-    b.Text =
-        ""
-
-    b.AutoButtonColor =
-        false
-
-    b.LayoutOrder =
-        order
-
-    b.Parent =
-        parent
-
-    Instance.new(
-        "UICorner",
-        b
-    ).CornerRadius =
-        UDim.new(
-            0,
-            8
-        )
-
-    local label =
-        Instance.new("TextLabel")
-
-    label.Size =
-        UDim2.new(
-            1,
-            -20,
-            1,
-            0
-        )
-
-    label.Position =
-        UDim2.new(
-            0,
-            12,
-            0,
-            0
-        )
-
-    label.BackgroundTransparency =
-        1
-
-    label.Text =
-        textValue
-
-    label.TextSize =
-        12
-
-    label.Font =
-        FONT
-
-    label.TextColor3 =
-        C.TEXT
-
-    label.TextXAlignment =
-        Enum.TextXAlignment.Left
-
-    label.Parent =
-        b
-
-    b.MouseEnter:Connect(function()
-
-        TweenService:Create(
-            b,
-            TweenInfo.new(0.12),
-            {
-                BackgroundColor3 =
-                    C.BTN_HOVER
-            }
-        ):Play()
-
-    end)
-
-    b.MouseLeave:Connect(function()
-
-        TweenService:Create(
-            b,
-            TweenInfo.new(0.12),
-            {
-                BackgroundColor3 =
-                    C.BTN
-            }
-        ):Play()
-
-    end)
-
-    b.MouseButton1Click:Connect(function()
-
-        TweenService:Create(
-            b,
-            TweenInfo.new(0.06),
-            {
-                BackgroundColor3 =
-                    C.ACCENT
-            }
-        ):Play()
-
-        task.delay(
-            0.08,
-            function()
-
-                if b and b.Parent then
-
-                    TweenService:Create(
-                        b,
-                        TweenInfo.new(0.12),
-                        {
-                            BackgroundColor3 =
-                                C.BTN
-                        }
-                    ):Play()
-
-                end
-
-            end
-        )
-
-        if callback then
-
-            local ok, err =
-                pcall(callback)
-
-            if not ok then
-
-                warn(
-                    "[GUI ERROR]",
-                    tostring(err)
-                )
-
-                status(
-                    "Error: "
-                    .. tostring(err)
-                )
-
-            end
-
-        end
-
-    end)
-
-    return b
-
-end
-
-local function toggle(
-    parent,
-    textValue,
-    order,
-    onCallback,
-    offCallback
-)
-
-    local state = false
-
-    local b =
-        Instance.new("TextButton")
-
-    b.Size =
-        UDim2.new(
-            1,
-            -2,
-            0,
-            34
-        )
-
-    b.BackgroundColor3 =
-        C.BTN
-
-    b.BorderSizePixel =
-        0
-
-    b.Text =
-        ""
-
-    b.AutoButtonColor =
-        false
-
-    b.LayoutOrder =
-        order
-
-    b.Parent =
-        parent
-
-    Instance.new(
-        "UICorner",
-        b
-    ).CornerRadius =
-        UDim.new(
-            0,
-            8
-        )
-
-    local label =
-        Instance.new("TextLabel")
-
-    label.Size =
-        UDim2.new(
-            1,
-            -65,
-            1,
-            0
-        )
-
-    label.Position =
-        UDim2.new(
-            0,
-            12,
-            0,
-            0
-        )
-
-    label.BackgroundTransparency =
-        1
-
-    label.Text =
-        textValue
-
-    label.TextSize =
-        12
-
-    label.Font =
-        FONT
-
-    label.TextColor3 =
-        C.TEXT
-
-    label.TextXAlignment =
-        Enum.TextXAlignment.Left
-
-    label.Parent =
-        b
-
-    local indicator =
-        Instance.new("TextLabel")
-
-    indicator.Size =
-        UDim2.new(
-            0,
-            48,
-            0,
-            22
-        )
-
-    indicator.Position =
-        UDim2.new(
-            1,
-            -58,
-            0.5,
-            -11
-        )
-
-    indicator.BackgroundColor3 =
-        C.RED
-
-    indicator.Text =
-        "OFF"
-
-    indicator.TextSize =
-        10
-
-    indicator.Font =
-        FONT_B
-
-    indicator.TextColor3 =
-        C.TEXT
-
-    indicator.Parent =
-        b
-
-    Instance.new(
-        "UICorner",
-        indicator
-    ).CornerRadius =
-        UDim.new(
-            0,
-            6
-        )
-
-    b.MouseButton1Click:Connect(function()
-
-        state =
-            not state
-
-        if state then
-
-            indicator.Text =
-                "ON"
-
-            TweenService:Create(
-                indicator,
-                TweenInfo.new(0.15),
-                {
-                    BackgroundColor3 =
-                        C.GREEN
-                }
-            ):Play()
-
-            TweenService:Create(
-                b,
-                TweenInfo.new(0.15),
-                {
-                    BackgroundColor3 =
-                        C.BTN_ON
-                }
-            ):Play()
-
-            if onCallback then
-                pcall(onCallback)
-            end
-
-        else
-
-            indicator.Text =
-                "OFF"
-
-            TweenService:Create(
-                indicator,
-                TweenInfo.new(0.15),
-                {
-                    BackgroundColor3 =
-                        C.RED
-                }
-            ):Play()
-
-            TweenService:Create(
-                b,
-                TweenInfo.new(0.15),
-                {
-                    BackgroundColor3 =
-                        C.BTN
-                }
-            ):Play()
-
-            if offCallback then
-                pcall(offCallback)
-            end
-
-        end
-
-    end)
-
-    return b
-
-end
-
--- ═══════════════════════════════════════════════════════════════
--- SELL
--- ═══════════════════════════════════════════════════════════════
+--==================================================
+-- STATE
+--==================================================
+
+local autoRollOn = false
+local autoFarmOn = false
+local autoCollectOn = false
+local autoEquipBestOn = false
+local autoSellOn = false
+local autoBuyBestOn = false
+local autoRebirthOn = false
+local closed = false
+
+--==================================================
+-- SELL HELPERS
+--==================================================
 
 local function getSellableUUIDs()
+    local dataCtrl = ReplicatedStorage
+        :WaitForChild("Framework", 9e9)
+        :WaitForChild("Features", 9e9)
+        :WaitForChild("Data", 9e9)
+        :WaitForChild("DataController", 9e9)
 
-    local success, result =
-        pcall(function()
+    local sellUtil = ReplicatedStorage
+        :WaitForChild("Framework", 9e9)
+        :WaitForChild("Features", 9e9)
+        :WaitForChild("Selling", 9e9)
+        :WaitForChild("SellUtil", 9e9)
 
-            local dataCtrl =
-                require(
-                    ReplicatedStorage.Framework.Features.Data.DataController
-                )
+    local data = require(dataCtrl)
+    local util = require(sellUtil)
 
-            local sellUtil =
-                require(
-                    ReplicatedStorage.Framework.Features.Selling.SellUtil
-                )
+    local summary = util.CreateSummary(data.Inventory(), data.Slots())
+    local uuids = {}
 
-            local inventory =
-                dataCtrl.Inventory()
-
-            local slots =
-                dataCtrl.Slots()
-
-            if not inventory then
-
-                error(
-                    "Inventory data tidak ditemukan"
-                )
-
+    if summary and summary.sales then
+        for _, sale in pairs(summary.sales) do
+            if sale and sale.key then
+                table.insert(uuids, sale.key)
             end
-
-            local summary =
-                sellUtil.CreateSummary(
-                    inventory,
-                    slots
-                )
-
-            if not summary then
-
-                error(
-                    "SellUtil.CreateSummary gagal"
-                )
-
-            end
-
-            local uuids = {}
-
-            if summary.sales then
-
-                for _, sale in ipairs(
-                    summary.sales
-                ) do
-
-                    if sale.key then
-
-                        table.insert(
-                            uuids,
-                            sale.key
-                        )
-
-                    end
-
-                end
-
-            end
-
-            return uuids
-
-        end)
-
-    if success then
-
-        return result or {}
-
+        end
     end
 
-    warn(
-        "[SELL SCAN ERROR]",
-        tostring(result)
-    )
-
-    return {}
-
+    return uuids
 end
 
 local function sellInventory()
+    local uuids = getSellableUUIDs()
 
-    local uuids =
-        getSellableUUIDs()
-
-    print(
-        "[SELL] Sellable:",
-        #uuids
-    )
-
-    if #uuids <= 0 then
-
-        status(
-            "No sellable heroes"
-        )
-
-        return
-
+    if #uuids == 0 then
+        return false, "No sellable items"
     end
 
-    status(
-        "Selling "
-        .. #uuids
-        .. " heroes..."
-    )
-
-    local ok, result =
-        pcall(function()
-
-            return invokeRF(
-                "SellService",
-                "SellInventory",
-                uuids
-            )
-
-        end)
+    local ok, result = pcall(function()
+        return invokeRF("SellService", "SellInventory", uuids)
+    end)
 
     if ok then
-
-        status(
-            "Sold "
-            .. #uuids
-            .. " heroes!"
-        )
-
-        print(
-            "[SELL] Success:",
-            result
-        )
-
-    else
-
-        status(
-            "Sell failed!"
-        )
-
-        warn(
-            "[SELL ERROR]",
-            tostring(result)
-        )
-
+        return true, result
     end
 
+    return false, result
 end
 
--- ═══════════════════════════════════════════════════════════════
+local function sellEquipped()
+    return pcall(function()
+        return invokeRF("SellService", "SellEquipped")
+    end)
+end
+
+--==================================================
+-- GUI
+--==================================================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DiceGachaHub"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Name = "MainFrame"
+main.Size = UDim2.new(0, 680, 0, 540)
+main.Position = UDim2.new(0.5, -340, 0.5, -270)
+main.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+main.BorderSizePixel = 0
+main.Parent = gui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.Parent = main
+
+--==================================================
+-- TITLE BAR
+--==================================================
+
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 48)
+titleBar.BackgroundColor3 = Color3.fromRGB(34, 34, 42)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = main
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -130, 1, 0)
+title.Position = UDim2.new(0, 16, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🎲 Dice Gacha Hub"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 19
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
+
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 36, 0, 34)
+minimize.Position = UDim2.new(1, -78, 0, 7)
+minimize.BackgroundColor3 = Color3.fromRGB(75, 75, 88)
+minimize.Text = "—"
+minimize.TextColor3 = Color3.new(1, 1, 1)
+minimize.TextSize = 20
+minimize.Font = Enum.Font.GothamBold
+minimize.BorderSizePixel = 0
+minimize.Parent = titleBar
+
+Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 7)
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 36, 0, 34)
+close.Position = UDim2.new(1, -38, 0, 7)
+close.BackgroundColor3 = Color3.fromRGB(180, 50, 55)
+close.Text = "X"
+close.TextColor3 = Color3.new(1, 1, 1)
+close.TextSize = 16
+close.Font = Enum.Font.GothamBold
+close.BorderSizePixel = 0
+close.Parent = titleBar
+
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 7)
+
+--==================================================
+-- STATS
+--==================================================
+
+local stats = Instance.new("Frame")
+stats.Size = UDim2.new(1, -24, 0, 38)
+stats.Position = UDim2.new(0, 12, 0, 56)
+stats.BackgroundColor3 = Color3.fromRGB(31, 31, 39)
+stats.BorderSizePixel = 0
+stats.Parent = main
+
+Instance.new("UICorner", stats).CornerRadius = UDim.new(0, 8)
+
+local moneyLabel = Instance.new("TextLabel")
+moneyLabel.Size = UDim2.new(0.5, -8, 1, 0)
+moneyLabel.Position = UDim2.new(0, 12, 0, 0)
+moneyLabel.BackgroundTransparency = 1
+moneyLabel.Text = "💰 Money: --"
+moneyLabel.TextColor3 = Color3.new(1, 1, 1)
+moneyLabel.TextSize = 14
+moneyLabel.Font = Enum.Font.GothamBold
+moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
+moneyLabel.Parent = stats
+
+local rollsLabel = Instance.new("TextLabel")
+rollsLabel.Size = UDim2.new(0.5, -8, 1, 0)
+rollsLabel.Position = UDim2.new(0.5, 0, 0, 0)
+rollsLabel.BackgroundTransparency = 1
+rollsLabel.Text = "🎲 Rolls: --"
+rollsLabel.TextColor3 = Color3.new(1, 1, 1)
+rollsLabel.TextSize = 14
+rollsLabel.Font = Enum.Font.GothamBold
+rollsLabel.TextXAlignment = Enum.TextXAlignment.Right
+rollsLabel.Parent = stats
+
+--==================================================
+-- STATUS
+--==================================================
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -24, 0, 25)
+statusLabel.Position = UDim2.new(0, 12, 0, 98)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Ready"
+statusLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
+statusLabel.TextSize = 13
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = main
+
+local function status(text)
+    if not closed and statusLabel.Parent then
+        statusLabel.Text = text
+    end
+end
+
+--==================================================
+-- COLUMNS
+--==================================================
+
+local left = Instance.new("ScrollingFrame")
+left.Name = "Left"
+left.Size = UDim2.new(0, 326, 0, 405)
+left.Position = UDim2.new(0, 12, 0, 125)
+left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
+left.BorderSizePixel = 0
+left.ScrollBarThickness = 5
+left.CanvasSize = UDim2.new(0, 0, 0, 0)
+left.Parent = main
+
+Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
+
+local right = Instance.new("ScrollingFrame")
+right.Name = "Right"
+right.Size = UDim2.new(0, 318, 0, 405)
+right.Position = UDim2.new(0, 350, 0, 125)
+right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
+right.BorderSizePixel = 0
+right.ScrollBarThickness = 5
+right.CanvasSize = UDim2.new(0, 0, 0, 0)
+right.Parent = main
+
+Instance.new("UICorner", right).CornerRadius = UDim.new(0, 9)
+
+local leftLayout = Instance.new("UIListLayout")
+leftLayout.Padding = UDim.new(0, 8)
+leftLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+leftLayout.Parent = left
+
+local leftPad = Instance.new("UIPadding")
+leftPad.PaddingTop = UDim.new(0, 10)
+leftPad.PaddingBottom = UDim.new(0, 10)
+leftPad.Parent = left
+
+local rightLayout = Instance.new("UIListLayout")
+rightLayout.Padding = UDim.new(0, 8)
+rightLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+rightLayout.SortOrder = Enum.SortOrder.LayoutOrder
+rightLayout.Parent = right
+
+local rightPad = Instance.new("UIPadding")
+rightPad.PaddingTop = UDim.new(0, 10)
+rightPad.PaddingBottom = UDim.new(0, 10)
+rightPad.Parent = right
+
+leftLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    left.CanvasSize = UDim2.new(0, 0, 0, leftLayout.AbsoluteContentSize.Y + 20)
+end)
+
+rightLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 20)
+end)
+
+local function nextLeft()
+    return #left:GetChildren()
+end
+
+local function nextRight()
+    return #right:GetChildren()
+end
+
+--==================================================
+-- UI HELPERS
+--==================================================
+
+local function section(parent, text)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 0, 28)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(180, 210, 255)
+    label.TextSize = 14
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.LayoutOrder = #parent:GetChildren()
+    label.Parent = parent
+    return label
+end
+
+local function button(parent, text, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -20, 0, 40)
+    b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.LayoutOrder = #parent:GetChildren()
+    b.Parent = parent
+
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+
+    b.MouseButton1Click:Connect(function()
+        pcall(callback)
+    end)
+
+    return b
+end
+
+local function toggle(parent, text, _, onCallback, offCallback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -20, 0, 42)
+    b.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+    b.Text = text .. " : OFF"
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.LayoutOrder = #parent:GetChildren()
+    b.Parent = parent
+
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+
+    local enabled = false
+
+    b.MouseButton1Click:Connect(function()
+        enabled = not enabled
+
+        if enabled then
+            b.Text = text .. " : ON"
+            b.BackgroundColor3 = Color3.fromRGB(45, 155, 75)
+            pcall(onCallback)
+        else
+            b.Text = text .. " : OFF"
+            b.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+            pcall(offCallback)
+        end
+    end)
+
+    return b
+end
+
+--==================================================
 -- LEFT MENU
--- ═══════════════════════════════════════════════════════════════
+--==================================================
 
--- GACHA
-sectionLeft(
-    "🎰  GACHA / ROLL"
-)
+section(left, "🎲 GACHA")
 
-button(
-    Left,
-    "🎲  Roll Dice",
-    nextLeft(),
-    function()
+button(left, "🎲 Roll Dice", function()
+    local ok, result = pcall(function()
+        return invokeRF("RollService", "RollDice")
+    end)
 
-        status(
-            "Rolling dice..."
-        )
-
-        local ok, result =
-            pcall(function()
-
-                return invokeRF(
-                    "RollService",
-                    "RollDice"
-                )
-
-            end)
-
-        if ok then
-
-            status(
-                "Dice rolled!"
-            )
-
-        else
-
-            status(
-                "Roll failed!"
-            )
-
-            warn(
-                "[ROLL ERROR]",
-                tostring(result)
-            )
-
-        end
-
+    if ok then
+        status("Roll berhasil")
+    else
+        status("Roll error")
+        warn("[Roll]", result)
     end
-)
+end)
 
 toggle(
-    Left,
-    "🔄  Auto Roll",
-    nextLeft(),
-
-    function()
-
-        status(
-            "Auto Roll: ON"
-        )
-
-        pcall(function()
-
-            fireRE(
-                "RollService",
-                "SetAutoRoll",
-                true
-            )
-
-        end)
-
-    end,
-
-    function()
-
-        status(
-            "Auto Roll: OFF"
-        )
-
-        pcall(function()
-
-            fireRE(
-                "RollService",
-                "SetAutoRoll",
-                false
-            )
-
-        end)
-
-    end
-)
-
-separator(
-    Left,
-    nextLeft()
-)
-
--- EQUIP
-sectionLeft(
-    "⚔️  EQUIP"
-)
-
-button(
-    Left,
-    "📦  Buka Tas (Equip 1 per 1)",
+    left,
+    "🎲 Auto Roll Dice",
     nextLeft(),
     function()
-
-        fireRE(
-            "OnboardingService",
-            "Advance",
-            2
-        )
-
-        status(
-            "Bag opened!"
-        )
-
-    end
-)
-
-button(
-    Left,
-    "⚡  Equip Best",
-    nextLeft(),
-    function()
-
-        fireRE(
-            "PlotService",
-            "EquipBest"
-        )
-
-        status(
-            "Equip Best fired!"
-        )
-
-    end
-)
-
--- AUTO EQUIP
-local autoEquipBestOn =
-    false
-
-toggle(
-    Left,
-    "⚡  Auto Equip Best (10s)",
-    nextLeft(),
-
-    function()
-
-        autoEquipBestOn =
-            true
-
-        status(
-            "Auto Equip Best: ON (10s)"
-        )
+        autoRollOn = true
+        status("Auto Roll Dice: ON")
 
         task.spawn(function()
-
-            while autoEquipBestOn do
-
+            while autoRollOn and not closed do
                 pcall(function()
-
-                    fireRE(
-                        "PlotService",
-                        "EquipBest"
-                    )
-
-                end)
-
-                task.wait(10)
-
-            end
-
-        end)
-
-    end,
-
-    function()
-
-        autoEquipBestOn =
-            false
-
-        status(
-            "Auto Equip Best: OFF"
-        )
-
-    end
-)
-
-separator(
-    Left,
-    nextLeft()
-)
-
--- SELL
-sectionLeft(
-    "💰  SELL"
-)
-
-button(
-    Left,
-    "🎒  Sell Inventory",
-    nextLeft(),
-    function()
-
-        sellInventory()
-
-    end
-)
-
-button(
-    Left,
-    "🗑️  Sell Equipped",
-    nextLeft(),
-    function()
-
-        status(
-            "Selling equipped..."
-        )
-
-        local ok, result =
-            pcall(function()
-
-                return invokeRF(
-                    "SellService",
-                    "SellEquipped"
-                )
-
-            end)
-
-        if ok then
-
-            status(
-                "Equipped sold!"
-            )
-
-        else
-
-            status(
-                "Sell equipped failed!"
-            )
-
-            warn(
-                "[SELL EQUIPPED]",
-                tostring(result)
-            )
-
-        end
-
-    end
-)
-
--- AUTO SELL
-local autoSellOn =
-    false
-
-toggle(
-    Left,
-    "🔄  Auto Sell Inventory",
-    nextLeft(),
-
-    function()
-
-        autoSellOn =
-            true
-
-        status(
-            "Auto Sell: ON"
-        )
-
-        task.spawn(function()
-
-            while autoSellOn do
-
-                pcall(function()
-
-                    sellInventory()
-
-                end)
-
-                task.wait(3)
-
-            end
-
-        end)
-
-    end,
-
-    function()
-
-        autoSellOn =
-            false
-
-        status(
-            "Auto Sell: OFF"
-        )
-
-    end
-)
-
-separator(
-    Left,
-    nextLeft()
-)
-
--- COLLECT
-sectionLeft(
-    "💎  COLLECT BALANCE"
-)
-
-local function collectAll()
-
-    for i = 1, 8 do
-
-        pcall(function()
-
-            fireRE(
-                "PlotService",
-                "CollectBalance",
-                i
-            )
-
-        end)
-
-        task.wait(0.08)
-
-    end
-
-end
-
-button(
-    Left,
-    "💵  Collect ALL Slots (1-8)",
-    nextLeft(),
-    function()
-
-        status(
-            "Collecting..."
-        )
-
-        collectAll()
-
-        status(
-            "All 8 slots collected!"
-        )
-
-    end
-)
-
--- AUTO COLLECT 2 MIN
-local autoCollectOn =
-    false
-
-toggle(
-    Left,
-    "💰  Auto Collect (2 Minutes)",
-    nextLeft(),
-
-    function()
-
-        autoCollectOn =
-            true
-
-        status(
-            "Auto Collect: ON (2m)"
-        )
-
-        task.spawn(function()
-
-            while autoCollectOn do
-
-                collectAll()
-
-                status(
-                    "Collected! Next in 2 minutes"
-                )
-
-                local elapsed =
-                    0
-
-                while autoCollectOn
-                    and elapsed < 120 do
-
-                    task.wait(1)
-
-                    elapsed += 1
-
-                end
-
-            end
-
-        end)
-
-    end,
-
-    function()
-
-        autoCollectOn =
-            false
-
-        status(
-            "Auto Collect: OFF"
-        )
-
-    end
-)
-
-separator(
-    Left,
-    nextLeft()
-)
-
--- REBIRTH
-sectionLeft(
-    "🌟  REBIRTH"
-)
-
-button(
-    Left,
-    "♻️  Rebirth (1x)",
-    nextLeft(),
-    function()
-
-        status(
-            "Rebirth..."
-        )
-
-        pcall(function()
-
-            fireRE(
-                "RebirthService",
-                "Rebirth"
-            )
-
-        end)
-
-        status(
-            "Rebirth request sent!"
-        )
-
-    end
-)
-
--- AUTO REBIRTH
-local autoRebirthOn =
-    false
-
-toggle(
-    Left,
-    "🔄  Auto Rebirth",
-    nextLeft(),
-
-    function()
-
-        autoRebirthOn =
-            true
-
-        status(
-            "Auto Rebirth: ON"
-        )
-
-        task.spawn(function()
-
-            while autoRebirthOn do
-
-                pcall(function()
-
-                    fireRE(
-                        "RebirthService",
-                        "Rebirth"
-                    )
-
-                end)
-
-                local elapsed =
-                    0
-
-                local delayTime =
-                    math.random(
-                        60,
-                        300
-                    )
-
-                while autoRebirthOn
-                    and elapsed < delayTime do
-
-                    task.wait(1)
-
-                    elapsed += 1
-
-                end
-
-            end
-
-        end)
-
-    end,
-
-    function()
-
-        autoRebirthOn =
-            false
-
-        status(
-            "Auto Rebirth: OFF"
-        )
-
-    end
-)
-
-separator(
-    Left,
-    nextLeft()
-)
-
--- ═══════════════════════════════════════════════════════════════
--- AUTOMATION
--- ═══════════════════════════════════════════════════════════════
-
-sectionLeft(
-    "🤖  AUTOMATION"
-)
-
-local autoFarmOn =
-    false
-
-toggle(
-    Left,
-    "🤖  Auto Farm",
-    nextLeft(),
-
-    function()
-
-        autoFarmOn =
-            true
-
-        status(
-            "Auto Farm: ON"
-        )
-
-        task.spawn(function()
-
-            while autoFarmOn do
-
-                -- ─────────────────────────
-                -- 1. ROLL
-                -- ─────────────────────────
-
-                pcall(function()
-
-                    invokeRF(
-                        "RollService",
-                        "RollDice"
-                    )
-
+                    invokeRF("RollService", "RollDice")
                 end)
 
                 task.wait(0.3)
+            end
+        end)
+    end,
+    function()
+        autoRollOn = false
+        status("Auto Roll Dice: OFF")
+    end
+)
 
-                if not autoFarmOn then
-                    break
-                end
+section(left, "⚔️ EQUIP")
 
-                -- ─────────────────────────
-                -- 2. EQUIP BEST
-                -- ─────────────────────────
+button(left, "🎒 Buka Tas", function()
+    fireRE("OnboardingService", "Advance", 2)
+    status("Buka Tas")
+end)
 
+button(left, "⚔️ Equip Best", function()
+    fireRE("PlotService", "EquipBest")
+    status("Equip Best")
+end)
+
+toggle(
+    left,
+    "⚔️ Auto Equip Best",
+    nextLeft(),
+    function()
+        autoEquipBestOn = true
+        status("Auto Equip Best: ON")
+
+        task.spawn(function()
+            while autoEquipBestOn and not closed do
                 pcall(function()
-
-                    fireRE(
-                        "PlotService",
-                        "EquipBest"
-                    )
-
+                    fireRE("PlotService", "EquipBest")
                 end)
 
-                task.wait(0.2)
+                task.wait(10)
+            end
+        end)
+    end,
+    function()
+        autoEquipBestOn = false
+        status("Auto Equip Best: OFF")
+    end
+)
 
-                if not autoFarmOn then
-                    break
-                end
+section(left, "💰 SELL")
 
-                -- ─────────────────────────
-                -- 3. COLLECT 1-8
-                -- ─────────────────────────
+button(left, "🗑️ Sell Inventory", function()
+    local ok, result = sellInventory()
 
+    if ok then
+        status("Sell Inventory: Success")
+    else
+        status("Sell Inventory: Failed")
+        warn("[SELL]", result)
+    end
+end)
+
+button(left, "🗑️ Sell Equipped", function()
+    local ok, result = sellEquipped()
+
+    if ok then
+        status("Sell Equipped: Success")
+    else
+        status("Sell Equipped: Failed")
+        warn("[SELL EQUIPPED]", result)
+    end
+end)
+
+toggle(
+    left,
+    "🗑️ Auto Sell",
+    nextLeft(),
+    function()
+        autoSellOn = true
+        status("Auto Sell: ON")
+
+        task.spawn(function()
+            while autoSellOn and not closed do
+                pcall(function()
+                    sellInventory()
+                end)
+
+                task.wait(3)
+            end
+        end)
+    end,
+    function()
+        autoSellOn = false
+        status("Auto Sell: OFF")
+    end
+)
+
+section(left, "💎 COLLECT")
+
+button(left, "💎 Collect All Slots", function()
+    for i = 1, 8 do
+        pcall(function()
+            fireRE("PlotService", "CollectBalance", i)
+        end)
+        task.wait(0.05)
+    end
+
+    status("Collected slots 1-8")
+end)
+
+toggle(
+    left,
+    "💎 Auto Collect Balance",
+    nextLeft(),
+    function()
+        autoCollectOn = true
+        status("Auto Collect: ON")
+
+        task.spawn(function()
+            while autoCollectOn and not closed do
                 for i = 1, 8 do
-
-                    if not autoFarmOn then
+                    if not autoCollectOn or closed then
                         break
                     end
 
                     pcall(function()
-
-                        fireRE(
-                            "PlotService",
-                            "CollectBalance",
-                            i
-                        )
-
+                        fireRE("PlotService", "CollectBalance", i)
                     end)
 
                     task.wait(0.05)
+                end
 
+                task.wait(120)
+            end
+        end)
+    end,
+    function()
+        autoCollectOn = false
+        status("Auto Collect: OFF")
+    end
+)
+
+section(left, "♻️ REBIRTH")
+
+button(left, "♻️ Rebirth", function()
+    fireRE("RebirthService", "Rebirth")
+    status("Rebirth")
+end)
+
+toggle(
+    left,
+    "♻️ Auto Rebirth",
+    nextLeft(),
+    function()
+        autoRebirthOn = true
+        status("Auto Rebirth: ON")
+
+        task.spawn(function()
+            while autoRebirthOn and not closed do
+                local delay = math.random(60, 300)
+                local elapsed = 0
+
+                while elapsed < delay and autoRebirthOn and not closed do
+                    task.wait(1)
+                    elapsed += 1
+                end
+
+                if autoRebirthOn and not closed then
+                    pcall(function()
+                        fireRE("RebirthService", "Rebirth")
+                    end)
+                end
+            end
+        end)
+    end,
+    function()
+        autoRebirthOn = false
+        status("Auto Rebirth: OFF")
+    end
+)
+
+section(left, "🤖 AUTOMATION")
+
+toggle(
+    left,
+    "🤖 Auto Farm",
+    nextLeft(),
+    function()
+        autoFarmOn = true
+        status("Auto Farm: ON")
+
+        task.spawn(function()
+            while autoFarmOn and not closed do
+
+                -- Roll
+                pcall(function()
+                    invokeRF("RollService", "RollDice")
+                end)
+                task.wait(0.3)
+
+                if not autoFarmOn or closed then
+                    break
+                end
+
+                -- Equip
+                pcall(function()
+                    fireRE("PlotService", "EquipBest")
+                end)
+                task.wait(0.2)
+
+                if not autoFarmOn or closed then
+                    break
+                end
+
+                -- Collect
+                for i = 1, 8 do
+                    if not autoFarmOn or closed then
+                        break
+                    end
+
+                    pcall(function()
+                        fireRE("PlotService", "CollectBalance", i)
+                    end)
+
+                    task.wait(0.05)
+                end
+
+                if not autoFarmOn or closed then
+                    break
                 end
 
                 task.wait(0.2)
 
-                if not autoFarmOn then
-                    break
-                end
-
-                -- ─────────────────────────
-                -- 4. SELL
-                -- ─────────────────────────
-
+                -- Sell
                 pcall(function()
-
                     sellInventory()
-
                 end)
-
-                -- ─────────────────────────
-                -- LOOP DELAY
-                -- ─────────────────────────
 
                 task.wait(0.8)
-
             end
 
-            status(
-                "Auto Farm: OFF"
-            )
-
+            if not closed then
+                status("Auto Farm: OFF")
+            end
         end)
-
     end,
-
     function()
-
-        autoFarmOn =
-            false
-
-        status(
-            "Auto Farm: STOPPING..."
-        )
-
+        autoFarmOn = false
+        status("Auto Farm: STOPPING...")
     end
 )
 
--- ═══════════════════════════════════════════════════════════════
--- RIGHT SIDE : DICE SHOP
--- ═══════════════════════════════════════════════════════════════
+--==================================================
+-- RIGHT: DICE SHOP
+--==================================================
 
-sectionRight(
-    "🛒  DICE SHOP"
-)
+section(right, "🛒 DICE SHOP")
 
-local ALL_DICES = {
+local diceStatus = Instance.new("TextLabel")
+diceStatus.Size = UDim2.new(1, -20, 0, 28)
+diceStatus.BackgroundTransparency = 1
+diceStatus.Text = "Auto Buy Best: OFF"
+diceStatus.TextColor3 = Color3.fromRGB(180, 210, 255)
+diceStatus.TextSize = 13
+diceStatus.Font = Enum.Font.GothamBold
+diceStatus.TextXAlignment = Enum.TextXAlignment.Left
+diceStatus.LayoutOrder = #right:GetChildren()
+diceStatus.Parent = right
 
-    {
-        name = "Normal",
-        price = 1,
-        luck = 2,
-        emoji = "🎲"
-    },
-
-    {
-        name = "Fire",
-        price = 2500,
-        luck = 5,
-        emoji = "🔥"
-    },
-
-    {
-        name = "Water",
-        price = 10000,
-        luck = 10,
-        emoji = "💧"
-    },
-
-    {
-        name = "Nature",
-        price = 75000,
-        luck = 20,
-        emoji = "🌿"
-    },
-
-    {
-        name = "Lightning",
-        price = 500000,
-        luck = 42.5,
-        emoji = "⚡"
-    },
-
-    {
-        name = "Ice",
-        price = 4000000,
-        luck = 100,
-        emoji = "❄️"
-    },
-
-    {
-        name = "Magma",
-        price = 30000000,
-        luck = 200,
-        emoji = "🌋"
-    },
-
-    {
-        name = "Storm",
-        price = 200000000,
-        luck = 400,
-        emoji = "🌪️"
-    },
-
-    {
-        name = "Light",
-        price = 1200000000,
-        luck = 1500,
-        emoji = "✨"
-    },
-
-    {
-        name = "Shadow",
-        price = 1500000000,
-        luck = 750,
-        emoji = "🌑"
-    },
-
-    {
-        name = "Blood Moon",
-        price = 10000000000,
-        luck = 3000,
-        emoji = "🔴"
-    },
-
-    {
-        name = "Void",
-        price = 75000000000,
-        luck = 6000,
-        emoji = "🕳️"
-    },
-
-    {
-        name = "Solar",
-        price = 500000000000,
-        luck = 12500,
-        emoji = "☀️"
-    },
-
-    {
-        name = "Lunar",
-        price = 3750000000000,
-        luck = 25000,
-        emoji = "🌙"
-    },
-
-    {
-        name = "Galaxy",
-        price = 15000000000000,
-        luck = 50000,
-        emoji = "🌌"
-    },
-
-    {
-        name = "Black Hole",
-        price = 100000000000000,
-        luck = 100000,
-        emoji = "⚫"
-    },
-
-    {
-        name = "Dragon",
-        price = 850000000000000,
-        luck = 200000,
-        emoji = "🐉"
-    },
-
-    {
-        name = "Royal",
-        price = 10000000000000000,
-        luck = 400000,
-        emoji = "👑"
-    },
-
-    {
-        name = "Prismatic",
-        price = 100000000000000000,
-        luck = 1000000,
-        emoji = "🌈"
-    },
-
-    {
-        name = "Arcane",
-        price = 1.25e18,
-        luck = 2000000,
-        emoji = "🔮"
-    },
-
-    {
-        name = "Corrupted",
-        price = 1.5e19,
-        luck = 5000000,
-        emoji = "☣️"
-    },
-
-    {
-        name = "Titan",
-        price = 1e21,
-        luck = 10000000,
-        emoji = "🗿"
-    },
-
-    {
-        name = "Chrono",
-        price = 1.5e22,
-        luck = 25000000,
-        emoji = "⏳"
-    }
-}
-
-local function formatNumber(n)
-
-    if not n then
-        return "0"
+local function getMoney()
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then
+        return 0
     end
 
-    if n >= 1e21 then
-
-        return string.format(
-            "%.1fSx",
-            n / 1e21
-        )
-
-    elseif n >= 1e18 then
-
-        return string.format(
-            "%.1fQi",
-            n / 1e18
-        )
-
-    elseif n >= 1e15 then
-
-        return string.format(
-            "%.1fQa",
-            n / 1e15
-        )
-
-    elseif n >= 1e12 then
-
-        return string.format(
-            "%.1fT",
-            n / 1e12
-        )
-
-    elseif n >= 1e9 then
-
-        return string.format(
-            "%.1fB",
-            n / 1e9
-        )
-
-    elseif n >= 1e6 then
-
-        return string.format(
-            "%.1fM",
-            n / 1e6
-        )
-
-    elseif n >= 1e3 then
-
-        return string.format(
-            "%.1fK",
-            n / 1e3
-        )
-
-    else
-
-        return tostring(n)
-
+    local money = leaderstats:FindFirstChild("Money")
+    if not money then
+        return 0
     end
 
+    return tonumber(money.Value) or 0
 end
 
--- ═══════════════════════════════════════════════════════════════
--- AUTO BUY BEST
--- ═══════════════════════════════════════════════════════════════
+local function buyDice(name)
+    local ok, result = pcall(function()
+        return fireRE("DiceShopService", "BuyDice", name)
+    end)
 
-local autoBuyBestOn =
-    false
+    if ok then
+        status("Bought dice: " .. name)
+    else
+        warn("[BUY DICE]", result)
+        status("Buy failed: " .. name)
+    end
+
+    return ok, result
+end
+
+for i = #ALL_DICES, 1, -1 do
+    local d = ALL_DICES[i]
+
+    button(right, string.format(
+        "%s  %s  | $%s  | Luck x%s",
+        d.emoji,
+        d.name,
+        tostring(d.price),
+        tostring(d.luck)
+    ), function()
+        buyDice(d.name)
+    end)
+end
 
 toggle(
-    Right,
-    "🎯  Auto Buy Best Dice",
+    right,
+    "🛒 Auto Buy Best Dice",
     nextRight(),
-
     function()
-
-        autoBuyBestOn =
-            true
-
-        status(
-            "Auto Buy Best: ON"
-        )
+        autoBuyBestOn = true
+        diceStatus.Text = "Auto Buy Best: ON"
 
         task.spawn(function()
+            while autoBuyBestOn and not closed do
+                local money = getMoney()
 
-            while autoBuyBestOn do
+                for i = #ALL_DICES, 1, -1 do
+                    local d = ALL_DICES[i]
 
-                local success, err =
-                    pcall(function()
-
-                        local ls =
-                            player:FindFirstChild(
-                                "leaderstats"
-                            )
-
-                        local moneyVal =
-                            ls
-                            and ls:FindFirstChild(
-                                "Money"
-                            )
-
-                        if not moneyVal then
-
-                            warn(
-                                "[AUTO BUY] Money not found"
-                            )
-
-                            return
-
-                        end
-
-                        local money =
-                            tonumber(
-                                moneyVal.Value
-                            )
-
-                        if not money then
-
-                            warn(
-                                "[AUTO BUY] Invalid money:",
-                                moneyVal.Value
-                            )
-
-                            return
-
-                        end
-
-                        local selectedDice
-
-                        -- termahal -> termurah
-                        for i =
-                            #ALL_DICES,
-                            1,
-                            -1 do
-
-                            local d =
-                                ALL_DICES[i]
-
-                            if money >= d.price then
-
-                                selectedDice =
-                                    d
-
-                                break
-
-                            end
-
-                        end
-
-                        if not selectedDice then
-
-                            status(
-                                "Money belum cukup!"
-                            )
-
-                            return
-
-                        end
-
-                        print(
-                            "[AUTO BUY]",
-                            "Money:",
-                            money,
-                            "Selected:",
-                            selectedDice.name,
-                            "Price:",
-                            selectedDice.price
-                        )
-
-                        status(
-                            "Buying "
-                            .. selectedDice.name
-                            .. "..."
-                        )
-
-                        -- BuyDice:
-                        -- DiceShopService > RE > BuyDice
-                        fireRE(
-                            "DiceShopService",
-                            "BuyDice",
-                            selectedDice.name
-                        )
-
-                        print(
-                            "[AUTO BUY] BuyDice fired:",
-                            selectedDice.name
-                        )
-
-                    end)
-
-                if not success then
-
-                    warn(
-                        "[AUTO BUY ERROR]",
-                        tostring(err)
-                    )
-
-                    status(
-                        "Auto Buy error!"
-                    )
-
+                    if money >= d.price then
+                        pcall(function()
+                            buyDice(d.name)
+                        end)
+                        break
+                    end
                 end
 
-                -- check every 60 seconds
-                local elapsed =
-                    0
-
-                while autoBuyBestOn
-                    and elapsed < 60 do
-
-                    task.wait(1)
-
-                    elapsed += 1
-
-                end
-
+                task.wait(60)
             end
-
-            status(
-                "Auto Buy Best: OFF"
-            )
-
         end)
-
     end,
-
     function()
-
-        autoBuyBestOn =
-            false
-
-        status(
-            "Auto Buy Best: OFF"
-        )
-
+        autoBuyBestOn = false
+        diceStatus.Text = "Auto Buy Best: OFF"
     end
 )
 
-separator(
-    Right,
-    nextRight()
-)
+--==================================================
+-- STATS UPDATE
+--==================================================
 
--- ═══════════════════════════════════════════════════════════════
--- INDIVIDUAL DICE
--- ═══════════════════════════════════════════════════════════════
+task.spawn(function()
+    while not closed and gui.Parent do
+        pcall(function()
+            local leaderstats = player:FindFirstChild("leaderstats")
 
-for _, d in ipairs(
-    ALL_DICES
-) do
+            if leaderstats then
+                local money = leaderstats:FindFirstChild("Money")
+                local rolls = leaderstats:FindFirstChild("Rolls")
 
-    local text =
-        string.format(
-            "%s  %s  •  $%s",
-            d.emoji,
-            d.name,
-            formatNumber(
-                d.price
-            )
-        )
+                if money then
+                    moneyLabel.Text = "💰 Money: " .. tostring(money.Value)
+                end
 
-    button(
-        Right,
-        text,
-        nextRight(),
-        function()
-
-            status(
-                "Buying "
-                .. d.name
-                .. "..."
-            )
-
-            local ok, result =
-                pcall(function()
-
-                    return fireRE(
-                        "DiceShopService",
-                        "BuyDice",
-                        d.name
-                    )
-
-                end)
-
-            if ok then
-
-                status(
-                    d.name
-                    .. " purchase sent!"
-                )
-
-                print(
-                    "[BUY] BuyDice fired:",
-                    d.name
-                )
-
-            else
-
-                status(
-                    "Buy failed!"
-                )
-
-                warn(
-                    "[BUY ERROR]",
-                    tostring(result)
-                )
-
+                if rolls then
+                    rollsLabel.Text = "🎲 Rolls: " .. tostring(rolls.Value)
+                end
             end
+        end)
 
+        task.wait(1)
+    end
+end)
+
+--==================================================
+-- ANTI AFK
+--==================================================
+
+pcall(function()
+    player.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end)
+
+task.spawn(function()
+    while not closed do
+        task.wait(60)
+
+        if not closed then
+            pcall(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
         end
-    )
+    end
+end)
 
-end
+--==================================================
+-- DRAG
+--==================================================
 
--- ═══════════════════════════════════════════════════════════════
--- DRAGGING
--- ═══════════════════════════════════════════════════════════════
-
-local dragging =
-    false
-
-local dragInput
+local dragging = false
 local dragStart
 local startPos
 
-TitleBar.InputBegan:Connect(function(input)
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
 
-    if input.UserInputType
-        == Enum.UserInputType.MouseButton1
-        or input.UserInputType
-        == Enum.UserInputType.Touch then
-
-        dragging =
-            true
-
-        dragStart =
-            input.Position
-
-        startPos =
-            MainFrame.Position
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
 
         input.Changed:Connect(function()
-
-            if input.UserInputState
-                == Enum.UserInputState.End then
-
-                dragging =
-                    false
-
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
             end
-
         end)
-
     end
-
-end)
-
-TitleBar.InputChanged:Connect(function(input)
-
-    if input.UserInputType
-        == Enum.UserInputType.MouseMovement
-        or input.UserInputType
-        == Enum.UserInputType.Touch then
-
-        dragInput =
-            input
-
-    end
-
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-
-    if input == dragInput
-        and dragging then
-
-        local delta =
-            input.Position
-            - dragStart
-
-        MainFrame.Position =
-            UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset
-                    + delta.X,
-
-                startPos.Y.Scale,
-                startPos.Y.Offset
-                    + delta.Y
-            )
-
+    if not dragging then
+        return
     end
 
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        local delta = input.Position - dragStart
+
+        main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
 end)
 
--- ═══════════════════════════════════════════════════════════════
+--==================================================
 -- MINIMIZE
--- ═══════════════════════════════════════════════════════════════
+--==================================================
 
-local minimized =
-    false
+local minimized = false
+local normalSize = main.Size
 
-local fullSize =
-    MainFrame.Size
-
-MinBtn.MouseButton1Click:Connect(function()
-
-    minimized =
-        not minimized
+minimize.MouseButton1Click:Connect(function()
+    minimized = not minimized
 
     if minimized then
+        stats.Visible = false
+        statusLabel.Visible = false
+        left.Visible = false
+        right.Visible = false
 
-        Columns.Visible =
-            false
-
-        StatsBar.Visible =
-            false
-
-        StatusLabel.Visible =
-            false
-
-        accentLine.Visible =
-            false
-
-        TweenService:Create(
-            MainFrame,
-            TweenInfo.new(
-                TWEEN,
-                Enum.EasingStyle.Quart
-            ),
-            {
-                Size =
-                    UDim2.new(
-                        0,
-                        680,
-                        0,
-                        40
-                    )
-            }
-        ):Play()
-
-        MinBtn.Text =
-            "+"
-
+        main.Size = UDim2.new(0, 680, 0, 48)
+        minimize.Text = "□"
     else
+        stats.Visible = true
+        statusLabel.Visible = true
+        left.Visible = true
+        right.Visible = true
 
-        TweenService:Create(
-            MainFrame,
-            TweenInfo.new(
-                TWEEN,
-                Enum.EasingStyle.Quart
-            ),
-            {
-                Size =
-                    fullSize
-            }
-        ):Play()
-
-        task.delay(
-            TWEEN,
-            function()
-
-                if MainFrame
-                    and MainFrame.Parent then
-
-                    Columns.Visible =
-                        true
-
-                    StatsBar.Visible =
-                        true
-
-                    StatusLabel.Visible =
-                        true
-
-                    accentLine.Visible =
-                        true
-
-                end
-
-            end
-        )
-
-        MinBtn.Text =
-            "—"
-
+        main.Size = normalSize
+        minimize.Text = "—"
     end
-
 end)
 
--- ═══════════════════════════════════════════════════════════════
+--==================================================
 -- CLOSE
--- ═══════════════════════════════════════════════════════════════
+--==================================================
 
-ClsBtn.MouseButton1Click:Connect(function()
+close.MouseButton1Click:Connect(function()
+    closed = true
 
-    -- stop all automation
-    autoFarmOn =
-        false
+    autoRollOn = false
+    autoFarmOn = false
+    autoCollectOn = false
+    autoEquipBestOn = false
+    autoSellOn = false
+    autoBuyBestOn = false
+    autoRebirthOn = false
 
-    autoCollectOn =
-        false
-
-    autoEquipBestOn =
-        false
-
-    autoSellOn =
-        false
-
-    autoBuyBestOn =
-        false
-
-    autoRebirthOn =
-        false
-
-    -- animation
-    TweenService:Create(
-        MainFrame,
-        TweenInfo.new(
-            0.18,
-            Enum.EasingStyle.Quart
-        ),
-        {
-            Size =
-                UDim2.new(
-                    0,
-                    680,
-                    0,
-                    0
-                )
-        }
-    ):Play()
-
-    task.wait(0.2)
-
-    if ScreenGui then
-        ScreenGui:Destroy()
-    end
-
+    gui:Destroy()
 end)
 
--- ═══════════════════════════════════════════════════════════════
--- DONE
--- ═══════════════════════════════════════════════════════════════
-
-status(
-    "GUI Loaded! 🎲"
-)
-
-print(
-    "════════════════════════════════════"
-)
-
-print(
-    "[DiceGachaHub] Loaded successfully!"
-)
-
-print(
-    "[AntiAFK] Active"
-)
-
-print(
-    "[AutoEquip] 10 seconds"
-)
-
-print(
-    "[AutoCollect] 2 minutes"
-)
-
-print(
-    "[Automation] Roll > Equip > Collect > Sell"
-)
-
-print(
-    "════════════════════════════════════"
-)
+print("========================================")
+print("[DiceGachaHub] Loaded successfully!")
+print("[DiceGachaHub] Auto Roll uses RollDice")
+print("[DiceGachaHub] SetAutoRoll removed")
+print("========================================")
