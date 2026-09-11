@@ -69,9 +69,9 @@ local ALL_DICES = {
     {name = "Royal",        price = 10000000000000000,  luck = 400000,   emoji = "👑"},
     {name = "Prismatic",    price = 100000000000000000, luck = 1000000, emoji = "🌈"},
     {name = "Arcane",       price = 1.25e18,            luck = 2000000,  emoji = "🔮"},
-    {name = "Corrupted",    price = 1.5e19,            luck = 5000000,  emoji = "☣️"},
-    {name = "Titan",        price = 1e21,               luck = 10000000, emoji = "🗿"},
-    {name = "Chrono",       price = 1.5e22,             luck = 25000000, emoji = "⏳"},
+    {name = "Corrupted",    price = 1.5e20,             luck = 5000000,  emoji = "☣️"},
+    {name = "Titan",        price = 1.5e22,              luck = 10000000, emoji = "🗿"},
+    {name = "Chrono",       price = 1.5e22,              luck = 25000000, emoji = "⏳"},
 }
 
 --==================================================
@@ -83,7 +83,6 @@ local autoFarmOn = false
 local autoCollectOn = false
 local autoEquipBestOn = false
 local autoSellOn = false
-local autoBuyBestOn = false
 local autoRebirthOn = false
 local towerAuto = {
     ["Dragon Tower"] = false,
@@ -821,16 +820,40 @@ toggle(
 
 section(right, "🛒 DICE SHOP")
 
-local diceStatus = Instance.new("TextLabel")
-diceStatus.Size = UDim2.new(1, -20, 0, 28)
-diceStatus.BackgroundTransparency = 1
-diceStatus.Text = "Auto Buy Best: OFF"
-diceStatus.TextColor3 = Color3.fromRGB(180, 210, 255)
-diceStatus.TextSize = 13
-diceStatus.Font = Enum.Font.GothamBold
-diceStatus.TextXAlignment = Enum.TextXAlignment.Left
-diceStatus.LayoutOrder = #right:GetChildren()
-diceStatus.Parent = right
+-- Dice Shop is collapsed by default.
+-- Click the header to show/hide the full dice list.
+local diceShopOpen = false
+
+local diceShopButton = Instance.new("TextButton")
+diceShopButton.Size = UDim2.new(1, -20, 0, 42)
+diceShopButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
+diceShopButton.Text = "🛒 Dice Shop  ▸"
+diceShopButton.TextColor3 = Color3.new(1, 1, 1)
+diceShopButton.TextSize = 14
+diceShopButton.Font = Enum.Font.GothamBold
+diceShopButton.BorderSizePixel = 0
+diceShopButton.LayoutOrder = #right:GetChildren()
+diceShopButton.Parent = right
+Instance.new("UICorner", diceShopButton).CornerRadius = UDim.new(0, 8)
+
+local diceList = Instance.new("Frame")
+diceList.Name = "DiceList"
+diceList.Size = UDim2.new(1, -20, 0, 0)
+diceList.BackgroundTransparency = 1
+diceList.BorderSizePixel = 0
+diceList.ClipsDescendants = true
+diceList.LayoutOrder = #right:GetChildren()
+diceList.Parent = right
+
+local diceListLayout = Instance.new("UIListLayout")
+diceListLayout.Padding = UDim.new(0, 8)
+diceListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+diceListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+diceListLayout.Parent = diceList
+
+local diceListPad = Instance.new("UIPadding")
+diceListPad.PaddingBottom = UDim.new(0, 2)
+diceListPad.Parent = diceList
 
 local function getMoney()
     local leaderstats = player:FindFirstChild("leaderstats")
@@ -846,20 +869,38 @@ local function getMoney()
     return tonumber(money.Value) or 0
 end
 
+-- Game-style compact money display.
+-- The stored price remains the original numeric value.
 local function formatMoney(value)
     value = tonumber(value) or 0
 
-    if value >= 1e12 then
-        return string.format("%.2fT", value / 1e12):gsub("%.?0+T$", "T")
-    elseif value >= 1e9 then
-        return string.format("%.2fB", value / 1e9):gsub("%.?0+B$", "B")
-    elseif value >= 1e6 then
-        return string.format("%.2fM", value / 1e6):gsub("%.?0+M$", "M")
-    elseif value >= 1e3 then
-        return string.format("%.2fK", value / 1e3):gsub("%.?0+K$", "K")
-    else
-        return tostring(math.floor(value))
+    local suffixes = {
+        {1e20, "sx"},
+        {1e18, "qi"},
+        {1e15, "qa"},
+        {1e12, "T"},
+        {1e9, "B"},
+        {1e6, "M"},
+        {1e3, "K"},
+    }
+
+    for _, data in ipairs(suffixes) do
+        local threshold, suffix = data[1], data[2]
+        if value >= threshold then
+            local n = value / threshold
+            local text
+            if n >= 100 then
+                text = string.format("%.0f", n)
+            elseif n >= 10 then
+                text = string.format("%.1f", n):gsub("%.0$", "")
+            else
+                text = string.format("%.2f", n):gsub("0+$", ""):gsub("%.$", "")
+            end
+            return text .. suffix
+        end
     end
+
+    return tostring(math.floor(value))
 end
 
 local function buyDice(name)
@@ -877,52 +918,51 @@ local function buyDice(name)
     return ok, result
 end
 
+-- Show the newest/most expensive dice first, ending with Normal.
 for i = #ALL_DICES, 1, -1 do
     local d = ALL_DICES[i]
 
-    button(right, string.format(
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 40)
+    b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
+    b.Text = string.format(
         "%s  %s  | $%s  | Luck x%s",
         d.emoji,
         d.name,
         formatMoney(d.price),
-        tostring(d.luck)
-    ), function()
+        d.luckStr or tostring(d.luck)
+    )
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.LayoutOrder = #diceList:GetChildren()
+    b.Parent = diceList
+
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+
+    b.MouseButton1Click:Connect(function()
         buyDice(d.name)
     end)
 end
 
-toggle(
-    right,
-    "🛒 Auto Buy Best Dice",
-    nextRight(),
-    function()
-        autoBuyBestOn = true
-        diceStatus.Text = "Auto Buy Best: ON"
-
-        task.spawn(function()
-            while autoBuyBestOn and not closed do
-                local money = getMoney()
-
-                for i = #ALL_DICES, 1, -1 do
-                    local d = ALL_DICES[i]
-
-                    if money >= d.price then
-                        pcall(function()
-                            buyDice(d.name)
-                        end)
-                        break
-                    end
-                end
-
-                task.wait(60)
-            end
-        end)
-    end,
-    function()
-        autoBuyBestOn = false
-        diceStatus.Text = "Auto Buy Best: OFF"
+diceListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    if diceShopOpen then
+        diceList.Size = UDim2.new(1, -20, 0, diceListLayout.AbsoluteContentSize.Y + 2)
     end
-)
+end)
+
+diceShopButton.MouseButton1Click:Connect(function()
+    diceShopOpen = not diceShopOpen
+
+    if diceShopOpen then
+        diceShopButton.Text = "🛒 Dice Shop  ▾"
+        diceList.Size = UDim2.new(1, -20, 0, diceListLayout.AbsoluteContentSize.Y + 2)
+    else
+        diceShopButton.Text = "🛒 Dice Shop  ▸"
+        diceList.Size = UDim2.new(1, -20, 0, 0)
+    end
+end)
 
 --==================================================
 -- STATS UPDATE
@@ -1059,7 +1099,6 @@ close.MouseButton1Click:Connect(function()
     autoCollectOn = false
     autoEquipBestOn = false
     autoSellOn = false
-    autoBuyBestOn = false
     autoRebirthOn = false
 
     gui:Destroy()
