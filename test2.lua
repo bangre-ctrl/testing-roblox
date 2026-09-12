@@ -923,154 +923,258 @@ task.spawn(function()
 end)
 
 --==================================================
--- ANTI AFK
+-- ANTI AFK + MINI INDICATOR
 --==================================================
 
--- Anti-AFK runs independently from the main GUI.
--- The indicator is in a separate ScreenGui, so pressing
--- LeftControl to hide the main hub does NOT hide this indicator.
---
--- Normal heartbeat:
---   every 30 seconds -> right mouse button down
---   wait 1 second    -> right mouse button up
---
--- Player.Idled is also handled as a backup.
+local TeleportService = game:GetService("TeleportService")
 
-local antiAFKEnabled = true
-local antiAFKClosed = false
-local antiAFKStartedAt = time()
+local antiAFKOn = true
+local antiAFKStartedAt = os.time()
 local antiAFKLastActionAt = 0
+local lastJobId = game.JobId
+local lastPlaceId = game.PlaceId
+local serverChanged = false
 
-local function getCamera()
-    return workspace.CurrentCamera
-end
-
-local function antiAFKAction()
-    if antiAFKClosed or not antiAFKEnabled then
-        return false
+-- Remove an old mini indicator if this script is executed again.
+pcall(function()
+    local oldAFKGui = player.PlayerGui:FindFirstChild("DiceGachaAntiAFK")
+    if oldAFKGui then
+        oldAFKGui:Destroy()
     end
-
-    local camera = getCamera()
-    if not camera then
-        return false
-    end
-
-    local ok = pcall(function()
-        VirtualUser:CaptureController()
-
-        local cameraCFrame = camera.CFrame
-
-        VirtualUser:Button2Down(Vector2.zero, cameraCFrame)
-        task.wait(1)
-        VirtualUser:Button2Up(Vector2.zero, cameraCFrame)
-    end)
-
-    if ok then
-        antiAFKLastActionAt = time()
-    end
-
-    return ok
-end
-
---==================================================
--- ANTI AFK MINI INDICATOR
---==================================================
+end)
 
 local afkGui = Instance.new("ScreenGui")
 afkGui.Name = "DiceGachaAntiAFK"
 afkGui.ResetOnSpawn = false
-afkGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-afkGui.DisplayOrder = 999
+afkGui.IgnoreGuiInset = true
+afkGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+afkGui.DisplayOrder = 999999
 afkGui.Parent = player:WaitForChild("PlayerGui")
 
+-- Mini Anti-AFK window: draggable + close button.
 local afkFrame = Instance.new("Frame")
-afkFrame.Name = "Status"
-afkFrame.Size = UDim2.new(0, 368, 0, 40)
-afkFrame.Position = UDim2.new(0.5, -184, 0, 0)
-afkFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 31)
+afkFrame.Name = "AntiAFKWindow"
+afkFrame.Size = UDim2.new(0, 400, 0, 44)
+afkFrame.Position = UDim2.new(0.5, -200, 0, 8)
+afkFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
 afkFrame.BackgroundTransparency = 0.05
 afkFrame.BorderSizePixel = 0
+afkFrame.ZIndex = 100
 afkFrame.Parent = afkGui
 
 Instance.new("UICorner", afkFrame).CornerRadius = UDim.new(0, 8)
 
-local afkStroke = Instance.new("UIStroke")
-afkStroke.Color = Color3.fromRGB(55, 60, 75)
-afkStroke.Thickness = 1
-afkStroke.Transparency = 0.2
-afkStroke.Parent = afkFrame
-
 local afkLabel = Instance.new("TextLabel")
-afkLabel.Size = UDim2.new(1, -16, 1, 0)
-afkLabel.Position = UDim2.new(0, 8, 0, 0)
+afkLabel.Size = UDim2.new(1, -42, 1, 0)
+afkLabel.Position = UDim2.new(0, 0, 0, 0)
 afkLabel.BackgroundTransparency = 1
+afkLabel.BorderSizePixel = 0
 afkLabel.Text = "🛡️ Anti AFK ON | 00m 00s | Server OK"
-afkLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
-afkLabel.TextSize = 14
+afkLabel.TextColor3 = Color3.fromRGB(120, 255, 150)
+afkLabel.TextSize = 15
 afkLabel.Font = Enum.Font.GothamBold
 afkLabel.TextXAlignment = Enum.TextXAlignment.Center
+afkLabel.ZIndex = 101
 afkLabel.Parent = afkFrame
 
-local function formatAFKTime()
-    local elapsed = math.max(0, math.floor(time() - antiAFKStartedAt))
-    local minutes = math.floor(elapsed / 60)
-    local seconds = elapsed % 60
+local afkClose = Instance.new("TextButton")
+afkClose.Name = "Close"
+afkClose.Size = UDim2.new(0, 34, 0, 34)
+afkClose.Position = UDim2.new(1, -38, 0, 5)
+afkClose.BackgroundColor3 = Color3.fromRGB(180, 50, 55)
+afkClose.Text = "X"
+afkClose.TextColor3 = Color3.new(1, 1, 1)
+afkClose.TextSize = 14
+afkClose.Font = Enum.Font.GothamBold
+afkClose.BorderSizePixel = 0
+afkClose.ZIndex = 102
+afkClose.Parent = afkFrame
 
-    return string.format("%02dm %02ds", minutes, seconds)
+Instance.new("UICorner", afkClose).CornerRadius = UDim.new(0, 7)
+
+-- Close only the mini window. Anti-AFK itself keeps running in the background.
+afkClose.MouseButton1Click:Connect(function()
+    afkGui.Enabled = false
+end)
+
+-- Drag the mini window with mouse/touch.
+local afkDragging = false
+local afkDragStart
+local afkStartPos
+
+local function startAFKDrag(input)
+    afkDragging = true
+    afkDragStart = input.Position
+    afkStartPos = afkFrame.Position
+
+    input.Changed:Connect(function()
+        if input.UserInputState == Enum.UserInputState.End then
+            afkDragging = false
+        end
+    end)
 end
 
-local function updateAFKIndicator()
-    if not afkLabel.Parent then
+afkFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        and input.Position.X >= afkClose.AbsolutePosition.X
+        and input.Position.X <= afkClose.AbsolutePosition.X + afkClose.AbsoluteSize.X
+        and input.Position.Y >= afkClose.AbsolutePosition.Y
+        and input.Position.Y <= afkClose.AbsolutePosition.Y + afkClose.AbsoluteSize.Y then
+            return
+        end
+
+        startAFKDrag(input)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not afkDragging then
         return
     end
 
-    local lastActionText = ""
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - afkDragStart
 
-    if antiAFKLastActionAt > 0 then
-        local sinceAction = math.max(0, math.floor(time() - antiAFKLastActionAt))
-        lastActionText = string.format(" | Ping %02ds", sinceAction)
+        afkFrame.Position = UDim2.new(
+            afkStartPos.X.Scale,
+            afkStartPos.X.Offset + delta.X,
+            afkStartPos.Y.Scale,
+            afkStartPos.Y.Offset + delta.Y
+        )
     end
+end)
 
-    afkLabel.Text =
-        "🛡️ Anti AFK ON | "
-        .. formatAFKTime()
-        .. " | Server OK"
-        .. lastActionText
+local function afkTime()
+    local elapsed = math.max(0, os.time() - antiAFKStartedAt)
+    return string.format("%02dm %02ds", math.floor(elapsed / 60), elapsed % 60)
 end
 
--- Roblox idle event: backup trigger.
+local function updateAFKLabel()
+    if closed or not afkLabel.Parent then
+        return
+    end
+
+    local serverText = serverChanged and "⚠️ SERVER CHANGED" or "Server OK"
+    local pingText = ""
+
+    if antiAFKLastActionAt > 0 then
+        pingText = " | Ping " .. tostring(math.max(0, os.time() - antiAFKLastActionAt)) .. "s"
+    end
+
+    afkLabel.Text = "🛡️ Anti AFK ON | " .. afkTime() .. " | " .. serverText .. pingText
+    afkLabel.TextColor3 = serverChanged
+        and Color3.fromRGB(255, 190, 90)
+        or Color3.fromRGB(120, 255, 150)
+end
+
+local function antiAFKAction()
+    if not antiAFKOn or closed then
+        return
+    end
+
+    local ok = pcall(function()
+        local currentCamera = workspace.CurrentCamera
+        if not currentCamera then
+            return
+        end
+
+        VirtualUser:CaptureController()
+
+        VirtualUser:Button2Down(
+            Vector2.zero,
+            currentCamera.CFrame
+        )
+
+        task.wait(1)
+
+        currentCamera = workspace.CurrentCamera or currentCamera
+
+        VirtualUser:Button2Up(
+            Vector2.zero,
+            currentCamera.CFrame
+        )
+    end)
+
+    if ok then
+        antiAFKLastActionAt = os.time()
+        updateAFKLabel()
+    end
+end
+
+-- Roblox idle event backup.
 pcall(function()
     player.Idled:Connect(function()
-        if not antiAFKClosed and antiAFKEnabled then
-            task.spawn(function()
-                antiAFKAction()
-            end)
+        if antiAFKOn and not closed then
+            print("[ANTI-AFK] Player.Idled triggered | AFK:", afkTime())
+            antiAFKAction()
         end
     end)
 end)
 
--- Main Anti-AFK heartbeat: every 30 seconds.
+-- Periodic activity every 30 seconds.
 task.spawn(function()
-    while not antiAFKClosed and not closed do
+    while not closed do
         task.wait(30)
 
-        if antiAFKClosed or closed or not antiAFKEnabled then
+        if closed then
             break
         end
 
-        task.spawn(function()
+        if antiAFKOn then
             antiAFKAction()
-        end)
+            print("[ANTI-AFK] Button2 activity sent | AFK:", afkTime(), "| JobId:", game.JobId)
+        end
     end
 end)
 
--- UI timer updater. Uses Roblox time(), not os.time().
+-- Update mini indicator every second. This timer is independent of the action timer.
 task.spawn(function()
-    while not antiAFKClosed and not closed do
-        updateAFKIndicator()
+    while not closed and afkGui.Parent do
+        updateAFKLabel()
         task.wait(1)
     end
 end)
+
+-- Detect failed teleports when the event is available.
+pcall(function()
+    TeleportService.TeleportInitFailed:Connect(function(result, message, placeId)
+        warn("[TELEPORT FAILED]", result, message, placeId)
+    end)
+end)
+
+-- Detect a server/place change while this script remains alive.
+task.spawn(function()
+    while not closed do
+        task.wait(10)
+
+        if closed then
+            break
+        end
+
+        if game.JobId ~= lastJobId then
+            serverChanged = true
+            warn("[SERVER CHANGE DETECTED] Old JobId:", lastJobId, "New JobId:", game.JobId, "AFK:", afkTime())
+            lastJobId = game.JobId
+        end
+
+        if game.PlaceId ~= lastPlaceId then
+            serverChanged = true
+            warn("[PLACE CHANGE DETECTED] Old PlaceId:", lastPlaceId, "New PlaceId:", game.PlaceId, "AFK:", afkTime())
+            lastPlaceId = game.PlaceId
+        end
+
+        updateAFKLabel()
+    end
+end)
+
+print("========================================")
+print("[ANTI-AFK] Button2Down/Button2Up loaded | interval: 30s")
+print("[ANTI-AFK] Start JobId:", game.JobId)
+print("[ANTI-AFK] Start PlaceId:", game.PlaceId)
+print("========================================")
 
 --==================================================
 -- DRAG
@@ -1179,7 +1283,6 @@ end)
 
 close.MouseButton1Click:Connect(function()
     closed = true
-    antiAFKClosed = true
 
     autoRollOn = false
     autoFarmOn = false
@@ -1187,12 +1290,13 @@ close.MouseButton1Click:Connect(function()
     autoEquipBestOn = false
     autoSellOn = false
     autoRebirthOn = false
-
-    if afkGui then
-        afkGui:Destroy()
-    end
+    antiAFKOn = false
 
     gui:Destroy()
+
+    if afkGui and afkGui.Parent then
+        afkGui:Destroy()
+    end
 end)
 
 print("========================================")
