@@ -173,7 +173,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
 main.Name = "MainFrame"
-main.Size = UDim2.new(0, 640, 0, 510)
+main.Size = UDim2.new(0, 640, 0, 540)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
@@ -222,7 +222,7 @@ local function updateMainScale()
 
     -- Also make sure the complete hub fits inside the viewport.
     local fitX = (viewport.X - 20) / 640
-    local fitY = (viewport.Y - 20) / 510
+    local fitY = (viewport.Y - 20) / 540
     scale = math.min(scale, fitX, fitY)
 
     mainScale.Scale = math.clamp(scale, 0.50, 1)
@@ -347,11 +347,11 @@ end
 
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
-left.Size = UDim2.new(0, 326, 0, 405)
-left.Position = UDim2.new(0, 12, 0, 125)
+left.Size = UDim2.new(0, 300, 0, 395)
+left.Position = UDim2.new(0, 10, 0, 125)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
-left.ScrollBarThickness = 8
+left.ScrollBarThickness = 7
 left.ScrollBarImageTransparency = 0
 left.ScrollingEnabled = true
 left.ScrollingDirection = Enum.ScrollingDirection.Y
@@ -363,11 +363,11 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
-right.Size = UDim2.new(0, 318, 0, 405)
-right.Position = UDim2.new(0, 350, 0, 125)
+right.Size = UDim2.new(0, 300, 0, 395)
+right.Position = UDim2.new(0, 330, 0, 125)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
-right.ScrollBarThickness = 8
+right.ScrollBarThickness = 7
 right.ScrollBarImageTransparency = 0
 right.ScrollingEnabled = true
 right.ScrollingDirection = Enum.ScrollingDirection.Y
@@ -1202,4 +1202,5 @@ print("[DiceGachaHub] Auto Roll uses RollDice")
 print("[DiceGachaHub] SetAutoRoll removed")
 print("[DiceGachaHub] Anti-AFK removed - V2")
 print("[DiceGachaHub] Responsive UI enabled")
+print("[DiceGachaHub] Compact columns enabled")
 print("========================================")
