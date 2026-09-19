@@ -348,8 +348,8 @@ end
 
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
-left.Size = UDim2.new(0.48, 0, 0, 390)
-left.Position = UDim2.new(0.01, 0, 0, 125)
+left.Size = UDim2.new(0, 305, 0, 410)
+left.Position = UDim2.new(0, 10, 0, 125)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
 left.ScrollBarThickness = 7
@@ -364,8 +364,8 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
-right.Size = UDim2.new(0.48, 0, 0, 390)
-right.Position = UDim2.new(0.51, 0, 0, 125)
+right.Size = UDim2.new(0, 305, 0, 410)
+right.Position = UDim2.new(0, 325, 0, 125)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
 right.ScrollBarThickness = 7
@@ -500,7 +500,7 @@ end
 
 local function section(parent, text)
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -20, 0, 28)
+    label.Size = UDim2.new(1, -16, 0, 28)
     label.BackgroundTransparency = 1
     label.Text = text
     label.TextColor3 = Color3.fromRGB(180, 210, 255)
@@ -514,7 +514,7 @@ end
 
 local function button(parent, text, callback)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -20, 0, 40)
+    b.Size = UDim2.new(1, -16, 0, 40)
     b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
@@ -535,7 +535,7 @@ end
 
 local function toggle(parent, text, _, onCallback, offCallback)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -20, 0, 42)
+    b.Size = UDim2.new(1, -16, 0, 42)
     b.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
     b.Text = text .. " : OFF"
     b.TextColor3 = Color3.new(1, 1, 1)
@@ -915,7 +915,7 @@ section(right, "🛒 DICE SHOP")
 local diceShopOpen = false
 
 local diceShopButton = Instance.new("TextButton")
-diceShopButton.Size = UDim2.new(1, -20, 0, 42)
+diceShopButton.Size = UDim2.new(1, -16, 0, 42)
 diceShopButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
 diceShopButton.Text = "🛒 Dice Shop  ▸"
 diceShopButton.TextColor3 = Color3.new(1, 1, 1)
@@ -928,7 +928,7 @@ Instance.new("UICorner", diceShopButton).CornerRadius = UDim.new(0, 8)
 
 local diceList = Instance.new("Frame")
 diceList.Name = "DiceList"
-diceList.Size = UDim2.new(1, -20, 0, 0)
+diceList.Size = UDim2.new(1, -16, 0, 0)
 diceList.BackgroundTransparency = 1
 diceList.BorderSizePixel = 0
 diceList.ClipsDescendants = true
@@ -1038,7 +1038,7 @@ end
 
 diceListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     if diceShopOpen then
-        diceList.Size = UDim2.new(1, -20, 0, diceListLayout.AbsoluteContentSize.Y + 2)
+        diceList.Size = UDim2.new(1, -16, 0, diceListLayout.AbsoluteContentSize.Y + 2)
     end
 end)
 
