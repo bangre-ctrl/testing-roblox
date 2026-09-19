@@ -351,7 +351,10 @@ left.Size = UDim2.new(0, 326, 0, 405)
 left.Position = UDim2.new(0, 12, 0, 125)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
-left.ScrollBarThickness = 5
+left.ScrollBarThickness = 6
+left.ScrollingEnabled = true
+left.ScrollingDirection = Enum.ScrollingDirection.Y
+left.AutomaticCanvasSize = Enum.AutomaticSize.Y
 left.CanvasSize = UDim2.new(0, 0, 0, 0)
 left.Parent = main
 
@@ -363,7 +366,10 @@ right.Size = UDim2.new(0, 318, 0, 405)
 right.Position = UDim2.new(0, 350, 0, 125)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
-right.ScrollBarThickness = 5
+right.ScrollBarThickness = 6
+right.ScrollingEnabled = true
+right.ScrollingDirection = Enum.ScrollingDirection.Y
+right.AutomaticCanvasSize = Enum.AutomaticSize.Y
 right.CanvasSize = UDim2.new(0, 0, 0, 0)
 right.Parent = main
 
@@ -377,7 +383,7 @@ leftLayout.Parent = left
 
 local leftPad = Instance.new("UIPadding")
 leftPad.PaddingTop = UDim.new(0, 10)
-leftPad.PaddingBottom = UDim.new(0, 10)
+leftPad.PaddingBottom = UDim.new(0, 14)
 leftPad.Parent = left
 
 local rightLayout = Instance.new("UIListLayout")
@@ -388,10 +394,12 @@ rightLayout.Parent = right
 
 local rightPad = Instance.new("UIPadding")
 rightPad.PaddingTop = UDim.new(0, 10)
-rightPad.PaddingBottom = UDim.new(0, 10)
+rightPad.PaddingBottom = UDim.new(0, 14)
 rightPad.Parent = right
 
 leftLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    -- AutomaticCanvasSize handles the actual scrolling canvas.
+    -- Keep a small extra bottom buffer.
     left.CanvasSize = UDim2.new(0, 0, 0, leftLayout.AbsoluteContentSize.Y + 20)
 end)
 
