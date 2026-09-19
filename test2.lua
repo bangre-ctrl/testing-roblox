@@ -1173,31 +1173,31 @@ minimize.MouseButton1Click:Connect(function()
 
         -- COMPACT BAR:
         -- [ 🎲 Dice ] [ □ ] [ X ]
-        main.Size = UDim2.new(0, 128, 0, 48)
+        main.Size = UDim2.new(0, 180, 0, 44)
         titleBar.Size = UDim2.new(1, 0, 1, 0)
 
         -- Keep the title text as a compact "Dice" label.
         title.Visible = true
-        title.Size = UDim2.new(0, 64, 1, 0)
+        title.Size = UDim2.new(0, 88, 1, 0)
         title.Position = UDim2.new(0, 10, 0, 0)
         title.Text = "🎲 Dice"
-        title.TextSize = 14
+        title.TextSize = 15
 
         -- Small square minimize/restore button.
         minimize.Visible = true
-        minimize.Size = UDim2.new(0, 34, 0, 34)
-        minimize.Position = UDim2.new(1, -76, 0, 7)
+        minimize.Size = UDim2.new(0, 32, 0, 32)
+        minimize.Position = UDim2.new(1, -72, 0, 6)
         minimize.Text = "□"
         minimize.TextSize = 17
 
         -- Keep X visible.
         close.Visible = true
-        close.Size = UDim2.new(0, 34, 0, 34)
-        close.Position = UDim2.new(1, -38, 0, 7)
+        close.Size = UDim2.new(0, 32, 0, 32)
+        close.Position = UDim2.new(1, -38, 0, 6)
         close.Text = "X"
         close.TextSize = 15
 
-        mainCorner.CornerRadius = UDim.new(0, 10)
+        mainCorner.CornerRadius = UDim.new(0, 12)
     else
         stats.Visible = true
         statusLabel.Visible = true
