@@ -264,7 +264,7 @@ local minimize = Instance.new("TextButton")
 minimize.Size = UDim2.new(0, 36, 0, 34)
 minimize.Position = UDim2.new(1, -78, 0, 7)
 minimize.BackgroundColor3 = Color3.fromRGB(75, 75, 88)
-minimize.Text = "—"
+minimize.Text = "□"
 minimize.TextColor3 = Color3.new(1, 1, 1)
 minimize.TextSize = 20
 minimize.Font = Enum.Font.GothamBold
@@ -1171,28 +1171,18 @@ minimize.MouseButton1Click:Connect(function()
         left.Visible = false
         right.Visible = false
 
-        -- COMPACT MINIMIZE MODE
-        -- Only the two window controls remain visible:
-        -- [ □ ] [ X ]
-        -- Keep both buttons so the user can restore or close the hub.
-        main.Size = UDim2.new(0, 88, 0, 48)
-
+        -- MINIMIZE: hanya satu tombol kotak.
+        -- X disembunyikan agar ukuran benar-benar kecil.
+        main.Size = UDim2.new(0, 52, 0, 52)
         titleBar.Size = UDim2.new(1, 0, 1, 0)
 
         title.Visible = false
-        close.Visible = true
+        close.Visible = false
 
-        -- Minimize/restore button.
-        minimize.Size = UDim2.new(0, 34, 0, 34)
-        minimize.Position = UDim2.new(0, 7, 0, 7)
+        minimize.Size = UDim2.new(0, 40, 0, 40)
+        minimize.Position = UDim2.new(0.5, -20, 0.5, -20)
         minimize.Text = "□"
-        minimize.TextSize = 17
-
-        -- Close button remains visible.
-        close.Size = UDim2.new(0, 34, 0, 34)
-        close.Position = UDim2.new(1, -41, 0, 7)
-        close.Text = "X"
-        close.TextSize = 15
+        minimize.TextSize = 18
 
         mainCorner.CornerRadius = UDim.new(0, 10)
     else
@@ -1202,7 +1192,6 @@ minimize.MouseButton1Click:Connect(function()
         right.Visible = true
 
         main.Size = normalSize
-
         titleBar.Size = UDim2.new(1, 0, 0, 48)
 
         title.Visible = true
@@ -1210,7 +1199,7 @@ minimize.MouseButton1Click:Connect(function()
 
         minimize.Size = UDim2.new(0, 36, 0, 34)
         minimize.Position = UDim2.new(1, -78, 0, 7)
-        minimize.Text = "—"
+        minimize.Text = "□"
         minimize.TextSize = 20
 
         close.Size = UDim2.new(0, 36, 0, 34)
