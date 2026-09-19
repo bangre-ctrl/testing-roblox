@@ -1171,18 +1171,31 @@ minimize.MouseButton1Click:Connect(function()
         left.Visible = false
         right.Visible = false
 
-        -- MINIMIZE: hanya satu tombol kotak.
-        -- X disembunyikan agar ukuran benar-benar kecil.
-        main.Size = UDim2.new(0, 52, 0, 52)
+        -- COMPACT BAR:
+        -- [ 🎲 Dice ] [ □ ] [ X ]
+        main.Size = UDim2.new(0, 128, 0, 48)
         titleBar.Size = UDim2.new(1, 0, 1, 0)
 
-        title.Visible = false
-        close.Visible = false
+        -- Keep the title text as a compact "Dice" label.
+        title.Visible = true
+        title.Size = UDim2.new(0, 64, 1, 0)
+        title.Position = UDim2.new(0, 10, 0, 0)
+        title.Text = "🎲 Dice"
+        title.TextSize = 14
 
-        minimize.Size = UDim2.new(0, 40, 0, 40)
-        minimize.Position = UDim2.new(0.5, -20, 0.5, -20)
+        -- Small square minimize/restore button.
+        minimize.Visible = true
+        minimize.Size = UDim2.new(0, 34, 0, 34)
+        minimize.Position = UDim2.new(1, -76, 0, 7)
         minimize.Text = "□"
-        minimize.TextSize = 18
+        minimize.TextSize = 17
+
+        -- Keep X visible.
+        close.Visible = true
+        close.Size = UDim2.new(0, 34, 0, 34)
+        close.Position = UDim2.new(1, -38, 0, 7)
+        close.Text = "X"
+        close.TextSize = 15
 
         mainCorner.CornerRadius = UDim.new(0, 10)
     else
@@ -1195,17 +1208,22 @@ minimize.MouseButton1Click:Connect(function()
         titleBar.Size = UDim2.new(1, 0, 0, 48)
 
         title.Visible = true
+        title.Size = UDim2.new(1, -130, 1, 0)
+        title.Position = UDim2.new(0, 16, 0, 0)
+        title.Text = "🎲 Dice Gacha Hub"
+        title.TextSize = 19
+
         close.Visible = true
-
-        minimize.Size = UDim2.new(0, 36, 0, 34)
-        minimize.Position = UDim2.new(1, -78, 0, 7)
-        minimize.Text = "□"
-        minimize.TextSize = 20
-
         close.Size = UDim2.new(0, 36, 0, 34)
         close.Position = UDim2.new(1, -38, 0, 7)
         close.Text = "X"
         close.TextSize = 16
+
+        minimize.Visible = true
+        minimize.Size = UDim2.new(0, 36, 0, 34)
+        minimize.Position = UDim2.new(1, -78, 0, 7)
+        minimize.Text = "□"
+        minimize.TextSize = 20
 
         mainCorner.CornerRadius = UDim.new(0, 12)
     end
