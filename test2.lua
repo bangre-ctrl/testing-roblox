@@ -1171,10 +1171,13 @@ minimize.MouseButton1Click:Connect(function()
         left.Visible = false
         right.Visible = false
 
-        -- Compact square minimize mode.
+        -- TRUE SQUARE MINIMIZE MODE.
+        -- Resize the title bar itself too, otherwise its old
+        -- 680px/640px width can remain visible.
         main.Size = UDim2.new(0, 52, 0, 52)
 
-        -- Keep only a square restore button visible.
+        titleBar.Size = UDim2.new(1, 0, 1, 0)
+
         title.Visible = false
         close.Visible = false
 
@@ -1182,6 +1185,9 @@ minimize.MouseButton1Click:Connect(function()
         minimize.Position = UDim2.new(0.5, -20, 0.5, -20)
         minimize.Text = "□"
         minimize.TextSize = 18
+
+        -- No rounded rectangle extending from the old title-bar height.
+        mainCorner.CornerRadius = UDim.new(0, 10)
     else
         stats.Visible = true
         statusLabel.Visible = true
@@ -1190,6 +1196,8 @@ minimize.MouseButton1Click:Connect(function()
 
         main.Size = normalSize
 
+        titleBar.Size = UDim2.new(1, 0, 0, 48)
+
         title.Visible = true
         close.Visible = true
 
@@ -1197,6 +1205,8 @@ minimize.MouseButton1Click:Connect(function()
         minimize.Position = UDim2.new(1, -78, 0, 7)
         minimize.Text = "—"
         minimize.TextSize = 20
+
+        mainCorner.CornerRadius = UDim.new(0, 12)
     end
 end)
 
