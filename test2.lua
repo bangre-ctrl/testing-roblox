@@ -1171,8 +1171,17 @@ minimize.MouseButton1Click:Connect(function()
         left.Visible = false
         right.Visible = false
 
-        main.Size = UDim2.new(0, 640, 0, 48)
+        -- Compact square minimize mode.
+        main.Size = UDim2.new(0, 52, 0, 52)
+
+        -- Keep only a square restore button visible.
+        title.Visible = false
+        close.Visible = false
+
+        minimize.Size = UDim2.new(0, 40, 0, 40)
+        minimize.Position = UDim2.new(0.5, -20, 0.5, -20)
         minimize.Text = "□"
+        minimize.TextSize = 18
     else
         stats.Visible = true
         statusLabel.Visible = true
@@ -1180,7 +1189,14 @@ minimize.MouseButton1Click:Connect(function()
         right.Visible = true
 
         main.Size = normalSize
+
+        title.Visible = true
+        close.Visible = true
+
+        minimize.Size = UDim2.new(0, 36, 0, 34)
+        minimize.Position = UDim2.new(1, -78, 0, 7)
         minimize.Text = "—"
+        minimize.TextSize = 20
     end
 end)
 
