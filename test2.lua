@@ -1171,22 +1171,29 @@ minimize.MouseButton1Click:Connect(function()
         left.Visible = false
         right.Visible = false
 
-        -- TRUE SQUARE MINIMIZE MODE.
-        -- Resize the title bar itself too, otherwise its old
-        -- 680px/640px width can remain visible.
-        main.Size = UDim2.new(0, 52, 0, 52)
+        -- COMPACT MINIMIZE MODE
+        -- Only the two window controls remain visible:
+        -- [ □ ] [ X ]
+        -- Keep both buttons so the user can restore or close the hub.
+        main.Size = UDim2.new(0, 88, 0, 48)
 
         titleBar.Size = UDim2.new(1, 0, 1, 0)
 
         title.Visible = false
-        close.Visible = false
+        close.Visible = true
 
-        minimize.Size = UDim2.new(0, 40, 0, 40)
-        minimize.Position = UDim2.new(0.5, -20, 0.5, -20)
+        -- Minimize/restore button.
+        minimize.Size = UDim2.new(0, 34, 0, 34)
+        minimize.Position = UDim2.new(0, 7, 0, 7)
         minimize.Text = "□"
-        minimize.TextSize = 18
+        minimize.TextSize = 17
 
-        -- No rounded rectangle extending from the old title-bar height.
+        -- Close button remains visible.
+        close.Size = UDim2.new(0, 34, 0, 34)
+        close.Position = UDim2.new(1, -41, 0, 7)
+        close.Text = "X"
+        close.TextSize = 15
+
         mainCorner.CornerRadius = UDim.new(0, 10)
     else
         stats.Visible = true
@@ -1205,6 +1212,11 @@ minimize.MouseButton1Click:Connect(function()
         minimize.Position = UDim2.new(1, -78, 0, 7)
         minimize.Text = "—"
         minimize.TextSize = 20
+
+        close.Size = UDim2.new(0, 36, 0, 34)
+        close.Position = UDim2.new(1, -38, 0, 7)
+        close.Text = "X"
+        close.TextSize = 16
 
         mainCorner.CornerRadius = UDim.new(0, 12)
     end
