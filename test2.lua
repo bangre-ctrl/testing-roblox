@@ -347,7 +347,7 @@ end
 
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
-left.Size = UDim2.new(0, 300, 0, 395)
+left.Size = UDim2.new(0, 300, 0, 390)
 left.Position = UDim2.new(0, 10, 0, 125)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
@@ -363,7 +363,7 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
-right.Size = UDim2.new(0, 300, 0, 395)
+right.Size = UDim2.new(0, 300, 0, 390)
 right.Position = UDim2.new(0, 330, 0, 125)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
@@ -385,7 +385,9 @@ leftLayout.Parent = left
 
 local leftPad = Instance.new("UIPadding")
 leftPad.PaddingTop = UDim.new(0, 10)
-leftPad.PaddingBottom = UDim.new(0, 14)
+leftPad.PaddingBottom = UDim.new(0, 10)
+leftPad.PaddingLeft = UDim.new(0, 4)
+leftPad.PaddingRight = UDim.new(0, 4)
 leftPad.Parent = left
 
 local rightLayout = Instance.new("UIListLayout")
@@ -396,7 +398,9 @@ rightLayout.Parent = right
 
 local rightPad = Instance.new("UIPadding")
 rightPad.PaddingTop = UDim.new(0, 10)
-rightPad.PaddingBottom = UDim.new(0, 14)
+rightPad.PaddingBottom = UDim.new(0, 10)
+rightPad.PaddingLeft = UDim.new(0, 4)
+rightPad.PaddingRight = UDim.new(0, 4)
 rightPad.Parent = right
 
 leftLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
