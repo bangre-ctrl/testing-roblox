@@ -351,7 +351,8 @@ left.Size = UDim2.new(0, 326, 0, 405)
 left.Position = UDim2.new(0, 12, 0, 125)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
-left.ScrollBarThickness = 6
+left.ScrollBarThickness = 8
+left.ScrollBarImageTransparency = 0
 left.ScrollingEnabled = true
 left.ScrollingDirection = Enum.ScrollingDirection.Y
 left.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -366,7 +367,8 @@ right.Size = UDim2.new(0, 318, 0, 405)
 right.Position = UDim2.new(0, 350, 0, 125)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
-right.ScrollBarThickness = 6
+right.ScrollBarThickness = 8
+right.ScrollBarImageTransparency = 0
 right.ScrollingEnabled = true
 right.ScrollingDirection = Enum.ScrollingDirection.Y
 right.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -406,6 +408,78 @@ end)
 rightLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 20)
 end)
+
+--==================================================
+-- MOBILE / TOUCH SCROLL FIX
+--==================================================
+-- Some Android emulators do not pass normal touch-wheel scrolling
+-- correctly to a ScrollingFrame. Add manual swipe scrolling as a
+-- fallback so the lower buttons (Collect/Rebirth/Automation) are
+-- always reachable.
+left.Active = true
+right.Active = true
+
+local function setupTouchScroll(frame, layout)
+    local draggingScroll = false
+    local dragStartY = 0
+    local startCanvasY = 0
+
+    local function insideFrame(position)
+        local pos = frame.AbsolutePosition
+        local size = frame.AbsoluteSize
+
+        return position.X >= pos.X
+            and position.X <= pos.X + size.X
+            and position.Y >= pos.Y
+            and position.Y <= pos.Y + size.Y
+    end
+
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType ~= Enum.UserInputType.Touch
+        and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+            return
+        end
+
+        if not insideFrame(input.Position) then
+            return
+        end
+
+        draggingScroll = true
+        dragStartY = input.Position.Y
+        startCanvasY = frame.CanvasPosition.Y
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not draggingScroll then
+            return
+        end
+
+        if input.UserInputType ~= Enum.UserInputType.Touch
+        and input.UserInputType ~= Enum.UserInputType.MouseMovement then
+            return
+        end
+
+        local deltaY = input.Position.Y - dragStartY
+        local contentHeight = math.max(
+            layout.AbsoluteContentSize.Y + 24,
+            frame.AbsoluteSize.Y
+        )
+        local maxY = math.max(0, contentHeight - frame.AbsoluteSize.Y)
+
+        local newY = math.clamp(startCanvasY - deltaY, 0, maxY)
+        frame.CanvasPosition = Vector2.new(0, newY)
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingScroll = false
+        end
+    end)
+end
+
+setupTouchScroll(left, leftLayout)
+setupTouchScroll(right, rightLayout)
 
 local function nextLeft()
     return #left:GetChildren()
