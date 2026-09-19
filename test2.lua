@@ -173,11 +173,12 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
 main.Name = "MainFrame"
-main.Size = UDim2.new(0, 640, 0, 540)
+main.Size = UDim2.new(0, 640, 0, 550)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
 main.BorderSizePixel = 0
+main.ClipsDescendants = true
 main.Parent = gui
 
 --==================================================
@@ -222,7 +223,7 @@ local function updateMainScale()
 
     -- Also make sure the complete hub fits inside the viewport.
     local fitX = (viewport.X - 20) / 640
-    local fitY = (viewport.Y - 20) / 540
+    local fitY = (viewport.Y - 20) / 550
     scale = math.min(scale, fitX, fitY)
 
     mainScale.Scale = math.clamp(scale, 0.50, 1)
@@ -347,8 +348,8 @@ end
 
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
-left.Size = UDim2.new(0, 300, 0, 390)
-left.Position = UDim2.new(0, 10, 0, 125)
+left.Size = UDim2.new(0.48, 0, 0, 390)
+left.Position = UDim2.new(0.01, 0, 0, 125)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
 left.ScrollBarThickness = 7
@@ -363,8 +364,8 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
-right.Size = UDim2.new(0, 300, 0, 390)
-right.Position = UDim2.new(0, 330, 0, 125)
+right.Size = UDim2.new(0.48, 0, 0, 390)
+right.Position = UDim2.new(0.51, 0, 0, 125)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
 right.ScrollBarThickness = 7
