@@ -1161,6 +1161,7 @@ end)
 
 local minimized = false
 local normalSize = main.Size
+local normalTitleSize = titleBar.Size
 
 minimize.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -1171,26 +1172,24 @@ minimize.MouseButton1Click:Connect(function()
         left.Visible = false
         right.Visible = false
 
-        -- COMPACT BAR:
+        -- TRUE COMPACT HORIZONTAL BAR.
+        -- Width is deliberately much larger than height:
         -- [ 🎲 Dice ] [ □ ] [ X ]
         main.Size = UDim2.new(0, 180, 0, 44)
         titleBar.Size = UDim2.new(1, 0, 1, 0)
 
-        -- Keep the title text as a compact "Dice" label.
         title.Visible = true
-        title.Size = UDim2.new(0, 88, 1, 0)
-        title.Position = UDim2.new(0, 10, 0, 0)
+        title.Size = UDim2.new(0, 92, 1, 0)
+        title.Position = UDim2.new(0, 8, 0, 0)
         title.Text = "🎲 Dice"
         title.TextSize = 15
 
-        -- Small square minimize/restore button.
         minimize.Visible = true
         minimize.Size = UDim2.new(0, 32, 0, 32)
         minimize.Position = UDim2.new(1, -72, 0, 6)
         minimize.Text = "□"
         minimize.TextSize = 17
 
-        -- Keep X visible.
         close.Visible = true
         close.Size = UDim2.new(0, 32, 0, 32)
         close.Position = UDim2.new(1, -38, 0, 6)
@@ -1205,7 +1204,7 @@ minimize.MouseButton1Click:Connect(function()
         right.Visible = true
 
         main.Size = normalSize
-        titleBar.Size = UDim2.new(1, 0, 0, 48)
+        titleBar.Size = normalTitleSize
 
         title.Visible = true
         title.Size = UDim2.new(1, -130, 1, 0)
@@ -1213,17 +1212,17 @@ minimize.MouseButton1Click:Connect(function()
         title.Text = "🎲 Dice Gacha Hub"
         title.TextSize = 19
 
-        close.Visible = true
-        close.Size = UDim2.new(0, 36, 0, 34)
-        close.Position = UDim2.new(1, -38, 0, 7)
-        close.Text = "X"
-        close.TextSize = 16
-
         minimize.Visible = true
         minimize.Size = UDim2.new(0, 36, 0, 34)
         minimize.Position = UDim2.new(1, -78, 0, 7)
         minimize.Text = "□"
         minimize.TextSize = 20
+
+        close.Visible = true
+        close.Size = UDim2.new(0, 36, 0, 34)
+        close.Position = UDim2.new(1, -38, 0, 7)
+        close.Text = "X"
+        close.TextSize = 16
 
         mainCorner.CornerRadius = UDim.new(0, 12)
     end
@@ -1253,4 +1252,5 @@ print("[DiceGachaHub] SetAutoRoll removed")
 print("[DiceGachaHub] Anti-AFK removed - V2")
 print("[DiceGachaHub] Responsive UI enabled")
 print("[DiceGachaHub] Compact columns enabled")
+print("[DiceGachaHub] V16 horizontal minimize bar loaded")
 print("========================================")
