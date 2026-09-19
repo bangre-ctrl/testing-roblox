@@ -9,6 +9,25 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 --==================================================
+-- CLEANUP OLD HUB / OLD ANTI-AFK INDICATOR
+--==================================================
+-- Remove GUI instances from older executions so an old Anti-AFK
+-- indicator cannot remain visible after loading this version.
+pcall(function()
+    local playerGui = player:WaitForChild("PlayerGui")
+
+    local oldAFK = playerGui:FindFirstChild("DiceGachaAntiAFK")
+    if oldAFK then
+        oldAFK:Destroy()
+    end
+
+    local oldHub = playerGui:FindFirstChild("DiceGachaHub")
+    if oldHub then
+        oldHub:Destroy()
+    end
+end)
+
+--==================================================
 -- REMOTE HELPERS
 --==================================================
 
@@ -154,7 +173,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
 main.Name = "MainFrame"
-main.Size = UDim2.new(0, 680, 0, 540)
+main.Size = UDim2.new(0, 640, 0, 510)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
@@ -181,18 +200,32 @@ local function updateMainScale()
     end
 
     local viewport = camera.ViewportSize
+    local minAxis = math.min(viewport.X, viewport.Y)
 
-    -- Keep a small margin around the UI.
-    local scaleX = (viewport.X - 20) / 680
-    local scaleY = (viewport.Y - 20) / 540
+    -- Normal desktop: 1.0
+    -- Small/emulator screens: progressively smaller.
+    local scale
 
-    -- Use the smaller axis so the complete hub fits.
-    local scale = math.min(scaleX, scaleY)
+    if minAxis <= 600 then
+        scale = 0.55
+    elseif minAxis <= 720 then
+        scale = 0.65
+    elseif minAxis <= 800 then
+        scale = 0.72
+    elseif minAxis <= 900 then
+        scale = 0.80
+    elseif minAxis <= 1000 then
+        scale = 0.88
+    else
+        scale = 1
+    end
 
-    -- Prevent the UI from becoming unusably tiny.
-    scale = math.clamp(scale, 0.55, 1)
+    -- Also make sure the complete hub fits inside the viewport.
+    local fitX = (viewport.X - 20) / 640
+    local fitY = (viewport.Y - 20) / 510
+    scale = math.min(scale, fitX, fitY)
 
-    mainScale.Scale = scale
+    mainScale.Scale = math.clamp(scale, 0.50, 1)
 end
 
 updateMainScale()
@@ -1051,7 +1084,7 @@ minimize.MouseButton1Click:Connect(function()
         left.Visible = false
         right.Visible = false
 
-        main.Size = UDim2.new(0, 680, 0, 48)
+        main.Size = UDim2.new(0, 640, 0, 48)
         minimize.Text = "□"
     else
         stats.Visible = true
@@ -1085,6 +1118,6 @@ print("========================================")
 print("[DiceGachaHub] Loaded successfully!")
 print("[DiceGachaHub] Auto Roll uses RollDice")
 print("[DiceGachaHub] SetAutoRoll removed")
-print("[DiceGachaHub] Anti-AFK removed")
+print("[DiceGachaHub] Anti-AFK removed - V2")
 print("[DiceGachaHub] Responsive UI enabled")
 print("========================================")
