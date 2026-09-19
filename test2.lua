@@ -4,9 +4,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local VirtualUser = game:GetService("VirtualUser")
 
 local player = Players.LocalPlayer
 
@@ -157,10 +155,51 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local main = Instance.new("Frame")
 main.Name = "MainFrame"
 main.Size = UDim2.new(0, 680, 0, 540)
-main.Position = UDim2.new(0.5, -340, 0.5, -270)
+main.AnchorPoint = Vector2.new(0.5, 0.5)
+main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
 main.BorderSizePixel = 0
 main.Parent = gui
+
+--==================================================
+-- RESPONSIVE UI SCALE
+--==================================================
+-- Base design is 680x540.
+-- On smaller screens (especially phones), the whole hub
+-- scales down proportionally so nothing gets cut off.
+local mainScale = Instance.new("UIScale")
+mainScale.Name = "ResponsiveScale"
+mainScale.Scale = 1
+mainScale.Parent = main
+
+local camera = workspace.CurrentCamera
+
+local function updateMainScale()
+    camera = workspace.CurrentCamera
+    if not camera then
+        return
+    end
+
+    local viewport = camera.ViewportSize
+
+    -- Keep a small margin around the UI.
+    local scaleX = (viewport.X - 20) / 680
+    local scaleY = (viewport.Y - 20) / 540
+
+    -- Use the smaller axis so the complete hub fits.
+    local scale = math.min(scaleX, scaleY)
+
+    -- Prevent the UI from becoming unusably tiny.
+    scale = math.clamp(scale, 0.55, 1)
+
+    mainScale.Scale = scale
+end
+
+updateMainScale()
+
+if camera then
+    camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateMainScale)
+end
 
 local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 12)
@@ -923,262 +962,10 @@ task.spawn(function()
 end)
 
 --==================================================
--- ANTI AFK + MINI INDICATOR
---==================================================
-
-local TeleportService = game:GetService("TeleportService")
-
-local antiAFKOn = true
-local antiAFKStartedAt = os.time()
-local antiAFKLastActionAt = 0
-local lastJobId = game.JobId
-local lastPlaceId = game.PlaceId
-local serverChanged = false
-
--- Remove an old mini indicator if this script is executed again.
-pcall(function()
-    local oldAFKGui = player.PlayerGui:FindFirstChild("DiceGachaAntiAFK")
-    if oldAFKGui then
-        oldAFKGui:Destroy()
-    end
-end)
-
-local afkGui = Instance.new("ScreenGui")
-afkGui.Name = "DiceGachaAntiAFK"
-afkGui.ResetOnSpawn = false
-afkGui.IgnoreGuiInset = true
-afkGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-afkGui.DisplayOrder = 999999
-afkGui.Parent = player:WaitForChild("PlayerGui")
-
--- Mini Anti-AFK window: draggable + close button.
-local afkFrame = Instance.new("Frame")
-afkFrame.Name = "AntiAFKWindow"
-afkFrame.Size = UDim2.new(0, 400, 0, 44)
-afkFrame.Position = UDim2.new(0.5, -200, 0, 8)
-afkFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-afkFrame.BackgroundTransparency = 0.05
-afkFrame.BorderSizePixel = 0
-afkFrame.ZIndex = 100
-afkFrame.Parent = afkGui
-
-Instance.new("UICorner", afkFrame).CornerRadius = UDim.new(0, 8)
-
-local afkLabel = Instance.new("TextLabel")
-afkLabel.Size = UDim2.new(1, -42, 1, 0)
-afkLabel.Position = UDim2.new(0, 0, 0, 0)
-afkLabel.BackgroundTransparency = 1
-afkLabel.BorderSizePixel = 0
-afkLabel.Text = "🛡️ Anti AFK ON | 00m 00s | Server OK"
-afkLabel.TextColor3 = Color3.fromRGB(120, 255, 150)
-afkLabel.TextSize = 15
-afkLabel.Font = Enum.Font.GothamBold
-afkLabel.TextXAlignment = Enum.TextXAlignment.Center
-afkLabel.ZIndex = 101
-afkLabel.Parent = afkFrame
-
-local afkClose = Instance.new("TextButton")
-afkClose.Name = "Close"
-afkClose.Size = UDim2.new(0, 34, 0, 34)
-afkClose.Position = UDim2.new(1, -38, 0, 5)
-afkClose.BackgroundColor3 = Color3.fromRGB(180, 50, 55)
-afkClose.Text = "X"
-afkClose.TextColor3 = Color3.new(1, 1, 1)
-afkClose.TextSize = 14
-afkClose.Font = Enum.Font.GothamBold
-afkClose.BorderSizePixel = 0
-afkClose.ZIndex = 102
-afkClose.Parent = afkFrame
-
-Instance.new("UICorner", afkClose).CornerRadius = UDim.new(0, 7)
-
--- Close only the mini window. Anti-AFK itself keeps running in the background.
-afkClose.MouseButton1Click:Connect(function()
-    afkGui.Enabled = false
-end)
-
--- Drag the mini window with mouse/touch.
-local afkDragging = false
-local afkDragStart
-local afkStartPos
-
-local function startAFKDrag(input)
-    afkDragging = true
-    afkDragStart = input.Position
-    afkStartPos = afkFrame.Position
-
-    input.Changed:Connect(function()
-        if input.UserInputState == Enum.UserInputState.End then
-            afkDragging = false
-        end
-    end)
-end
-
-afkFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        and input.Position.X >= afkClose.AbsolutePosition.X
-        and input.Position.X <= afkClose.AbsolutePosition.X + afkClose.AbsoluteSize.X
-        and input.Position.Y >= afkClose.AbsolutePosition.Y
-        and input.Position.Y <= afkClose.AbsolutePosition.Y + afkClose.AbsoluteSize.Y then
-            return
-        end
-
-        startAFKDrag(input)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if not afkDragging then
-        return
-    end
-
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-    or input.UserInputType == Enum.UserInputType.Touch then
-        local delta = input.Position - afkDragStart
-
-        afkFrame.Position = UDim2.new(
-            afkStartPos.X.Scale,
-            afkStartPos.X.Offset + delta.X,
-            afkStartPos.Y.Scale,
-            afkStartPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
-local function afkTime()
-    local elapsed = math.max(0, os.time() - antiAFKStartedAt)
-    return string.format("%02dm %02ds", math.floor(elapsed / 60), elapsed % 60)
-end
-
-local function updateAFKLabel()
-    if closed or not afkLabel.Parent then
-        return
-    end
-
-    local serverText = serverChanged and "⚠️ SERVER CHANGED" or "Server OK"
-    local pingText = ""
-
-    if antiAFKLastActionAt > 0 then
-        pingText = " | Ping " .. tostring(math.max(0, os.time() - antiAFKLastActionAt)) .. "s"
-    end
-
-    afkLabel.Text = "🛡️ Anti AFK ON | " .. afkTime() .. " | " .. serverText .. pingText
-    afkLabel.TextColor3 = serverChanged
-        and Color3.fromRGB(255, 190, 90)
-        or Color3.fromRGB(120, 255, 150)
-end
-
-local function antiAFKAction()
-    if not antiAFKOn or closed then
-        return
-    end
-
-    local ok = pcall(function()
-        local currentCamera = workspace.CurrentCamera
-        if not currentCamera then
-            return
-        end
-
-        VirtualUser:CaptureController()
-
-        VirtualUser:Button2Down(
-            Vector2.zero,
-            currentCamera.CFrame
-        )
-
-        task.wait(1)
-
-        currentCamera = workspace.CurrentCamera or currentCamera
-
-        VirtualUser:Button2Up(
-            Vector2.zero,
-            currentCamera.CFrame
-        )
-    end)
-
-    if ok then
-        antiAFKLastActionAt = os.time()
-        updateAFKLabel()
-    end
-end
-
--- Roblox idle event backup.
-pcall(function()
-    player.Idled:Connect(function()
-        if antiAFKOn and not closed then
-            print("[ANTI-AFK] Player.Idled triggered | AFK:", afkTime())
-            antiAFKAction()
-        end
-    end)
-end)
-
--- Periodic activity every 30 seconds.
-task.spawn(function()
-    while not closed do
-        task.wait(30)
-
-        if closed then
-            break
-        end
-
-        if antiAFKOn then
-            antiAFKAction()
-            print("[ANTI-AFK] Button2 activity sent | AFK:", afkTime(), "| JobId:", game.JobId)
-        end
-    end
-end)
-
--- Update mini indicator every second. This timer is independent of the action timer.
-task.spawn(function()
-    while not closed and afkGui.Parent do
-        updateAFKLabel()
-        task.wait(1)
-    end
-end)
-
--- Detect failed teleports when the event is available.
-pcall(function()
-    TeleportService.TeleportInitFailed:Connect(function(result, message, placeId)
-        warn("[TELEPORT FAILED]", result, message, placeId)
-    end)
-end)
-
--- Detect a server/place change while this script remains alive.
-task.spawn(function()
-    while not closed do
-        task.wait(10)
-
-        if closed then
-            break
-        end
-
-        if game.JobId ~= lastJobId then
-            serverChanged = true
-            warn("[SERVER CHANGE DETECTED] Old JobId:", lastJobId, "New JobId:", game.JobId, "AFK:", afkTime())
-            lastJobId = game.JobId
-        end
-
-        if game.PlaceId ~= lastPlaceId then
-            serverChanged = true
-            warn("[PLACE CHANGE DETECTED] Old PlaceId:", lastPlaceId, "New PlaceId:", game.PlaceId, "AFK:", afkTime())
-            lastPlaceId = game.PlaceId
-        end
-
-        updateAFKLabel()
-    end
-end)
-
-print("========================================")
-print("[ANTI-AFK] Button2Down/Button2Up loaded | interval: 30s")
-print("[ANTI-AFK] Start JobId:", game.JobId)
-print("[ANTI-AFK] Start PlaceId:", game.PlaceId)
-print("========================================")
-
---==================================================
 -- DRAG
 --==================================================
+
+
 
 local dragging = false
 local dragStart
@@ -1290,17 +1077,14 @@ close.MouseButton1Click:Connect(function()
     autoEquipBestOn = false
     autoSellOn = false
     autoRebirthOn = false
-    antiAFKOn = false
-
     gui:Destroy()
 
-    if afkGui and afkGui.Parent then
-        afkGui:Destroy()
-    end
 end)
 
 print("========================================")
 print("[DiceGachaHub] Loaded successfully!")
 print("[DiceGachaHub] Auto Roll uses RollDice")
 print("[DiceGachaHub] SetAutoRoll removed")
+print("[DiceGachaHub] Anti-AFK removed")
+print("[DiceGachaHub] Responsive UI enabled")
 print("========================================")
