@@ -905,6 +905,112 @@ toggle(
 )
 
 --==================================================
+-- RIGHT: TELEPORT
+--==================================================
+
+local teleportOpen = false
+
+local TELEPORT_LOCATIONS = {
+    {name = "Quest",  emoji = "📍", cframe = CFrame.new(324.563, 12.285, 4.673)},
+    {name = "Grades", emoji = "📍", cframe = CFrame.new(245.927, 12.285, 84.685)},
+    {name = "Traits", emoji = "📍", cframe = CFrame.new(325.477, 12.285, 82.21)},
+    {name = "Trade",  emoji = "📍", cframe = CFrame.new(247.183, 12.285, 6.185)},
+}
+
+local teleportButton = Instance.new("TextButton")
+teleportButton.Size = UDim2.new(1, -16, 0, 42)
+teleportButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
+teleportButton.Text = "📍 Teleport  ▸"
+teleportButton.TextColor3 = Color3.new(1, 1, 1)
+teleportButton.TextSize = 14
+teleportButton.Font = Enum.Font.GothamBold
+teleportButton.BorderSizePixel = 0
+teleportButton.LayoutOrder = #right:GetChildren()
+teleportButton.Parent = right
+Instance.new("UICorner", teleportButton).CornerRadius = UDim.new(0, 8)
+
+local teleportList = Instance.new("Frame")
+teleportList.Name = "TeleportList"
+teleportList.Size = UDim2.new(1, -16, 0, 0)
+teleportList.BackgroundTransparency = 1
+teleportList.BorderSizePixel = 0
+teleportList.ClipsDescendants = true
+teleportList.LayoutOrder = #right:GetChildren()
+teleportList.Parent = right
+
+local teleportListLayout = Instance.new("UIListLayout")
+teleportListLayout.Padding = UDim.new(0, 8)
+teleportListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+teleportListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+teleportListLayout.Parent = teleportList
+
+local teleportListPad = Instance.new("UIPadding")
+teleportListPad.PaddingBottom = UDim.new(0, 2)
+teleportListPad.Parent = teleportList
+
+local function teleportTo(name, targetCFrame)
+    local character = player.Character
+    if not character then
+        status("Teleport failed: character not found")
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        status("Teleport failed: HumanoidRootPart not found")
+        return
+    end
+
+    local ok, err = pcall(function()
+        hrp.CFrame = targetCFrame
+    end)
+
+    if ok then
+        status("Teleported to " .. name)
+    else
+        status("Teleport failed: " .. name)
+        warn("[TELEPORT]", name, err)
+    end
+end
+
+for _, location in ipairs(TELEPORT_LOCATIONS) do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 40)
+    b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
+    b.Text = location.emoji .. "  " .. location.name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.LayoutOrder = #teleportList:GetChildren()
+    b.Parent = teleportList
+
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+
+    b.MouseButton1Click:Connect(function()
+        teleportTo(location.name, location.cframe)
+    end)
+end
+
+teleportListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    if teleportOpen then
+        teleportList.Size = UDim2.new(1, -16, 0, teleportListLayout.AbsoluteContentSize.Y + 2)
+    end
+end)
+
+teleportButton.MouseButton1Click:Connect(function()
+    teleportOpen = not teleportOpen
+
+    if teleportOpen then
+        teleportButton.Text = "📍 Teleport  ▾"
+        teleportList.Size = UDim2.new(1, -20, 0, teleportListLayout.AbsoluteContentSize.Y + 2)
+    else
+        teleportButton.Text = "📍 Teleport  ▸"
+        teleportList.Size = UDim2.new(1, -20, 0, 0)
+    end
+end)
+
+--==================================================
 -- RIGHT: DICE SHOP
 --==================================================
 
