@@ -777,10 +777,47 @@ toggle(
     end
 )
 
+--==================================================
+-- RIGHT: TOWER
+--==================================================
+
 section(right, "🏰 TOWER")
 
+local towerOpen = false
+
+local towerList = Instance.new("Frame")
+towerList.Name = "TowerList"
+towerList.Size = UDim2.new(1, -16, 0, 0)
+towerList.BackgroundTransparency = 1
+towerList.BorderSizePixel = 0
+towerList.ClipsDescendants = true
+towerList.LayoutOrder = #right:GetChildren()
+towerList.Parent = right
+
+local towerListLayout = Instance.new("UIListLayout")
+towerListLayout.Padding = UDim.new(0, 8)
+towerListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+towerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+towerListLayout.Parent = towerList
+
+local towerListPad = Instance.new("UIPadding")
+towerListPad.PaddingBottom = UDim.new(0, 2)
+towerListPad.Parent = towerList
+
+local towerButton = Instance.new("TextButton")
+towerButton.Size = UDim2.new(1, -16, 0, 42)
+towerButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
+towerButton.Text = "🏰 Tower  ▸"
+towerButton.TextColor3 = Color3.new(1, 1, 1)
+towerButton.TextSize = 14
+towerButton.Font = Enum.Font.GothamBold
+towerButton.BorderSizePixel = 0
+towerButton.LayoutOrder = #right:GetChildren()
+towerButton.Parent = right
+
+Instance.new("UICorner", towerButton).CornerRadius = UDim.new(0, 8)
+
 -- One-shot tower start: Equip Best Tower Team -> startTower(name).
--- No tower ON/OFF, no auto battle, no CompleteTowerFloor loop.
 local TowerController = require(
     ReplicatedStorage
         :WaitForChild("Framework", 9e9)
@@ -817,20 +854,48 @@ local function startTowerDirect(name)
     end
 end
 
-button(right, "🐉 Dragon Tower  |  START", function()
+button(towerList, "🐉 Dragon Tower  |  START", function()
     startTowerDirect("Dragon Tower")
 end)
 
-button(right, "☠️ Cursed Tower  |  START", function()
+button(towerList, "☠️ Cursed Tower  |  START", function()
     startTowerDirect("Cursed Tower")
 end)
 
-button(right, "🏴‍☠️ Pirate Tower  |  START", function()
+button(towerList, "🏴‍☠️ Pirate Tower  |  START", function()
     startTowerDirect("Pirate Tower")
 end)
 
-button(right, "♾️ Infinity Tower  |  START", function()
+button(towerList, "♾️ Infinity Tower  |  START", function()
     startTowerDirect("Infinity Tower")
+end)
+
+towerListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    if towerOpen then
+        towerList.Size = UDim2.new(
+            1,
+            -16,
+            0,
+            towerListLayout.AbsoluteContentSize.Y + 2
+        )
+    end
+end)
+
+towerButton.MouseButton1Click:Connect(function()
+    towerOpen = not towerOpen
+
+    if towerOpen then
+        towerButton.Text = "🏰 Tower  ▾"
+        towerList.Size = UDim2.new(
+            1,
+            -20,
+            0,
+            towerListLayout.AbsoluteContentSize.Y + 2
+        )
+    else
+        towerButton.Text = "🏰 Tower  ▸"
+        towerList.Size = UDim2.new(1, -20, 0, 0)
+    end
 end)
 
 section(left, "🤖 AUTOMATION")
