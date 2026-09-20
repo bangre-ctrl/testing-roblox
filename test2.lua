@@ -799,25 +799,6 @@ towerButton.LayoutOrder = #right:GetChildren()
 towerButton.Parent = right
 Instance.new("UICorner", towerButton).CornerRadius = UDim.new(0, 8)
 
-local towerList = Instance.new("Frame")
-towerList.Name = "TowerList"
-towerList.Size = UDim2.new(1, -16, 0, 0)
-towerList.BackgroundTransparency = 1
-towerList.BorderSizePixel = 0
-towerList.ClipsDescendants = true
-towerList.LayoutOrder = #right:GetChildren()
-towerList.Parent = right
-
-local towerListLayout = Instance.new("UIListLayout")
-towerListLayout.Padding = UDim.new(0, 8)
-towerListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-towerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-towerListLayout.Parent = towerList
-
--- Keep the full tower list height explicit so nested UIListLayout
--- does not get clipped by Xeno/LDPlayer ScrollingFrame updates.
-local TOWER_LIST_HEIGHT = (6 * 40) + (5 * 8) + 2
-
 local TowerController = nil
 pcall(function()
     TowerController = require(
@@ -876,45 +857,49 @@ local function playTower(name)
     end
 end
 
-button(towerList, "🐉 Dragon Tower  |  START", function()
+local towerItems = {}
+
+local function addTower(text, callback)
+    local b = button(right, text, callback)
+    b.Visible = false
+    table.insert(towerItems, b)
+    return b
+end
+
+addTower("🐉 Dragon Tower  |  START", function()
     startTowerDirect("Dragon Tower")
 end)
 
-button(towerList, "☠️ Cursed Tower  |  START", function()
+addTower("☠️ Cursed Tower  |  START", function()
     startTowerDirect("Cursed Tower")
 end)
 
-button(towerList, "🏴‍☠️ Pirate Tower  |  START", function()
+addTower("🏴‍☠️ Pirate Tower  |  START", function()
     startTowerDirect("Pirate Tower")
 end)
 
-button(towerList, "🍃 Hidden Leaf Tower  |  START", function()
+addTower("🍃 Hidden Leaf Tower  |  START", function()
     playTower("Hidden Leaf Tower")
 end)
 
-button(towerList, "⚔️ Slayer Tower  |  START", function()
+addTower("⚔️ Slayer Tower  |  START", function()
     playTower("Slayer Tower")
 end)
 
-button(towerList, "♾️ Infinity Tower  |  START", function()
+addTower("♾️ Infinity Tower  |  START", function()
     startTowerDirect("Infinity Tower")
 end)
 
 towerButton.Activated:Connect(function()
     towerOpen = not towerOpen
+    towerButton.Text = towerOpen and "🏰 Tower  ▾" or "🏰 Tower  ▸"
 
-    if towerOpen then
-        towerButton.Text = "🏰 Tower  ▾"
-        towerList.Size = UDim2.new(1, -16, 0, TOWER_LIST_HEIGHT)
-    else
-        towerButton.Text = "🏰 Tower  ▸"
-        towerList.Size = UDim2.new(1, -16, 0, 0)
+    for _, item in ipairs(towerItems) do
+        item.Visible = towerOpen
     end
 
     task.defer(function()
-        right.CanvasSize = UDim2.new(
-            0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24
-        )
+        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
     end)
 end)
 
@@ -1009,23 +994,6 @@ teleportButton.LayoutOrder = #right:GetChildren()
 teleportButton.Parent = right
 Instance.new("UICorner", teleportButton).CornerRadius = UDim.new(0, 8)
 
-local teleportList = Instance.new("Frame")
-teleportList.Name = "TeleportList"
-teleportList.Size = UDim2.new(1, -16, 0, 0)
-teleportList.BackgroundTransparency = 1
-teleportList.BorderSizePixel = 0
-teleportList.ClipsDescendants = true
-teleportList.LayoutOrder = #right:GetChildren()
-teleportList.Parent = right
-
-local teleportListLayout = Instance.new("UIListLayout")
-teleportListLayout.Padding = UDim.new(0, 8)
-teleportListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-teleportListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-teleportListLayout.Parent = teleportList
-
-local TELEPORT_LIST_HEIGHT = (4 * 40) + (3 * 8) + 2
-
 local TELEPORT_LOCATIONS = {
     {name = "Quest",  cframe = CFrame.new(324.563, 12.285, 4.673)},
     {name = "Grades", cframe = CFrame.new(245.927, 12.285, 84.685)},
@@ -1054,37 +1022,32 @@ local function teleportTo(name, targetCFrame)
     end
 end
 
-button(teleportList, "📍 Quest", function()
-    teleportTo("Quest", TELEPORT_LOCATIONS[1].cframe)
-end)
+local teleportItems = {}
 
-button(teleportList, "📍 Grades", function()
-    teleportTo("Grades", TELEPORT_LOCATIONS[2].cframe)
-end)
+local function addTeleport(text, name, targetCFrame)
+    local b = button(right, text, function()
+        teleportTo(name, targetCFrame)
+    end)
+    b.Visible = false
+    table.insert(teleportItems, b)
+    return b
+end
 
-button(teleportList, "📍 Traits", function()
-    teleportTo("Traits", TELEPORT_LOCATIONS[3].cframe)
-end)
-
-button(teleportList, "📍 Trade", function()
-    teleportTo("Trade", TELEPORT_LOCATIONS[4].cframe)
-end)
+addTeleport("📍 Quest", "Quest", TELEPORT_LOCATIONS[1].cframe)
+addTeleport("📍 Grades", "Grades", TELEPORT_LOCATIONS[2].cframe)
+addTeleport("📍 Traits", "Traits", TELEPORT_LOCATIONS[3].cframe)
+addTeleport("📍 Trade", "Trade", TELEPORT_LOCATIONS[4].cframe)
 
 teleportButton.Activated:Connect(function()
     teleportOpen = not teleportOpen
+    teleportButton.Text = teleportOpen and "📍 Teleport  ▾" or "📍 Teleport  ▸"
 
-    if teleportOpen then
-        teleportButton.Text = "📍 Teleport  ▾"
-        teleportList.Size = UDim2.new(1, -16, 0, TELEPORT_LIST_HEIGHT)
-    else
-        teleportButton.Text = "📍 Teleport  ▸"
-        teleportList.Size = UDim2.new(1, -16, 0, 0)
+    for _, item in ipairs(teleportItems) do
+        item.Visible = teleportOpen
     end
 
     task.defer(function()
-        right.CanvasSize = UDim2.new(
-            0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24
-        )
+        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
     end)
 end)
 
@@ -1094,8 +1057,6 @@ end)
 
 section(right, "🛒 DICE SHOP")
 
--- Dice Shop is collapsed by default.
--- Click the header to show/hide the full dice list.
 local diceShopOpen = false
 
 local diceShopButton = Instance.new("TextButton")
@@ -1109,25 +1070,6 @@ diceShopButton.BorderSizePixel = 0
 diceShopButton.LayoutOrder = #right:GetChildren()
 diceShopButton.Parent = right
 Instance.new("UICorner", diceShopButton).CornerRadius = UDim.new(0, 8)
-
-local diceList = Instance.new("Frame")
-diceList.Name = "DiceList"
-diceList.Size = UDim2.new(1, -16, 0, 0)
-diceList.BackgroundTransparency = 1
-diceList.BorderSizePixel = 0
-diceList.ClipsDescendants = true
-diceList.LayoutOrder = #right:GetChildren()
-diceList.Parent = right
-
-local diceListLayout = Instance.new("UIListLayout")
-diceListLayout.Padding = UDim.new(0, 8)
-diceListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-diceListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-diceListLayout.Parent = diceList
-
-local diceListPad = Instance.new("UIPadding")
-diceListPad.PaddingBottom = UDim.new(0, 2)
-diceListPad.Parent = diceList
 
 local function getMoney()
     local leaderstats = player:FindFirstChild("leaderstats")
@@ -1143,8 +1085,6 @@ local function getMoney()
     return tonumber(money.Value) or 0
 end
 
--- Game-style compact money display.
--- The stored price remains the original numeric value.
 local function formatMoney(value)
     value = tonumber(value) or 0
 
@@ -1163,6 +1103,7 @@ local function formatMoney(value)
         if value >= threshold then
             local n = value / threshold
             local text
+
             if n >= 100 then
                 text = string.format("%.0f", n)
             elseif n >= 10 then
@@ -1170,6 +1111,7 @@ local function formatMoney(value)
             else
                 text = string.format("%.2f", n):gsub("0+$", ""):gsub("%.$", "")
             end
+
             return text .. suffix
         end
     end
@@ -1192,50 +1134,40 @@ local function buyDice(name)
     return ok, result
 end
 
--- Show the newest/most expensive dice first, ending with Normal.
+local diceItems = {}
+
 for i = #ALL_DICES, 1, -1 do
     local d = ALL_DICES[i]
 
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 40)
-    b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-    b.Text = string.format(
-        "%s  %s  | $%s  | Luck x%s",
-        d.emoji,
-        d.name,
-        d.displayPrice or formatMoney(d.price),
-        d.luckStr or tostring(d.luck)
+    local b = button(
+        right,
+        string.format(
+            "%s  %s  | $%s  | Luck x%s",
+            d.emoji,
+            d.name,
+            d.displayPrice or formatMoney(d.price),
+            d.luckStr or tostring(d.luck)
+        ),
+        function()
+            buyDice(d.name)
+        end
     )
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.TextSize = 13
-    b.Font = Enum.Font.GothamBold
-    b.BorderSizePixel = 0
-    b.LayoutOrder = #diceList:GetChildren()
-    b.Parent = diceList
 
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-
-    b.MouseButton1Click:Connect(function()
-        buyDice(d.name)
-    end)
+    b.Visible = false
+    table.insert(diceItems, b)
 end
 
-diceListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    if diceShopOpen then
-        diceList.Size = UDim2.new(1, -16, 0, diceListLayout.AbsoluteContentSize.Y + 2)
-    end
-end)
-
-diceShopButton.MouseButton1Click:Connect(function()
+diceShopButton.Activated:Connect(function()
     diceShopOpen = not diceShopOpen
+    diceShopButton.Text = diceShopOpen and "🛒 Dice Shop  ▾" or "🛒 Dice Shop  ▸"
 
-    if diceShopOpen then
-        diceShopButton.Text = "🛒 Dice Shop  ▾"
-        diceList.Size = UDim2.new(1, -20, 0, diceListLayout.AbsoluteContentSize.Y + 2)
-    else
-        diceShopButton.Text = "🛒 Dice Shop  ▸"
-        diceList.Size = UDim2.new(1, -20, 0, 0)
+    for _, item in ipairs(diceItems) do
+        item.Visible = diceShopOpen
     end
+
+    task.defer(function()
+        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
+    end)
 end)
 
 --==================================================
