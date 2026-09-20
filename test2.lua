@@ -411,7 +411,9 @@ leftLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 end)
 
 rightLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 20)
+    task.defer(function()
+        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
+    end)
 end)
 
 --==================================================
@@ -812,12 +814,10 @@ towerListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 towerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 towerListLayout.Parent = towerList
 
-local towerListPad = Instance.new("UIPadding")
-towerListPad.PaddingBottom = UDim.new(0, 2)
-towerListPad.Parent = towerList
+-- Keep the full tower list height explicit so nested UIListLayout
+-- does not get clipped by Xeno/LDPlayer ScrollingFrame updates.
+local TOWER_LIST_HEIGHT = (6 * 40) + (5 * 8) + 2
 
--- TowerController can be a RobloxScript in some executor contexts.
--- Keep require isolated so the rest of the hub still loads.
 local TowerController = nil
 pcall(function()
     TowerController = require(
@@ -900,22 +900,22 @@ button(towerList, "♾️ Infinity Tower  |  START", function()
     startTowerDirect("Infinity Tower")
 end)
 
-towerListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    if towerOpen then
-        towerList.Size = UDim2.new(1, -16, 0, towerListLayout.AbsoluteContentSize.Y + 2)
-    end
-end)
-
 towerButton.Activated:Connect(function()
     towerOpen = not towerOpen
 
     if towerOpen then
         towerButton.Text = "🏰 Tower  ▾"
-        towerList.Size = UDim2.new(1, -16, 0, towerListLayout.AbsoluteContentSize.Y + 2)
+        towerList.Size = UDim2.new(1, -16, 0, TOWER_LIST_HEIGHT)
     else
         towerButton.Text = "🏰 Tower  ▸"
         towerList.Size = UDim2.new(1, -16, 0, 0)
     end
+
+    task.defer(function()
+        right.CanvasSize = UDim2.new(
+            0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24
+        )
+    end)
 end)
 
 section(left, "🤖 AUTOMATION")
@@ -1024,9 +1024,7 @@ teleportListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 teleportListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 teleportListLayout.Parent = teleportList
 
-local teleportListPad = Instance.new("UIPadding")
-teleportListPad.PaddingBottom = UDim.new(0, 2)
-teleportListPad.Parent = teleportList
+local TELEPORT_LIST_HEIGHT = (4 * 40) + (3 * 8) + 2
 
 local TELEPORT_LOCATIONS = {
     {name = "Quest",  cframe = CFrame.new(324.563, 12.285, 4.673)},
@@ -1056,16 +1054,20 @@ local function teleportTo(name, targetCFrame)
     end
 end
 
-for _, location in ipairs(TELEPORT_LOCATIONS) do
-    button(teleportList, "📍 " .. location.name, function()
-        teleportTo(location.name, location.cframe)
-    end)
-end
+button(teleportList, "📍 Quest", function()
+    teleportTo("Quest", TELEPORT_LOCATIONS[1].cframe)
+end)
 
-teleportListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    if teleportOpen then
-        teleportList.Size = UDim2.new(1, -16, 0, teleportListLayout.AbsoluteContentSize.Y + 2)
-    end
+button(teleportList, "📍 Grades", function()
+    teleportTo("Grades", TELEPORT_LOCATIONS[2].cframe)
+end)
+
+button(teleportList, "📍 Traits", function()
+    teleportTo("Traits", TELEPORT_LOCATIONS[3].cframe)
+end)
+
+button(teleportList, "📍 Trade", function()
+    teleportTo("Trade", TELEPORT_LOCATIONS[4].cframe)
 end)
 
 teleportButton.Activated:Connect(function()
@@ -1073,11 +1075,17 @@ teleportButton.Activated:Connect(function()
 
     if teleportOpen then
         teleportButton.Text = "📍 Teleport  ▾"
-        teleportList.Size = UDim2.new(1, -16, 0, teleportListLayout.AbsoluteContentSize.Y + 2)
+        teleportList.Size = UDim2.new(1, -16, 0, TELEPORT_LIST_HEIGHT)
     else
         teleportButton.Text = "📍 Teleport  ▸"
         teleportList.Size = UDim2.new(1, -16, 0, 0)
     end
+
+    task.defer(function()
+        right.CanvasSize = UDim2.new(
+            0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24
+        )
+    end)
 end)
 
 --==================================================
