@@ -785,6 +785,18 @@ section(right, "🏰 TOWER")
 
 local towerOpen = false
 
+local towerButton = Instance.new("TextButton")
+towerButton.Size = UDim2.new(1, -16, 0, 42)
+towerButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
+towerButton.Text = "🏰 Tower  ▸"
+towerButton.TextColor3 = Color3.new(1, 1, 1)
+towerButton.TextSize = 14
+towerButton.Font = Enum.Font.GothamBold
+towerButton.BorderSizePixel = 0
+towerButton.LayoutOrder = #right:GetChildren()
+towerButton.Parent = right
+Instance.new("UICorner", towerButton).CornerRadius = UDim.new(0, 8)
+
 local towerList = Instance.new("Frame")
 towerList.Name = "TowerList"
 towerList.Size = UDim2.new(1, -16, 0, 0)
@@ -804,29 +816,27 @@ local towerListPad = Instance.new("UIPadding")
 towerListPad.PaddingBottom = UDim.new(0, 2)
 towerListPad.Parent = towerList
 
-local towerButton = Instance.new("TextButton")
-towerButton.Size = UDim2.new(1, -16, 0, 42)
-towerButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-towerButton.Text = "🏰 Tower  ▸"
-towerButton.TextColor3 = Color3.new(1, 1, 1)
-towerButton.TextSize = 14
-towerButton.Font = Enum.Font.GothamBold
-towerButton.BorderSizePixel = 0
-towerButton.LayoutOrder = #right:GetChildren()
-towerButton.Parent = right
-
-Instance.new("UICorner", towerButton).CornerRadius = UDim.new(0, 8)
-
--- One-shot tower start: Equip Best Tower Team -> startTower(name).
-local TowerController = require(
-    ReplicatedStorage
-        :WaitForChild("Framework", 9e9)
-        :WaitForChild("Features", 9e9)
-        :WaitForChild("Towers", 9e9)
-        :WaitForChild("TowerController")
-)
+-- TowerController may be unavailable to an executor because the game
+-- can expose it as a RobloxScript. Keep that failure isolated so the hub
+-- itself still loads.
+local TowerController = nil
+pcall(function()
+    TowerController = require(
+        ReplicatedStorage
+            :WaitForChild("Framework", 9e9)
+            :WaitForChild("Features", 9e9)
+            :WaitForChild("Towers", 9e9)
+            :WaitForChild("TowerController")
+    )
+end)
 
 local function startTowerDirect(name)
+    if not TowerController then
+        status("TowerController unavailable")
+        warn("[TOWER] TowerController could not be required for " .. name)
+        return
+    end
+
     local equipOk, equipResult = pcall(function()
         return fireRE("Towers", "EquipBestTowerTeam")
     end)
@@ -854,6 +864,19 @@ local function startTowerDirect(name)
     end
 end
 
+local function playTower(name)
+    local ok, result = pcall(function()
+        return invokeRF("Towers", "PlayTower", name)
+    end)
+
+    if ok then
+        status(name .. " started")
+    else
+        status(name .. " failed")
+        warn("[PLAY TOWER]", name, result)
+    end
+end
+
 button(towerList, "🐉 Dragon Tower  |  START", function()
     startTowerDirect("Dragon Tower")
 end)
@@ -864,6 +887,14 @@ end)
 
 button(towerList, "🏴‍☠️ Pirate Tower  |  START", function()
     startTowerDirect("Pirate Tower")
+end)
+
+button(towerList, "🍃 Hidden Leaf Tower  |  START", function()
+    playTower("Hidden Leaf Tower")
+end)
+
+button(towerList, "⚔️ Slayer Tower  |  START", function()
+    playTower("Slayer Tower")
 end)
 
 button(towerList, "♾️ Infinity Tower  |  START", function()
@@ -881,20 +912,20 @@ towerListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function
     end
 end)
 
-towerButton.MouseButton1Click:Connect(function()
+towerButton.Activated:Connect(function()
     towerOpen = not towerOpen
 
     if towerOpen then
         towerButton.Text = "🏰 Tower  ▾"
         towerList.Size = UDim2.new(
             1,
-            -20,
+            -16,
             0,
             towerListLayout.AbsoluteContentSize.Y + 2
         )
     else
         towerButton.Text = "🏰 Tower  ▸"
-        towerList.Size = UDim2.new(1, -20, 0, 0)
+        towerList.Size = UDim2.new(1, -16, 0, 0)
     end
 end)
 
