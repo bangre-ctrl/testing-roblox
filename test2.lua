@@ -908,6 +908,8 @@ toggle(
 -- RIGHT: TELEPORT
 --==================================================
 
+section(right, "📍 TELEPORT")
+
 local teleportOpen = false
 
 local TELEPORT_LOCATIONS = {
