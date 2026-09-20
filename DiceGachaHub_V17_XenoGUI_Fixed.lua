@@ -259,6 +259,7 @@ title.TextColor3 = Color3.new(1, 1, 1)
 title.TextSize = 19
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
+title.Active = false
 title.Parent = titleBar
 
 local minimize = Instance.new("TextButton")
@@ -270,7 +271,6 @@ minimize.TextColor3 = Color3.new(1, 1, 1)
 minimize.TextSize = 20
 minimize.Font = Enum.Font.GothamBold
 minimize.BorderSizePixel = 0
-minimize.Active = true
 minimize.Parent = titleBar
 
 Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 7)
@@ -284,7 +284,6 @@ close.TextColor3 = Color3.new(1, 1, 1)
 close.TextSize = 16
 close.Font = Enum.Font.GothamBold
 close.BorderSizePixel = 0
-close.Active = true
 close.Parent = titleBar
 
 Instance.new("UICorner", close).CornerRadius = UDim.new(0, 7)
@@ -784,13 +783,28 @@ section(right, "🏰 TOWER")
 
 -- One-shot tower start: Equip Best Tower Team -> startTower(name).
 -- No tower ON/OFF, no auto battle, no CompleteTowerFloor loop.
-local TowerController = require(
-    ReplicatedStorage
-        :WaitForChild("Framework", 9e9)
-        :WaitForChild("Features", 9e9)
-        :WaitForChild("Towers", 9e9)
-        :WaitForChild("TowerController")
-)
+-- Xeno/Executor compatibility:
+-- TowerController can be a RobloxScript in this game and cannot be required
+-- from the executor. Resolve it only when a tower button is pressed so this
+-- does not break the rest of the hub during startup.
+local function getTowerController()
+    local ok, controller = pcall(function()
+        local module = ReplicatedStorage
+            :WaitForChild("Framework", 9e9)
+            :WaitForChild("Features", 9e9)
+            :WaitForChild("Towers", 9e9)
+            :WaitForChild("TowerController")
+        return require(module)
+    end)
+
+    if not ok then
+        warn("[TOWER] TowerController cannot be required by this executor:", controller)
+        status("Tower unavailable in executor")
+        return nil
+    end
+
+    return controller
+end
 
 local function startTowerDirect(name)
     local equipOk, equipResult = pcall(function()
@@ -804,6 +818,11 @@ local function startTowerDirect(name)
     end
 
     task.wait(0.2)
+
+    local TowerController = getTowerController()
+    if not TowerController or type(TowerController.startTower) ~= "function" then
+        return
+    end
 
     local startOk, started = pcall(function()
         return TowerController.startTower(name)
@@ -1087,11 +1106,11 @@ end)
 --==================================================
 -- DRAG
 --==================================================
--- Dedicated invisible drag target. This avoids child GUI objects
--- consuming title-bar input on Xeno/LDPlayer.
+-- Use a dedicated transparent handle so title text and buttons do not
+-- swallow the drag input on Xeno/LDPlayer.
 local dragHandle = Instance.new("TextButton")
 dragHandle.Name = "DragHandle"
-dragHandle.Size = UDim2.new(1, -120, 1, 0)
+dragHandle.Size = UDim2.new(1, -82, 1, 0)
 dragHandle.Position = UDim2.fromOffset(0, 0)
 dragHandle.BackgroundTransparency = 1
 dragHandle.BorderSizePixel = 0
@@ -1106,12 +1125,14 @@ local dragStart
 local startPos
 
 dragHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = main.Position
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+    and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
     end
+
+    dragging = true
+    dragStart = input.Position
+    startPos = main.Position
 end)
 
 UserInputService.InputChanged:Connect(function(input)
@@ -1125,6 +1146,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 
     local delta = input.Position - dragStart
+
     main.Position = UDim2.new(
         startPos.X.Scale,
         startPos.X.Offset + delta.X,
