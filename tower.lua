@@ -1,22 +1,15 @@
 --[[
-    Tower Test GUI
-    Standalone test GUI for tower start behavior.
-    Xeno / Roblox compatible.
+    Tower Test GUI - FULL FLOW
+    Uses the same flow as the working main hub:
+        1. EquipBestTowerTeam
+        2. wait 0.2s
+        3. PlayTower(towerName)
 
-    Tests:
-      - Dragon Tower
-      - Cursed Tower
-      - Pirate Tower
-      - Hidden Leaf Tower
-      - Slayer Tower
-      - Infinity Tower
+    Towers:
+      Dragon, Cursed, Pirate, Hidden Leaf, Slayer, Infinity
 
-    Each button:
-      1) EquipBestTowerTeam
-      2) waits 0.2s
-      3) PlayTower(towerName)
-
-    No other Dice/Auto Farm features are included.
+    Extra diagnostics are printed after PlayTower so we can compare
+    working towers against Hidden Leaf / Slayer.
 ]]
 
 local Players = game:GetService("Players")
@@ -26,7 +19,6 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 
--- Remove previous copy
 local old = PlayerGui:FindFirstChild("TowerTestGUI")
 if old then
     old:Destroy()
@@ -62,7 +54,7 @@ local function invokeRF(serviceName, remoteName, ...)
     return remote:InvokeServer(...)
 end
 
---// GUI
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "TowerTestGUI"
 gui.ResetOnSpawn = false
@@ -71,9 +63,8 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = PlayerGui
 
 local main = Instance.new("Frame")
-main.Name = "Main"
-main.Size = UDim2.fromOffset(360, 430)
-main.Position = UDim2.new(0.5, -180, 0.5, -215)
+main.Size = UDim2.fromOffset(370, 450)
+main.Position = UDim2.new(0.5, -185, 0.5, -225)
 main.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
 main.BorderSizePixel = 0
 main.Active = true
@@ -84,13 +75,12 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 10)
 mainCorner.Parent = main
 
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(70, 70, 80)
-stroke.Thickness = 1
-stroke.Parent = main
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(70, 70, 80)
+mainStroke.Thickness = 1
+mainStroke.Parent = main
 
 local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 44)
 titleBar.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
 titleBar.BorderSizePixel = 0
@@ -115,7 +105,6 @@ minimize.Text = "□"
 minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
 minimize.TextSize = 17
 minimize.Font = Enum.Font.GothamBold
-minimize.AutoButtonColor = true
 minimize.Parent = titleBar
 
 local minCorner = Instance.new("UICorner")
@@ -130,7 +119,6 @@ close.Text = "X"
 close.TextColor3 = Color3.fromRGB(255, 255, 255)
 close.TextSize = 15
 close.Font = Enum.Font.GothamBold
-close.AutoButtonColor = true
 close.Parent = titleBar
 
 local closeCorner = Instance.new("UICorner")
@@ -138,8 +126,7 @@ closeCorner.CornerRadius = UDim.new(0, 7)
 closeCorner.Parent = close
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Name = "Status"
-statusLabel.Size = UDim2.new(1, -24, 0, 42)
+statusLabel.Size = UDim2.new(1, -24, 0, 48)
 statusLabel.Position = UDim2.fromOffset(12, 52)
 statusLabel.BackgroundColor3 = Color3.fromRGB(31, 31, 38)
 statusLabel.BorderSizePixel = 0
@@ -155,9 +142,8 @@ statusCorner.CornerRadius = UDim.new(0, 7)
 statusCorner.Parent = statusLabel
 
 local scroll = Instance.new("ScrollingFrame")
-scroll.Name = "TowerList"
-scroll.Size = UDim2.new(1, -24, 1, -112)
-scroll.Position = UDim2.fromOffset(12, 100)
+scroll.Size = UDim2.new(1, -24, 1, -122)
+scroll.Position = UDim2.fromOffset(12, 108)
 scroll.BackgroundTransparency = 1
 scroll.BorderSizePixel = 0
 scroll.ScrollBarThickness = 6
@@ -179,56 +165,33 @@ layout.Padding = UDim.new(0, 7)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = scroll
 
-local function status(text)
+local function setStatus(text)
     statusLabel.Text = "Status: " .. text
-end
-
-local function makeButton(text, order, callback)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -4, 0, 48)
-    button.LayoutOrder = order
-    button.BackgroundColor3 = Color3.fromRGB(42, 42, 52)
-    button.BorderSizePixel = 0
-    button.Text = text
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 14
-    button.Font = Enum.Font.GothamSemibold
-    button.AutoButtonColor = true
-    button.Parent = scroll
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = button
-
-    local btnStroke = Instance.new("UIStroke")
-    btnStroke.Color = Color3.fromRGB(65, 65, 78)
-    btnStroke.Thickness = 1
-    btnStroke.Parent = button
-
-    button.Activated:Connect(callback)
-    return button
 end
 
 local running = false
 
 local function startTower(towerName)
     if running then
-        status("Please wait for the current test...")
+        setStatus("Please wait for current test...")
         return
     end
 
     running = true
-    status("Equipping team: " .. towerName)
+    setStatus("1/2 Equipping: " .. towerName)
 
     task.spawn(function()
+        -- STEP 1: same as main hub
         local okEquip, equipResult = pcall(function()
             return fireRE("Towers", "EquipBestTowerTeam")
         end)
 
-        print("[Tower Test]", towerName, "EquipBestTowerTeam:", okEquip, equipResult)
+        print("========== TOWER TEST ==========")
+        print("[Tower]", towerName)
+        print("[1] EquipBestTowerTeam:", okEquip, equipResult)
 
         if not okEquip then
-            status("Equip failed: " .. towerName)
+            setStatus(towerName .. " → Equip ERROR")
             warn("[TOWER EQUIP]", towerName, equipResult)
             running = false
             return
@@ -236,20 +199,27 @@ local function startTower(towerName)
 
         task.wait(0.2)
 
-        status("Calling PlayTower: " .. towerName)
+        -- STEP 2: same as main hub
+        setStatus("2/2 PlayTower: " .. towerName)
 
         local okPlay, playResult = pcall(function()
             return invokeRF("Towers", "PlayTower", towerName)
         end)
 
-        print("[Tower Test]", towerName, "PlayTower:", okPlay, playResult)
+        print("[2] PlayTower:", okPlay, playResult)
 
-        if okPlay then
-            status(towerName .. " → returned " .. tostring(playResult))
-        else
-            status(towerName .. " → ERROR")
+        if not okPlay then
+            setStatus(towerName .. " → PlayTower ERROR")
             warn("[TOWER START]", towerName, playResult)
+        else
+            setStatus(towerName .. " → returned " .. tostring(playResult))
         end
+
+        -- Diagnostic delay only; no extra tower remote is called.
+        task.wait(2)
+
+        print("[3] 2-second post-start check complete")
+        print("========== END TOWER TEST ==========")
 
         running = false
     end)
@@ -265,19 +235,38 @@ local towers = {
 }
 
 for i, data in ipairs(towers) do
-    makeButton(data[1] .. "  |  START", i, function()
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -4, 0, 48)
+    button.LayoutOrder = i
+    button.BackgroundColor3 = Color3.fromRGB(42, 42, 52)
+    button.BorderSizePixel = 0
+    button.Text = data[1] .. "  |  START"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 14
+    button.Font = Enum.Font.GothamSemibold
+    button.AutoButtonColor = true
+    button.Parent = scroll
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 8)
+    c.Parent = button
+
+    local s = Instance.new("UIStroke")
+    s.Color = Color3.fromRGB(65, 65, 78)
+    s.Thickness = 1
+    s.Parent = button
+
+    button.Activated:Connect(function()
         startTower(data[2])
     end)
 end
 
--- Close
 close.Activated:Connect(function()
     gui:Destroy()
 end)
 
--- Minimize / restore
 local minimized = false
-local normalSize = UDim2.fromOffset(360, 430)
+local normalSize = UDim2.fromOffset(370, 450)
 local minimizedSize = UDim2.fromOffset(180, 44)
 
 minimize.Activated:Connect(function()
@@ -287,17 +276,14 @@ minimize.Activated:Connect(function()
         main.Size = minimizedSize
         title.Text = "🏰 Tower"
         title.TextSize = 15
-        title.Size = UDim2.new(1, -90, 1, 0)
         statusLabel.Visible = false
         scroll.Visible = false
-        minimize.Text = "□"
     else
         main.Size = normalSize
         title.Text = "🏰 Tower Test"
         title.TextSize = 17
         statusLabel.Visible = true
         scroll.Visible = true
-        minimize.Text = "□"
     end
 end)
 
@@ -305,16 +291,6 @@ end)
 local dragging = false
 local dragStart
 local startPos
-
-local function updateDrag(input)
-    local delta = input.Position - dragStart
-    main.Position = UDim2.new(
-        startPos.X.Scale,
-        startPos.X.Offset + delta.X,
-        startPos.Y.Scale,
-        startPos.Y.Offset + delta.Y
-    )
-end
 
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -337,7 +313,14 @@ UserInputService.InputChanged:Connect(function(input)
         input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch
     ) then
-        updateDrag(input)
+        local delta = input.Position - dragStart
+
+        main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
     end
 end)
 
@@ -351,10 +334,9 @@ UserInputService.InputBegan:Connect(function(input, processed)
 
     if input.KeyCode == Enum.KeyCode.LeftControl
         or input.KeyCode == Enum.KeyCode.RightControl then
-
         hidden = not hidden
         main.Visible = not hidden
     end
 end)
 
-print("[Tower Test GUI] Loaded")
+print("[Tower Test GUI] Loaded - FULL FLOW")
