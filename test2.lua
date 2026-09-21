@@ -844,50 +844,6 @@ local function startTowerDirect(name)
     end
 end
 
-local function playTower(name)
-    -- Hidden Leaf / Slayer use the game's PlayTower RemoteFunction.
-    -- Call it exactly like the working raw RemoteFunction pattern.
-    local ok, result = pcall(function()
-        local network = ReplicatedStorage:WaitForChild("Network", 9e9)
-        local towers = network:WaitForChild("Towers", 9e9)
-        local rf = towers:WaitForChild("RF", 9e9)
-        local play = rf:WaitForChild("PlayTower", 9e9)
-
-        if not play:IsA("RemoteFunction") then
-            error(play:GetFullName() .. " is " .. play.ClassName)
-        end
-
-        return play:InvokeServer(name)
-    end)
-
-    if ok then
-        status(name .. " PlayTower sent")
-        print("[PLAY TOWER]", name, "returned:", result)
-        return true, result
-    end
-
-    status(name .. " PlayTower failed")
-    warn("[PLAY TOWER]", name, result)
-
-    -- Fallback: if this executor/game build exposes TowerController,
-    -- try the same start method used by the original tower buttons.
-    if TowerController then
-        local fallbackOk, fallbackResult = pcall(function()
-            return TowerController.startTower(name)
-        end)
-
-        if fallbackOk then
-            status(name .. " fallback start sent")
-            print("[TOWER FALLBACK]", name, "returned:", fallbackResult)
-            return true, fallbackResult
-        end
-
-        warn("[TOWER FALLBACK]", name, fallbackResult)
-    end
-
-    return false, result
-end
-
 local towerItems = {}
 
 local function addTower(text, callback)
@@ -910,11 +866,11 @@ addTower("🏴‍☠️ Pirate Tower  |  START", function()
 end)
 
 addTower("🍃 Hidden Leaf Tower  |  START", function()
-    playTower("Hidden Leaf Tower")
+    startTowerDirect("Hidden Leaf Tower")
 end)
 
 addTower("⚔️ Slayer Tower  |  START", function()
-    playTower("Slayer Tower")
+    startTowerDirect("Slayer Tower")
 end)
 
 addTower("♾️ Infinity Tower  |  START", function()
