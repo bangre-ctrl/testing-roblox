@@ -6,7 +6,7 @@
         EquipBestTowerTeam -> wait 0.2 -> TowerController.startTower(name)
 
     Hidden Leaf / Slayer:
-        PlayTower:InvokeServer(name)
+        NO_PLAYTOWER:InvokeServer(name)
 
     This intentionally preserves the original difference so we can test
     all six towers side-by-side.
@@ -221,7 +221,7 @@ local function startDirectTower(name)
     print("========== END TEST ==========")
 end
 
--- All six towers intentionally use the SAME flow:
+-- ALL SIX TOWERS USE ONLY THIS FLOW:
 -- EquipBestTowerTeam -> wait 0.2 -> TowerController.startTower(name)
 local function startTower(name)
     if not TowerController then
@@ -417,5 +417,5 @@ end)
 print("========================================")
 print("[TowerTestGUI] 6 Tower Test Loaded")
 print("[TowerTestGUI] Direct: Dragon/Cursed/Pirate/Infinity")
-print("[TowerTestGUI] PlayTower: Hidden Leaf/Slayer")
+print("[TowerTestGUI] NO_PLAYTOWER: Hidden Leaf/Slayer")
 print("========================================")
