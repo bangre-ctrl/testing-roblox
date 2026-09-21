@@ -1349,6 +1349,12 @@ close.MouseButton1Click:Connect(function()
 end)
 
 print("========================================")
+print("[DiceGachaHub] V17 TOWER METHOD: CONTROLLER ONLY")
+print("[DiceGachaHub] 6 towers = EquipBestTowerTeam -> TowerController.startTower()")
+print("[DiceGachaHub] PlayTower = DISABLED")
+print("========================================")
+
+print("========================================")
 print("[DiceGachaHub] Loaded successfully!")
 print("[DiceGachaHub] Auto Roll uses RollDice")
 print("[DiceGachaHub] SetAutoRoll removed")
