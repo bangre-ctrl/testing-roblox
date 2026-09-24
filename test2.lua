@@ -1136,6 +1136,17 @@ local function claimAvailableQuest(period)
     local p = s.progress or {}
     local c = s.claimed or {}
 
+    local allClaimed = true
+    for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
+        local current = tonumber(p[q]) or 0
+        local target = QUEST_TARGETS[period][q]
+        local isClaimed = c[q] == true or c[q] == 1 or c[q] == 'true'
+        if current < target or not isClaimed then
+            allClaimed = false
+            break
+        end
+    end
+
     for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
         local current = tonumber(p[q]) or 0
         local target = QUEST_TARGETS[period][q]
@@ -1164,6 +1175,11 @@ local function claimAvailableQuest(period)
             warn('[QUEST CLAIM]',period,q,err)
             return false
         end
+    end
+
+    if allClaimed then
+        status(period..': all quests claimed')
+        print('[QUEST]', period, 'all quests claimed')
     end
 
     return false
@@ -1411,9 +1427,9 @@ local function runQuestQueue()
             if categoryIndex>#categories then categoryIndex=1 end
             local category=categories[categoryIndex]
             if category=='Daily' then
-                if not claimAvailableQuest('Daily') then status('Daily: no claimable quest') end
+                claimAvailableQuest('Daily')
             elseif category=='Weekly' then
-                if not claimAvailableQuest('Weekly') then status('Weekly: no claimable quest') end
+                claimAvailableQuest('Weekly')
             else
                 pcall(function() fireRE('QuestService','Buy','Jackpot Spin') end)
                 status('JP Spin: request '..shopIndex..'/4')
