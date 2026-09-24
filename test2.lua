@@ -994,57 +994,154 @@ local QUEST_NAMES = {
 }
 
 local function findQuestTokens()
-    local states={}
-    for _,obj in ipairs(getgc(true)) do
-        if type(obj)=='table' then
-            local p=rawget(obj,'progress')
-            local c=rawget(obj,'claimed')
-            local e=rawget(obj,'expiresAt')
-            if type(p)=='table' and type(c)=='table' and type(e)=='number'
-                and type(rawget(p,'Playtime'))=='number'
-                and type(rawget(p,'Rolls'))=='number'
-                and type(rawget(p,'Towers'))=='number'
-                and type(rawget(p,'UnitsSold'))=='number' then
-                states[e]={expiresAt=e,progress=p,claimed=c}
+    -- More tolerant quest-state scanner.
+    -- Some accounts expose the quest table without a `claimed` table,
+    -- or with only the progress/expiry fields visible to getgc().
+    local now = os.time()
+    local states = {}
+
+    local function num(v)
+        return type(v) == 'number' and v or tonumber(v)
+    end
+
+    local function readProgress(p, key)
+        if type(p) ~= 'table' then return nil end
+        local v = rawget(p, key)
+        if v == nil then
+            v = rawget(p, string.lower(key))
+        end
+        return num(v)
+    end
+
+    for _, obj in ipairs(getgc(true)) do
+        if type(obj) == 'table' then
+            local p = rawget(obj, 'progress')
+            local e = num(rawget(obj, 'expiresAt'))
+            local c = rawget(obj, 'claimed')
+
+            if type(p) == 'table' and e then
+                local progress = {
+                    Playtime  = readProgress(p, 'Playtime'),
+                    Rolls     = readProgress(p, 'Rolls'),
+                    Towers    = readProgress(p, 'Towers'),
+                    UnitsSold = readProgress(p, 'UnitsSold'),
+                }
+
+                local foundProgress = 0
+                for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
+                    if progress[q] ~= nil then
+                        foundProgress += 1
+                    end
+                end
+
+                -- A real quest state should expose at least one of the
+                -- known quest progress counters. Keep the full state even
+                -- when some counters are not present on this account.
+                if foundProgress > 0 and e > (now - 3600) then
+                    local claimed = type(c) == 'table' and c or {}
+                    local old = states[e]
+
+                    -- Prefer the candidate containing more quest counters.
+                    local oldCount = old and old.progressCount or 0
+                    if not old or foundProgress > oldCount then
+                        states[e] = {
+                            expiresAt = e,
+                            progress = progress,
+                            claimed = claimed,
+                            progressCount = foundProgress,
+                        }
+                    end
+                end
             end
         end
     end
-    local list={}
-    for _,s in pairs(states) do table.insert(list,s) end
-    table.sort(list,function(x,y) return x.expiresAt<y.expiresAt end)
-    if #list>=2 then return list[1],list[#list] end
-    if #list==1 then
-        if list[1].expiresAt-os.time()<=86400+300 then return list[1],nil end
-        return nil,list[1]
+
+    local list = {}
+    for _, s in pairs(states) do
+        table.insert(list, s)
     end
-    return nil,nil
+
+    table.sort(list, function(a, b)
+        return a.expiresAt < b.expiresAt
+    end)
+
+    -- Prefer explicit daily/weekly timing when both states exist.
+    -- Daily normally expires within ~24h, weekly much later.
+    local daily, weekly
+    for _, s in ipairs(list) do
+        local remaining = s.expiresAt - now
+        if remaining > 0 then
+            if remaining <= (2 * 86400) and not daily then
+                daily = s
+            elseif remaining > (2 * 86400) and not weekly then
+                weekly = s
+            end
+        end
+    end
+
+    -- Fallback to nearest/farthest if the game's expiry timing is unusual.
+    if not daily and #list >= 1 then
+        daily = list[1]
+    end
+    if not weekly and #list >= 2 then
+        weekly = list[#list]
+        if weekly == daily then
+            weekly = nil
+        end
+    end
+
+    print('[QUEST SCAN] candidates:', #list,
+        'daily:', daily and daily.expiresAt or 'nil',
+        'weekly:', weekly and weekly.expiresAt or 'nil')
+
+    return daily, weekly
 end
 
 local function getQuestState(period)
-    local d,w=findQuestTokens()
-    return period=='Daily' and d or w
+    local d, w = findQuestTokens()
+    return period == 'Daily' and d or w
 end
 
 local function claimAvailableQuest(period)
-    local s=getQuestState(period)
-    if not s then return false end
-    local p=s.progress
-    local c=s.claimed
-    for _,q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
-        local target=QUEST_TARGETS[period][q]
-        if (tonumber(p[q]) or 0)>=target and c[q]~=true then
-            local ok,err=pcall(function()
+    local s = getQuestState(period)
+    if not s then
+        warn('[QUEST] No '..period..' quest state detected')
+        return false
+    end
+
+    local p = s.progress or {}
+    local c = s.claimed or {}
+
+    for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
+        local current = tonumber(p[q]) or 0
+        local target = QUEST_TARGETS[period][q]
+        local isClaimed = c[q] == true or c[q] == 1 or c[q] == 'true'
+
+        print('[QUEST CHECK]', period, q,
+            'progress=', current,
+            'target=', target,
+            'claimed=', tostring(isClaimed),
+            'expiresAt=', s.expiresAt)
+
+        if current >= target and not isClaimed then
+            local ok, err = pcall(function()
                 fireRE('QuestService','Claim',period,q,s.expiresAt)
             end)
+
             if ok then
+                -- Prevent the same client-side state from being selected again
+                -- before the game refreshes its quest data.
+                c[q] = true
                 status(period..': '..QUEST_NAMES[q][period]..' claim sent')
                 print('[QUEST]',period,QUEST_NAMES[q][period],'token:',s.expiresAt)
                 return true
             end
+
             warn('[QUEST CLAIM]',period,q,err)
             return false
         end
     end
+
     return false
 end
 
@@ -1564,9 +1661,17 @@ close.MouseButton1Click:Connect(function()
 end)
 
 print("========================================")
+print("[DiceGachaHub] V17 TOWER METHOD: CONTROLLER ONLY")
 print("[DiceGachaHub] 6 towers = EquipBestTowerTeam -> TowerController.startTower()")
 print("========================================")
+
+print("========================================")
 print("[DiceGachaHub] Loaded successfully!")
+print("[DiceGachaHub] Auto Roll uses RollDice")
+print("[DiceGachaHub] SetAutoRoll removed")
+print("[DiceGachaHub] Anti-AFK removed - V2")
+print("[DiceGachaHub] Responsive UI enabled")
+print("[DiceGachaHub] Compact columns enabled")
 print("[DiceGachaHub] V16 horizontal minimize bar loaded")
 print("[DiceGachaHub] Quest Auto-Detect enabled - no hardcoded quest token")
 print("========================================")
