@@ -994,11 +994,13 @@ local QUEST_NAMES = {
 }
 
 local function findQuestTokens()
-    -- More tolerant quest-state scanner.
-    -- Some accounts expose the quest table without a `claimed` table,
-    -- or with only the progress/expiry fields visible to getgc().
+    -- Recursive quest-state scanner.
+    -- Some sessions keep the actual Daily/Weekly state nested inside
+    -- another client table, so only checking obj.progress misses it.
     local now = os.time()
     local states = {}
+    local seen = {}
+    local MAX_DEPTH = 6
 
     local function num(v)
         return type(v) == 'number' and v or tonumber(v)
@@ -1007,92 +1009,114 @@ local function findQuestTokens()
     local function readProgress(p, key)
         if type(p) ~= 'table' then return nil end
         local v = rawget(p, key)
-        if v == nil then
-            v = rawget(p, string.lower(key))
-        end
+        if v == nil then v = rawget(p, string.lower(key)) end
         return num(v)
+    end
+
+    local function saveCandidate(obj, progressTable, expiresAt, claimedTable)
+        local e = num(expiresAt)
+        if not e or e <= (now - 3600) then return end
+
+        local progress = {
+            Playtime  = readProgress(progressTable, 'Playtime'),
+            Rolls     = readProgress(progressTable, 'Rolls'),
+            Towers    = readProgress(progressTable, 'Towers'),
+            UnitsSold = readProgress(progressTable, 'UnitsSold'),
+        }
+
+        local foundProgress = 0
+        for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
+            if progress[q] ~= nil then foundProgress += 1 end
+        end
+        if foundProgress == 0 then return end
+
+        local claimed = type(claimedTable) == 'table' and claimedTable or {}
+        local old = states[e]
+        local oldCount = old and old.progressCount or 0
+
+        if not old or foundProgress > oldCount then
+            states[e] = {
+                expiresAt = e,
+                progress = progress,
+                claimed = claimed,
+                progressCount = foundProgress,
+                source = obj,
+            }
+        end
+    end
+
+    local function scanTable(t, depth)
+        if type(t) ~= 'table' or depth > MAX_DEPTH or seen[t] then return end
+        seen[t] = true
+
+        -- Normal layout: {progress = {...}, claimed = {...}, expiresAt = ...}
+        local p = rawget(t, 'progress')
+        local e = rawget(t, 'expiresAt')
+        local c = rawget(t, 'claimed')
+        if type(p) == 'table' and e ~= nil then
+            saveCandidate(t, p, e, c)
+        end
+
+        -- Some versions use a differently named expiry field.
+        if type(p) == 'table' then
+            local altE = rawget(t, 'expires') or rawget(t, 'expiry') or rawget(t, 'expireAt')
+            if altE ~= nil then saveCandidate(t, p, altE, c) end
+        end
+
+        -- Search nested tables, but avoid walking huge unrelated structures.
+        for k, v in pairs(t) do
+            if type(v) == 'table' then
+                local key = type(k) == 'string' and string.lower(k) or ''
+                if depth < MAX_DEPTH and (
+                    key == 'quest' or key == 'quests' or key == 'daily' or key == 'weekly'
+                    or key == 'state' or key == 'data' or key == 'progress'
+                    or key == 'claimed' or key == 'dailyquests' or key == 'weeklyquests'
+                    or key == ''
+                ) then
+                    scanTable(v, depth + 1)
+                end
+            end
+        end
     end
 
     for _, obj in ipairs(getgc(true)) do
         if type(obj) == 'table' then
-            local p = rawget(obj, 'progress')
-            local e = num(rawget(obj, 'expiresAt'))
-            local c = rawget(obj, 'claimed')
-
-            if type(p) == 'table' and e then
-                local progress = {
-                    Playtime  = readProgress(p, 'Playtime'),
-                    Rolls     = readProgress(p, 'Rolls'),
-                    Towers    = readProgress(p, 'Towers'),
-                    UnitsSold = readProgress(p, 'UnitsSold'),
-                }
-
-                local foundProgress = 0
-                for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
-                    if progress[q] ~= nil then
-                        foundProgress += 1
-                    end
-                end
-
-                -- A real quest state should expose at least one of the
-                -- known quest progress counters. Keep the full state even
-                -- when some counters are not present on this account.
-                if foundProgress > 0 and e > (now - 3600) then
-                    local claimed = type(c) == 'table' and c or {}
-                    local old = states[e]
-
-                    -- Prefer the candidate containing more quest counters.
-                    local oldCount = old and old.progressCount or 0
-                    if not old or foundProgress > oldCount then
-                        states[e] = {
-                            expiresAt = e,
-                            progress = progress,
-                            claimed = claimed,
-                            progressCount = foundProgress,
-                        }
-                    end
-                end
-            end
+            scanTable(obj, 0)
         end
     end
 
     local list = {}
-    for _, s in pairs(states) do
-        table.insert(list, s)
-    end
+    for _, state in pairs(states) do table.insert(list, state) end
+    table.sort(list, function(a,b) return a.expiresAt < b.expiresAt end)
 
-    table.sort(list, function(a, b)
-        return a.expiresAt < b.expiresAt
-    end)
-
-    -- Prefer explicit daily/weekly timing when both states exist.
-    -- Daily normally expires within ~24h, weekly much later.
     local daily, weekly
-    for _, s in ipairs(list) do
-        local remaining = s.expiresAt - now
+    for _, state in ipairs(list) do
+        local remaining = state.expiresAt - now
         if remaining > 0 then
-            if remaining <= (2 * 86400) and not daily then
-                daily = s
-            elseif remaining > (2 * 86400) and not weekly then
-                weekly = s
+            if remaining <= 2 * 86400 and not daily then
+                daily = state
+            elseif remaining > 2 * 86400 and not weekly then
+                weekly = state
             end
         end
     end
 
-    -- Fallback to nearest/farthest if the game's expiry timing is unusual.
-    if not daily and #list >= 1 then
-        daily = list[1]
-    end
-    if not weekly and #list >= 2 then
-        weekly = list[#list]
-        if weekly == daily then
-            weekly = nil
-        end
-    end
+    if not daily and #list >= 1 then daily = list[1] end
+    if not weekly and #list >= 2 then weekly = list[#list] end
+    if weekly == daily then weekly = nil end
 
     print('[QUEST SCAN] candidates:', #list,
         'daily:', daily and daily.expiresAt or 'nil',
         'weekly:', weekly and weekly.expiresAt or 'nil')
+
+    if daily then
+        print('[QUEST DAILY STATE]',
+            'Playtime=', tostring(daily.progress.Playtime),
+            'Rolls=', tostring(daily.progress.Rolls),
+            'Towers=', tostring(daily.progress.Towers),
+            'UnitsSold=', tostring(daily.progress.UnitsSold),
+            'claimedType=', type(daily.claimed))
+    end
 
     return daily, weekly
 end
