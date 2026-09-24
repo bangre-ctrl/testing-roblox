@@ -325,6 +325,145 @@ rollsLabel.TextXAlignment = Enum.TextXAlignment.Right
 rollsLabel.Parent = stats
 
 --==================================================
+-- MINI STATS (shown while minimized)
+--==================================================
+
+local miniFrame = Instance.new("Frame")
+miniFrame.Name = "MiniStats"
+miniFrame.Size = UDim2.new(0, 220, 0, 104)
+miniFrame.Position = UDim2.new(0.5, -110, 0, 10)
+miniFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+miniFrame.BorderSizePixel = 0
+miniFrame.Visible = false
+miniFrame.Active = true
+miniFrame.Parent = gui
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(0, 10)
+miniCorner.Parent = miniFrame
+
+local miniTitle = Instance.new("TextLabel")
+miniTitle.Size = UDim2.new(1, -48, 0, 26)
+miniTitle.Position = UDim2.new(0, 8, 0, 4)
+miniTitle.BackgroundTransparency = 1
+miniTitle.Text = "🎲 Dice"
+miniTitle.TextColor3 = Color3.new(1, 1, 1)
+miniTitle.TextSize = 14
+miniTitle.Font = Enum.Font.GothamBold
+miniTitle.TextXAlignment = Enum.TextXAlignment.Left
+miniTitle.Parent = miniFrame
+
+local miniRestore = Instance.new("TextButton")
+miniRestore.Size = UDim2.new(0, 32, 0, 28)
+miniRestore.Position = UDim2.new(1, -70, 0, 3)
+miniRestore.BackgroundColor3 = Color3.fromRGB(75, 75, 88)
+miniRestore.Text = "□"
+miniRestore.TextColor3 = Color3.new(1, 1, 1)
+miniRestore.TextSize = 17
+miniRestore.Font = Enum.Font.GothamBold
+miniRestore.BorderSizePixel = 0
+miniRestore.Parent = miniFrame
+Instance.new("UICorner", miniRestore).CornerRadius = UDim.new(0, 7)
+
+local miniClose = Instance.new("TextButton")
+miniClose.Size = UDim2.new(0, 32, 0, 28)
+miniClose.Position = UDim2.new(1, -35, 0, 3)
+miniClose.BackgroundColor3 = Color3.fromRGB(180, 50, 55)
+miniClose.Text = "X"
+miniClose.TextColor3 = Color3.new(1, 1, 1)
+miniClose.TextSize = 15
+miniClose.Font = Enum.Font.GothamBold
+miniClose.BorderSizePixel = 0
+miniClose.Parent = miniFrame
+Instance.new("UICorner", miniClose).CornerRadius = UDim.new(0, 7)
+
+local miniMoney = Instance.new("TextLabel")
+miniMoney.Size = UDim2.new(1, -16, 0, 20)
+miniMoney.Position = UDim2.new(0, 8, 0, 31)
+miniMoney.BackgroundTransparency = 1
+miniMoney.Text = "💰 Money: --"
+miniMoney.TextColor3 = Color3.new(1, 1, 1)
+miniMoney.TextSize = 13
+miniMoney.Font = Enum.Font.GothamBold
+miniMoney.TextXAlignment = Enum.TextXAlignment.Left
+miniMoney.Parent = miniFrame
+
+local miniRolls = Instance.new("TextLabel")
+miniRolls.Size = UDim2.new(1, -16, 0, 20)
+miniRolls.Position = UDim2.new(0, 8, 0, 52)
+miniRolls.BackgroundTransparency = 1
+miniRolls.Text = "🎲 Rolls: --"
+miniRolls.TextColor3 = Color3.new(1, 1, 1)
+miniRolls.TextSize = 13
+miniRolls.Font = Enum.Font.GothamBold
+miniRolls.TextXAlignment = Enum.TextXAlignment.Left
+miniRolls.Parent = miniFrame
+
+local miniTickets = Instance.new("TextLabel")
+miniTickets.Size = UDim2.new(1, -16, 0, 20)
+miniTickets.Position = UDim2.new(0, 8, 0, 73)
+miniTickets.BackgroundTransparency = 1
+miniTickets.Text = "🎟️ Tickets: --"
+miniTickets.TextColor3 = Color3.new(1, 1, 1)
+miniTickets.TextSize = 13
+miniTickets.Font = Enum.Font.GothamBold
+miniTickets.TextXAlignment = Enum.TextXAlignment.Left
+miniTickets.Parent = miniFrame
+
+local function getTickets()
+    local ok, text = pcall(function()
+        return player.PlayerGui.Root.Menus.Quests.Shop.ScrollingFrame
+            ["Jackpot Spin"].Buy.Frame.Info.TextLabel.Text
+    end)
+
+    if not ok then
+        return 0
+    end
+
+    return tonumber(string.match(text, "^(%d+)")) or 0
+end
+
+local miniDragging = false
+local miniDragStart
+local miniStartPos
+
+miniTitle.InputBegan:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+    and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+
+    miniDragging = true
+    miniDragStart = input.Position
+    miniStartPos = miniFrame.Position
+
+    input.Changed:Connect(function()
+        if input.UserInputState == Enum.UserInputState.End then
+            miniDragging = false
+        end
+    end)
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not miniDragging then
+        return
+    end
+
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement
+    and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+
+    local delta = input.Position - miniDragStart
+    miniFrame.Position = UDim2.new(
+        miniStartPos.X.Scale,
+        miniStartPos.X.Offset + delta.X,
+        miniStartPos.Y.Scale,
+        miniStartPos.Y.Offset + delta.Y
+    )
+end)
+
+--==================================================
 -- STATUS
 --==================================================
 
@@ -1520,12 +1659,18 @@ task.spawn(function()
                 local rolls = leaderstats:FindFirstChild("Rolls")
 
                 if money then
+                    local moneyValue = tonumber(money.Value) or 0
                     moneyLabel.Text = "💰 Money: " .. tostring(money.Value)
+                    miniMoney.Text = "💰 Money: " .. formatMoney(moneyValue)
                 end
 
                 if rolls then
+                    local rollsValue = tonumber(rolls.Value) or 0
                     rollsLabel.Text = "🎲 Rolls: " .. tostring(rolls.Value)
+                    miniRolls.Text = "🎲 Rolls: " .. string.format("%d", rollsValue):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
                 end
+
+                miniTickets.Text = "🎟️ Tickets: " .. tostring(getTickets())
             end
         end)
 
@@ -1619,65 +1764,34 @@ minimize.MouseButton1Click:Connect(function()
     minimized = not minimized
 
     if minimized then
-        stats.Visible = false
-        statusLabel.Visible = false
-        left.Visible = false
-        right.Visible = false
-
-        -- TRUE COMPACT HORIZONTAL BAR.
-        -- Width is deliberately much larger than height:
-        -- [ 🎲 Dice ] [ □ ] [ X ]
-        main.Size = UDim2.new(0, 180, 0, 44)
-        titleBar.Size = UDim2.new(1, 0, 1, 0)
-
-        title.Visible = true
-        title.Size = UDim2.new(0, 92, 1, 0)
-        title.Position = UDim2.new(0, 8, 0, 0)
-        title.Text = "🎲 Dice"
-        title.TextSize = 15
-
-        minimize.Visible = true
-        minimize.Size = UDim2.new(0, 32, 0, 32)
-        minimize.Position = UDim2.new(1, -72, 0, 6)
-        minimize.Text = "□"
-        minimize.TextSize = 17
-
-        close.Visible = true
-        close.Size = UDim2.new(0, 32, 0, 32)
-        close.Position = UDim2.new(1, -38, 0, 6)
-        close.Text = "X"
-        close.TextSize = 15
-
-        mainCorner.CornerRadius = UDim.new(0, 12)
+        main.Visible = false
+        miniFrame.Visible = true
     else
-        stats.Visible = true
-        statusLabel.Visible = true
-        left.Visible = true
-        right.Visible = true
-
-        main.Size = normalSize
-        titleBar.Size = normalTitleSize
-
-        title.Visible = true
-        title.Size = UDim2.new(1, -130, 1, 0)
-        title.Position = UDim2.new(0, 16, 0, 0)
-        title.Text = "🎲 Dice Gacha Hub"
-        title.TextSize = 19
-
-        minimize.Visible = true
-        minimize.Size = UDim2.new(0, 36, 0, 34)
-        minimize.Position = UDim2.new(1, -78, 0, 7)
-        minimize.Text = "□"
-        minimize.TextSize = 20
-
-        close.Visible = true
-        close.Size = UDim2.new(0, 36, 0, 34)
-        close.Position = UDim2.new(1, -38, 0, 7)
-        close.Text = "X"
-        close.TextSize = 16
-
-        mainCorner.CornerRadius = UDim.new(0, 12)
+        miniFrame.Visible = false
+        main.Visible = true
     end
+end)
+
+miniRestore.MouseButton1Click:Connect(function()
+    minimized = false
+    miniFrame.Visible = false
+    main.Visible = true
+end)
+
+miniClose.MouseButton1Click:Connect(function()
+    closed = true
+
+    autoRollOn = false
+    autoFarmOn = false
+    autoCollectOn = false
+    autoEquipBestOn = false
+    autoSellOn = false
+    autoRebirthOn = false
+    autoDailyQuestOn = false
+    autoWeeklyQuestOn = false
+    autoQuestShopOn = false
+
+    gui:Destroy()
 end)
 
 --==================================================
@@ -1704,12 +1818,8 @@ print("========================================")
 print("[DiceGachaHub] V17 TOWER METHOD: CONTROLLER ONLY")
 print("[DiceGachaHub] 6 towers = EquipBestTowerTeam -> TowerController.startTower()")
 print("========================================")
-
-print("========================================")
 print("[DiceGachaHub] Loaded successfully!")
 print("[DiceGachaHub] Auto Roll uses RollDice")
-print("[DiceGachaHub] SetAutoRoll removed")
-print("[DiceGachaHub] Anti-AFK removed - V2")
 print("[DiceGachaHub] Responsive UI enabled")
 print("[DiceGachaHub] Compact columns enabled")
 print("[DiceGachaHub] V16 horizontal minimize bar loaded")
