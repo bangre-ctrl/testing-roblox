@@ -590,6 +590,19 @@ button(left, "🎲 Roll Dice", function()
     end
 end)
 
+button(left, "🎁 Claim Daily Reward", function()
+    local ok, result = pcall(function()
+        fireRE("DailyRewardService", "Claim")
+    end)
+
+    if ok then
+        status("Daily Reward: Claim sent")
+    else
+        status("Daily Reward: Failed")
+        warn("[DAILY REWARD]", result)
+    end
+end)
+
 toggle(
     left,
     "🎲 Auto Roll Dice",
