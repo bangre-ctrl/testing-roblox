@@ -968,28 +968,75 @@ toggle(
 -- QUEST HELPERS
 --==================================================
 
-local DAILY_QUESTS = {
-    {name = "30m Login", quest = "Playtime", id = 1790257857},
-    {name = "1K Rolls", quest = "Rolls", id = 1790257857},
-    {name = "2 Tower Attacks", quest = "Towers", id = 1790257857},
-    {name = "500 Units Sold", quest = "UnitsSold", id = 1790257857},
+local QUEST_TARGETS = {
+    Daily = {Playtime=1800, Rolls=1000, Towers=2, UnitsSold=500},
+    Weekly = {Playtime=18000, Rolls=7500, Towers=15, UnitsSold=5000},
 }
 
-local WEEKLY_QUESTS = {
-    {name = "5h Login", quest = "Playtime", id = 1790748822},
-    {name = "7.5K Rolls", quest = "Rolls", id = 1790748822},
-    {name = "15 Tower Attacks", quest = "Towers", id = 1790776257},
-    {name = "500 Units Sold", quest = "UnitsSold", id = 1790748822},
+local QUEST_NAMES = {
+    Playtime={Daily='30m Login', Weekly='5h Login'},
+    Rolls={Daily='1K Rolls', Weekly='7.5K Rolls'},
+    Towers={Daily='2 Tower Attacks', Weekly='15 Tower Attacks'},
+    UnitsSold={Daily='500 Units Sold', Weekly='5K Units Sold'},
 }
 
-local function claimQuest(period, questType, questId)
-    return pcall(function()
-        fireRE("QuestService", "Claim", period, questType, questId)
-    end)
+local function findQuestTokens()
+    local states={}
+    for _,obj in ipairs(getgc(true)) do
+        if type(obj)=='table' then
+            local p=rawget(obj,'progress')
+            local c=rawget(obj,'claimed')
+            local e=rawget(obj,'expiresAt')
+            if type(p)=='table' and type(c)=='table' and type(e)=='number'
+                and type(rawget(p,'Playtime'))=='number'
+                and type(rawget(p,'Rolls'))=='number'
+                and type(rawget(p,'Towers'))=='number'
+                and type(rawget(p,'UnitsSold'))=='number' then
+                states[e]={expiresAt=e,progress=p,claimed=c}
+            end
+        end
+    end
+    local list={}
+    for _,s in pairs(states) do table.insert(list,s) end
+    table.sort(list,function(x,y) return x.expiresAt<y.expiresAt end)
+    if #list>=2 then return list[1],list[#list] end
+    if #list==1 then
+        if list[1].expiresAt-os.time()<=86400+300 then return list[1],nil end
+        return nil,list[1]
+    end
+    return nil,nil
 end
 
+local function getQuestState(period)
+    local d,w=findQuestTokens()
+    return period=='Daily' and d or w
+end
+
+local function claimAvailableQuest(period)
+    local s=getQuestState(period)
+    if not s then return false end
+    local p=s.progress
+    local c=s.claimed
+    for _,q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
+        local target=QUEST_TARGETS[period][q]
+        if (tonumber(p[q]) or 0)>=target and c[q]~=true then
+            local ok,err=pcall(function()
+                fireRE('QuestService','Claim',period,q,s.expiresAt)
+            end)
+            if ok then
+                status(period..': '..QUEST_NAMES[q][period]..' claim sent')
+                print('[QUEST]',period,QUEST_NAMES[q][period],'token:',s.expiresAt)
+                return true
+            end
+            warn('[QUEST CLAIM]',period,q,err)
+            return false
+        end
+    end
+    return false
+end
 
 --==================================================
+
 -- RIGHT: TELEPORT
 --==================================================
 
@@ -1189,208 +1236,127 @@ end)
 -- RIGHT: QUEST / SHOP
 --==================================================
 
-section(right, "📜 QUEST")
+section(right, '📜 QUEST')
 
-local questOpen = false
-local questButton = Instance.new("TextButton")
-questButton.Size = UDim2.new(1, -16, 0, 42)
-questButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-questButton.Text = "📜 Quest  ▸"
-questButton.TextColor3 = Color3.new(1, 1, 1)
-questButton.TextSize = 14
-questButton.Font = Enum.Font.GothamBold
-questButton.BorderSizePixel = 0
-questButton.LayoutOrder = #right:GetChildren()
-questButton.Parent = right
-Instance.new("UICorner", questButton).CornerRadius = UDim.new(0, 8)
+local questOpen=false
+local questButton=Instance.new('TextButton')
+questButton.Size=UDim2.new(1,-16,0,42)
+questButton.BackgroundColor3=Color3.fromRGB(52,52,63)
+questButton.Text='📜 Quest  ▸'
+questButton.TextColor3=Color3.new(1,1,1)
+questButton.TextSize=14
+questButton.Font=Enum.Font.GothamBold
+questButton.BorderSizePixel=0
+questButton.LayoutOrder=#right:GetChildren()
+questButton.Parent=right
+Instance.new('UICorner',questButton).CornerRadius=UDim.new(0,8)
 
-local questItems = {}
-
-local function addQuestToggle(text, onCallback, offCallback)
-    local b = toggle(right, text, nextRight(), onCallback, offCallback)
-    b.Visible = false
-    table.insert(questItems, b)
+local questItems={}
+local function addQuestToggle(text,onCallback,offCallback)
+    local b=toggle(right,text,nextRight(),onCallback,offCallback)
+    b.Visible=false
+    table.insert(questItems,b)
     return b
 end
 
--- One global queue for Daily + Weekly + JP Spin.
--- Exactly one request is sent every 30 seconds.
--- Enabled categories take turns so none can starve another.
-local QUEST_REQUEST_INTERVAL = 30
-local questQueueRunning = false
+local QUEST_REQUEST_INTERVAL=30
+local questQueueRunning=false
 
 local function runQuestQueue()
-    if questQueueRunning then
-        return
-    end
-
-    questQueueRunning = true
-
+    if questQueueRunning then return end
+    questQueueRunning=true
     task.spawn(function()
-        local dailyIndex = 1
-        local weeklyIndex = 1
-        local shopIndex = 1
-        local categoryIndex = 1
-
+        local categoryIndex=1
+        local shopIndex=1
         while not closed and (autoDailyQuestOn or autoWeeklyQuestOn or autoQuestShopOn) do
-            local categories = {}
-
-            if autoDailyQuestOn then
-                table.insert(categories, "Daily")
+            local categories={}
+            if autoDailyQuestOn then table.insert(categories,'Daily') end
+            if autoWeeklyQuestOn then table.insert(categories,'Weekly') end
+            if autoQuestShopOn then table.insert(categories,'Shop') end
+            if #categories==0 then break end
+            if categoryIndex>#categories then categoryIndex=1 end
+            local category=categories[categoryIndex]
+            if category=='Daily' then
+                if not claimAvailableQuest('Daily') then status('Daily: no claimable quest') end
+            elseif category=='Weekly' then
+                if not claimAvailableQuest('Weekly') then status('Weekly: no claimable quest') end
+            else
+                pcall(function() fireRE('QuestService','Buy','Jackpot Spin') end)
+                status('JP Spin: request '..shopIndex..'/4')
+                shopIndex=(shopIndex%4)+1
             end
-
-            if autoWeeklyQuestOn then
-                table.insert(categories, "Weekly")
-            end
-
-            if autoQuestShopOn then
-                table.insert(categories, "Shop")
-            end
-
-            if #categories == 0 then
-                break
-            end
-
-            if categoryIndex > #categories then
-                categoryIndex = 1
-            end
-
-            local category = categories[categoryIndex]
-            local requestSent = false
-
-            if category == "Daily" then
-                local q = DAILY_QUESTS[dailyIndex]
-
-                pcall(function()
-                    fireRE("QuestService", "Claim", "Daily", q.quest, q.id)
-                end)
-
-                status("Daily: " .. q.name)
-                dailyIndex = (dailyIndex % #DAILY_QUESTS) + 1
-                requestSent = true
-
-            elseif category == "Weekly" then
-                local q = WEEKLY_QUESTS[weeklyIndex]
-
-                pcall(function()
-                    fireRE("QuestService", "Claim", "Weekly", q.quest, q.id)
-                end)
-
-                status("Weekly: " .. q.name)
-                weeklyIndex = (weeklyIndex % #WEEKLY_QUESTS) + 1
-                requestSent = true
-
-            elseif category == "Shop" then
-                pcall(function()
-                    fireRE("QuestService", "Buy", "Jackpot Spin")
-                end)
-
-                status("JP Spin: request " .. shopIndex .. "/4")
-                shopIndex = (shopIndex % 4) + 1
-                requestSent = true
-            end
-
-            categoryIndex += 1
-
-            if requestSent then
-                task.wait(QUEST_REQUEST_INTERVAL)
-            end
+            categoryIndex+=1
+            task.wait(QUEST_REQUEST_INTERVAL)
         end
-
-        questQueueRunning = false
+        questQueueRunning=false
     end)
 end
 
-addQuestToggle(
-    "📅 DAILY",
-    function()
-        autoDailyQuestOn = true
-        status("Daily Quest: ON")
-        runQuestQueue()
-    end,
-    function()
-        autoDailyQuestOn = false
-        status("Daily Quest: OFF")
-    end
-)
-
-addQuestToggle(
-    "🗓️ WEEKLY",
-    function()
-        autoWeeklyQuestOn = true
-        status("Weekly Quest: ON")
-        runQuestQueue()
-    end,
-    function()
-        autoWeeklyQuestOn = false
-        status("Weekly Quest: OFF")
-    end
-)
-
-questButton.Activated:Connect(function()
-    questOpen = not questOpen
-    questButton.Text = questOpen and "📜 Quest  ▾" or "📜 Quest  ▸"
-
-    for _, item in ipairs(questItems) do
-        item.Visible = questOpen
-    end
-
-    task.defer(function()
-        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
-    end)
+addQuestToggle('📅 DAILY',function()
+    autoDailyQuestOn=true
+    status('Daily Quest Auto Claim: ON')
+    runQuestQueue()
+end,function()
+    autoDailyQuestOn=false
+    status('Daily Quest Auto Claim: OFF')
 end)
 
-section(right, "🛒 SHOP")
+addQuestToggle('🗓️ WEEKLY',function()
+    autoWeeklyQuestOn=true
+    status('Weekly Quest Auto Claim: ON')
+    runQuestQueue()
+end,function()
+    autoWeeklyQuestOn=false
+    status('Weekly Quest Auto Claim: OFF')
+end)
 
-local shopOpen = false
-local shopButton = Instance.new("TextButton")
-shopButton.Size = UDim2.new(1, -16, 0, 42)
-shopButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-shopButton.Text = "🛒 Shop  ▸"
-shopButton.TextColor3 = Color3.new(1, 1, 1)
-shopButton.TextSize = 14
-shopButton.Font = Enum.Font.GothamBold
-shopButton.BorderSizePixel = 0
-shopButton.LayoutOrder = #right:GetChildren()
-shopButton.Parent = right
-Instance.new("UICorner", shopButton).CornerRadius = UDim.new(0, 8)
+questButton.Activated:Connect(function()
+    questOpen=not questOpen
+    questButton.Text=questOpen and '📜 Quest  ▾' or '📜 Quest  ▸'
+    for _,item in ipairs(questItems) do item.Visible=questOpen end
+    task.defer(function() right.CanvasSize=UDim2.new(0,0,0,rightLayout.AbsoluteContentSize.Y+24) end)
+end)
 
-local shopItems = {}
+section(right,'🛒 SHOP')
+local shopOpen=false
+local shopButton=Instance.new('TextButton')
+shopButton.Size=UDim2.new(1,-16,0,42)
+shopButton.BackgroundColor3=Color3.fromRGB(52,52,63)
+shopButton.Text='🛒 Shop  ▸'
+shopButton.TextColor3=Color3.new(1,1,1)
+shopButton.TextSize=14
+shopButton.Font=Enum.Font.GothamBold
+shopButton.BorderSizePixel=0
+shopButton.LayoutOrder=#right:GetChildren()
+shopButton.Parent=right
+Instance.new('UICorner',shopButton).CornerRadius=UDim.new(0,8)
 
-local function addShopToggle(text, onCallback, offCallback)
-    local b = toggle(right, text, nextRight(), onCallback, offCallback)
-    b.Visible = false
-    table.insert(shopItems, b)
+local shopItems={}
+local function addShopToggle(text,onCallback,offCallback)
+    local b=toggle(right,text,nextRight(),onCallback,offCallback)
+    b.Visible=false
+    table.insert(shopItems,b)
     return b
 end
 
-addShopToggle(
-    "🎰 AUTO BUY JP SPIN",
-    function()
-        autoQuestShopOn = true
-        status("Auto Buy JP Spin: ON")
-        runQuestQueue()
-    end,
-    function()
-        autoQuestShopOn = false
-        status("Auto Buy JP Spin: OFF")
-    end
-)
+addShopToggle('🎰 AUTO BUY JP SPIN',function()
+    autoQuestShopOn=true
+    status('Auto Buy JP Spin: ON')
+    runQuestQueue()
+end,function()
+    autoQuestShopOn=false
+    status('Auto Buy JP Spin: OFF')
+end)
 
 shopButton.Activated:Connect(function()
-    shopOpen = not shopOpen
-    shopButton.Text = shopOpen and "🛒 Shop  ▾" or "🛒 Shop  ▸"
-
-    for _, item in ipairs(shopItems) do
-        item.Visible = shopOpen
-    end
-
-    task.defer(function()
-        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
-    end)
+    shopOpen=not shopOpen
+    shopButton.Text=shopOpen and '🛒 Shop  ▾' or '🛒 Shop  ▸'
+    for _,item in ipairs(shopItems) do item.Visible=shopOpen end
+    task.defer(function() right.CanvasSize=UDim2.new(0,0,0,rightLayout.AbsoluteContentSize.Y+24) end)
 end)
 
 --==================================================
+
 -- STATS UPDATE
 --==================================================
 
@@ -1597,4 +1563,5 @@ print("[DiceGachaHub] Anti-AFK removed - V2")
 print("[DiceGachaHub] Responsive UI enabled")
 print("[DiceGachaHub] Compact columns enabled")
 print("[DiceGachaHub] V16 horizontal minimize bar loaded")
+print("[DiceGachaHub] Quest Auto-Detect enabled - no hardcoded quest token")
 print("========================================")
