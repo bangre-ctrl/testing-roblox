@@ -429,7 +429,7 @@ end
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
 left.Size = UDim2.new(0, 305, 0, 410)
-left.Position = UDim2.new(0, 10, 0, 125)
+left.Position = UDim2.new(0, 10, 0, 168)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
 left.ScrollBarThickness = 7
@@ -445,7 +445,7 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
 right.Size = UDim2.new(0, 305, 0, 410)
-right.Position = UDim2.new(0, 325, 0, 125)
+right.Position = UDim2.new(0, 325, 0, 168)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
 right.ScrollBarThickness = 7
@@ -652,22 +652,9 @@ end
 -- LEFT MENU
 --==================================================
 
-section(left, "🎲 GACHA")
+section(left, "🎁 DAILY")
 
-button(left, "🎲 Roll Dice", function()
-    local ok, result = pcall(function()
-        return invokeRF("RollService", "RollDice")
-    end)
-
-    if ok then
-        status("Roll berhasil")
-    else
-        status("Roll error")
-        warn("[Roll]", result)
-    end
-end)
-
-button(left, "🎁 Claim Daily Reward", function()
+local dailyRewardButton = button(left, "🎁 Claim Daily Reward", function()
     local ok, result = pcall(function()
         fireRE("DailyRewardService", "Claim")
     end)
@@ -679,6 +666,8 @@ button(left, "🎁 Claim Daily Reward", function()
         warn("[DAILY REWARD]", result)
     end
 end)
+
+section(left, "🎲 GACHA")
 
 toggle(
     left,
@@ -1219,6 +1208,42 @@ end,function()
 end)
 
 --==================================================
+-- MINI STATS HELPERS
+--==================================================
+
+local function formatMoney(value)
+    value = tonumber(value) or 0
+
+    local suffixes = {
+        {1e21, "sx"},
+        {1e18, "qi"},
+        {1e15, "qd"},
+        {1e12, "T"},
+        {1e9, "B"},
+        {1e6, "M"},
+        {1e3, "K"},
+    }
+
+    for _, data in ipairs(suffixes) do
+        local threshold, suffix = data[1], data[2]
+        if value >= threshold then
+            local n = value / threshold
+            local text
+            if n >= 100 then
+                text = string.format("%.0f", n)
+            elseif n >= 10 then
+                text = string.format("%.1f", n):gsub("%.0$", "")
+            else
+                text = string.format("%.2f", n):gsub("0+$", ""):gsub("%.$", "")
+            end
+            return text .. suffix
+        end
+    end
+
+    return tostring(math.floor(value))
+end
+
+--==================================================
 -- STATS UPDATE
 --==================================================
 
@@ -1243,8 +1268,10 @@ task.spawn(function()
                     miniRolls.Text = "🎲 Rolls: " .. string.format("%d", rollsValue):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
                 end
 
-                miniTickets.Text = "🎟️ Tickets: " .. tostring(getTickets())
             end
+
+            -- Tickets are independent of leaderstats.
+            miniTickets.Text = "🎟️ Tickets: " .. tostring(getTickets())
         end)
 
         task.wait(1)
@@ -1337,11 +1364,29 @@ minimize.MouseButton1Click:Connect(function()
     minimized = not minimized
 
     if minimized then
+        -- Refresh immediately so the mini window never opens with stale "--" values.
+        pcall(function()
+            local leaderstats = player:FindFirstChild("leaderstats")
+            if leaderstats then
+                local money = leaderstats:FindFirstChild("Money")
+                local rolls = leaderstats:FindFirstChild("Rolls")
+                if money then
+                    miniMoney.Text = "💰 Money: " .. formatMoney(money.Value)
+                end
+                if rolls then
+                    local n = tonumber(rolls.Value) or 0
+                    miniRolls.Text = "🎲 Rolls: " .. string.format("%d", n):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+                end
+            end
+            miniTickets.Text = "🎟️ Tickets: " .. tostring(getTickets())
+        end)
         main.Visible = false
         miniFrame.Visible = true
+        dailyRewardButton.Visible = false
     else
         miniFrame.Visible = false
         main.Visible = true
+        dailyRewardButton.Visible = true
     end
 end)
 
@@ -1349,6 +1394,7 @@ miniRestore.MouseButton1Click:Connect(function()
     minimized = false
     miniFrame.Visible = false
     main.Visible = true
+    dailyRewardButton.Visible = true
 end)
 
 miniClose.MouseButton1Click:Connect(function()
