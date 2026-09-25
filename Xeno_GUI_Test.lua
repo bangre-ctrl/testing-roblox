@@ -699,6 +699,19 @@ toggle(
     end
 )
 
+section(left, "🗑️ SELL")
+
+button(left, "🗑️ Sell Inventory", function()
+    local ok, result = sellInventory()
+
+    if ok then
+        status("Sell Inventory: Success")
+    else
+        status("Sell Inventory: Failed")
+        warn("[SELL]", result)
+    end
+end)
+
 section(left, "💎 COLLECT")
 
 button(left, "💎 Collect All Slots", function()
