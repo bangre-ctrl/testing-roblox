@@ -96,73 +96,11 @@ local ALL_DICES = {
 --==================================================
 
 local autoRollOn = false
-local autoFarmOn = false
 local autoCollectOn = false
-local autoEquipBestOn = false
-local autoSellOn = false
-local autoRebirthOn = false
 local autoDailyQuestOn = false
 local autoWeeklyQuestOn = false
 local autoQuestShopOn = false
 local closed = false
-
---==================================================
--- SELL HELPERS
---==================================================
-
-local function getSellableUUIDs()
-    local dataCtrl = ReplicatedStorage
-        :WaitForChild("Framework", 9e9)
-        :WaitForChild("Features", 9e9)
-        :WaitForChild("Data", 9e9)
-        :WaitForChild("DataController", 9e9)
-
-    local sellUtil = ReplicatedStorage
-        :WaitForChild("Framework", 9e9)
-        :WaitForChild("Features", 9e9)
-        :WaitForChild("Selling", 9e9)
-        :WaitForChild("SellUtil", 9e9)
-
-    local data = require(dataCtrl)
-    local util = require(sellUtil)
-
-    local summary = util.CreateSummary(data.Inventory(), data.Slots())
-    local uuids = {}
-
-    if summary and summary.sales then
-        for _, sale in pairs(summary.sales) do
-            if sale and sale.key then
-                table.insert(uuids, sale.key)
-            end
-        end
-    end
-
-    return uuids
-end
-
-local function sellInventory()
-    local uuids = getSellableUUIDs()
-
-    if #uuids == 0 then
-        return false, "No sellable items"
-    end
-
-    local ok, result = pcall(function()
-        return invokeRF("SellService", "SellInventory", uuids)
-    end)
-
-    if ok then
-        return true, result
-    end
-
-    return false, result
-end
-
-local function sellEquipped()
-    return pcall(function()
-        return invokeRF("SellService", "SellEquipped")
-    end)
-end
 
 --==================================================
 -- GUI
@@ -325,6 +263,145 @@ rollsLabel.TextXAlignment = Enum.TextXAlignment.Right
 rollsLabel.Parent = stats
 
 --==================================================
+-- MINI STATS (shown while minimized)
+--==================================================
+
+local miniFrame = Instance.new("Frame")
+miniFrame.Name = "MiniStats"
+miniFrame.Size = UDim2.new(0, 220, 0, 104)
+miniFrame.Position = UDim2.new(0.5, -110, 0, 10)
+miniFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+miniFrame.BorderSizePixel = 0
+miniFrame.Visible = false
+miniFrame.Active = true
+miniFrame.Parent = gui
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(0, 10)
+miniCorner.Parent = miniFrame
+
+local miniTitle = Instance.new("TextLabel")
+miniTitle.Size = UDim2.new(1, -48, 0, 26)
+miniTitle.Position = UDim2.new(0, 8, 0, 4)
+miniTitle.BackgroundTransparency = 1
+miniTitle.Text = "🎲 Dice"
+miniTitle.TextColor3 = Color3.new(1, 1, 1)
+miniTitle.TextSize = 14
+miniTitle.Font = Enum.Font.GothamBold
+miniTitle.TextXAlignment = Enum.TextXAlignment.Left
+miniTitle.Parent = miniFrame
+
+local miniRestore = Instance.new("TextButton")
+miniRestore.Size = UDim2.new(0, 32, 0, 28)
+miniRestore.Position = UDim2.new(1, -70, 0, 3)
+miniRestore.BackgroundColor3 = Color3.fromRGB(75, 75, 88)
+miniRestore.Text = "□"
+miniRestore.TextColor3 = Color3.new(1, 1, 1)
+miniRestore.TextSize = 17
+miniRestore.Font = Enum.Font.GothamBold
+miniRestore.BorderSizePixel = 0
+miniRestore.Parent = miniFrame
+Instance.new("UICorner", miniRestore).CornerRadius = UDim.new(0, 7)
+
+local miniClose = Instance.new("TextButton")
+miniClose.Size = UDim2.new(0, 32, 0, 28)
+miniClose.Position = UDim2.new(1, -35, 0, 3)
+miniClose.BackgroundColor3 = Color3.fromRGB(180, 50, 55)
+miniClose.Text = "X"
+miniClose.TextColor3 = Color3.new(1, 1, 1)
+miniClose.TextSize = 15
+miniClose.Font = Enum.Font.GothamBold
+miniClose.BorderSizePixel = 0
+miniClose.Parent = miniFrame
+Instance.new("UICorner", miniClose).CornerRadius = UDim.new(0, 7)
+
+local miniMoney = Instance.new("TextLabel")
+miniMoney.Size = UDim2.new(1, -16, 0, 20)
+miniMoney.Position = UDim2.new(0, 8, 0, 31)
+miniMoney.BackgroundTransparency = 1
+miniMoney.Text = "💰 Money: --"
+miniMoney.TextColor3 = Color3.new(1, 1, 1)
+miniMoney.TextSize = 13
+miniMoney.Font = Enum.Font.GothamBold
+miniMoney.TextXAlignment = Enum.TextXAlignment.Left
+miniMoney.Parent = miniFrame
+
+local miniRolls = Instance.new("TextLabel")
+miniRolls.Size = UDim2.new(1, -16, 0, 20)
+miniRolls.Position = UDim2.new(0, 8, 0, 52)
+miniRolls.BackgroundTransparency = 1
+miniRolls.Text = "🎲 Rolls: --"
+miniRolls.TextColor3 = Color3.new(1, 1, 1)
+miniRolls.TextSize = 13
+miniRolls.Font = Enum.Font.GothamBold
+miniRolls.TextXAlignment = Enum.TextXAlignment.Left
+miniRolls.Parent = miniFrame
+
+local miniTickets = Instance.new("TextLabel")
+miniTickets.Size = UDim2.new(1, -16, 0, 20)
+miniTickets.Position = UDim2.new(0, 8, 0, 73)
+miniTickets.BackgroundTransparency = 1
+miniTickets.Text = "🎟️ Tickets: --"
+miniTickets.TextColor3 = Color3.new(1, 1, 1)
+miniTickets.TextSize = 13
+miniTickets.Font = Enum.Font.GothamBold
+miniTickets.TextXAlignment = Enum.TextXAlignment.Left
+miniTickets.Parent = miniFrame
+
+local function getTickets()
+    local ok, text = pcall(function()
+        return player.PlayerGui.Root.Menus.Quests.Shop.ScrollingFrame
+            ["Jackpot Spin"].Buy.Frame.Info.TextLabel.Text
+    end)
+
+    if not ok then
+        return 0
+    end
+
+    return tonumber(string.match(text, "^(%d+)")) or 0
+end
+
+local miniDragging = false
+local miniDragStart
+local miniStartPos
+
+miniTitle.InputBegan:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+    and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+
+    miniDragging = true
+    miniDragStart = input.Position
+    miniStartPos = miniFrame.Position
+
+    input.Changed:Connect(function()
+        if input.UserInputState == Enum.UserInputState.End then
+            miniDragging = false
+        end
+    end)
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not miniDragging then
+        return
+    end
+
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement
+    and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+
+    local delta = input.Position - miniDragStart
+    miniFrame.Position = UDim2.new(
+        miniStartPos.X.Scale,
+        miniStartPos.X.Offset + delta.X,
+        miniStartPos.Y.Scale,
+        miniStartPos.Y.Offset + delta.Y
+    )
+end)
+
+--==================================================
 -- STATUS
 --==================================================
 
@@ -424,7 +501,7 @@ end)
 --==================================================
 -- Some Android emulators do not pass normal touch-wheel scrolling
 -- correctly to a ScrollingFrame. Add manual swipe scrolling as a
--- fallback so the lower buttons (Collect/Rebirth/Automation) are
+-- fallback so the lower buttons (Collect/Quest/Shop) are
 -- always reachable.
 left.Active = true
 right.Active = true
@@ -627,90 +704,6 @@ toggle(
     end
 )
 
-section(left, "⚔️ EQUIP")
-
-button(left, "🎒 Buka Tas", function()
-    fireRE("OnboardingService", "Advance", 2)
-    status("Buka Tas")
-end)
-
-button(left, "⚔️ Equip Best", function()
-    fireRE("PlotService", "EquipBest")
-    status("Equip Best")
-end)
-
-toggle(
-    left,
-    "⚔️ Auto Equip Best",
-    nextLeft(),
-    function()
-        autoEquipBestOn = true
-        status("Auto Equip Best: ON")
-
-        task.spawn(function()
-            while autoEquipBestOn and not closed do
-                pcall(function()
-                    fireRE("PlotService", "EquipBest")
-                end)
-
-                task.wait(3)
-            end
-        end)
-    end,
-    function()
-        autoEquipBestOn = false
-        status("Auto Equip Best: OFF")
-    end
-)
-
-section(left, "💰 SELL")
-
-button(left, "🗑️ Sell Inventory", function()
-    local ok, result = sellInventory()
-
-    if ok then
-        status("Sell Inventory: Success")
-    else
-        status("Sell Inventory: Failed")
-        warn("[SELL]", result)
-    end
-end)
-
-button(left, "🗑️ Sell Equipped", function()
-    local ok, result = sellEquipped()
-
-    if ok then
-        status("Sell Equipped: Success")
-    else
-        status("Sell Equipped: Failed")
-        warn("[SELL EQUIPPED]", result)
-    end
-end)
-
-toggle(
-    left,
-    "🗑️ Auto Sell",
-    nextLeft(),
-    function()
-        autoSellOn = true
-        status("Auto Sell: ON")
-
-        task.spawn(function()
-            while autoSellOn and not closed do
-                pcall(function()
-                    sellInventory()
-                end)
-
-                task.wait(30)
-            end
-        end)
-    end,
-    function()
-        autoSellOn = false
-        status("Auto Sell: OFF")
-    end
-)
-
 section(left, "💎 COLLECT")
 
 button(left, "💎 Collect All Slots", function()
@@ -753,45 +746,6 @@ toggle(
     function()
         autoCollectOn = false
         status("Auto Collect: OFF")
-    end
-)
-
-section(left, "♻️ REBIRTH")
-
-button(left, "♻️ Rebirth", function()
-    fireRE("RebirthService", "Rebirth")
-    status("Rebirth")
-end)
-
-toggle(
-    left,
-    "♻️ Auto Rebirth",
-    nextLeft(),
-    function()
-        autoRebirthOn = true
-        status("Auto Rebirth: ON")
-
-        task.spawn(function()
-            while autoRebirthOn and not closed do
-                local delay = math.random(60, 300)
-                local elapsed = 0
-
-                while elapsed < delay and autoRebirthOn and not closed do
-                    task.wait(1)
-                    elapsed += 1
-                end
-
-                if autoRebirthOn and not closed then
-                    pcall(function()
-                        fireRE("RebirthService", "Rebirth")
-                    end)
-                end
-            end
-        end)
-    end,
-    function()
-        autoRebirthOn = false
-        status("Auto Rebirth: OFF")
     end
 )
 
@@ -906,77 +860,6 @@ towerButton.Activated:Connect(function()
     end)
 end)
 
-section(left, "🤖 AUTOMATION")
-
-toggle(
-    left,
-    "🤖 Auto Farm",
-    nextLeft(),
-    function()
-        autoFarmOn = true
-        status("Auto Farm: ON")
-
-        task.spawn(function()
-            while autoFarmOn and not closed do
-
-                -- Roll
-                pcall(function()
-                    invokeRF("RollService", "RollDice")
-                end)
-                task.wait(0.3)
-
-                if not autoFarmOn or closed then
-                    break
-                end
-
-                -- Equip
-                pcall(function()
-                    fireRE("PlotService", "EquipBest")
-                end)
-                task.wait(0.2)
-
-                if not autoFarmOn or closed then
-                    break
-                end
-
-                -- Collect
-                for i = 1, 8 do
-                    if not autoFarmOn or closed then
-                        break
-                    end
-
-                    pcall(function()
-                        fireRE("PlotService", "CollectBalance", i)
-                    end)
-
-                    task.wait(0.05)
-                end
-
-                if not autoFarmOn or closed then
-                    break
-                end
-
-                task.wait(0.2)
-
-                -- Sell
-                pcall(function()
-                    sellInventory()
-                end)
-
-                task.wait(0.8)
-            end
-
-            if not closed then
-                status("Auto Farm: OFF")
-            end
-        end)
-    end,
-    function()
-        autoFarmOn = false
-        status("Auto Farm: STOPPING...")
-    end
-)
-
 --==================================================
 -- QUEST HELPERS
 --==================================================
@@ -994,57 +877,194 @@ local QUEST_NAMES = {
 }
 
 local function findQuestTokens()
-    local states={}
-    for _,obj in ipairs(getgc(true)) do
-        if type(obj)=='table' then
-            local p=rawget(obj,'progress')
-            local c=rawget(obj,'claimed')
-            local e=rawget(obj,'expiresAt')
-            if type(p)=='table' and type(c)=='table' and type(e)=='number'
-                and type(rawget(p,'Playtime'))=='number'
-                and type(rawget(p,'Rolls'))=='number'
-                and type(rawget(p,'Towers'))=='number'
-                and type(rawget(p,'UnitsSold'))=='number' then
-                states[e]={expiresAt=e,progress=p,claimed=c}
+    -- Recursive quest-state scanner.
+    -- Some sessions keep the actual Daily/Weekly state nested inside
+    -- another client table, so only checking obj.progress misses it.
+    local now = os.time()
+    local states = {}
+    local seen = {}
+    local MAX_DEPTH = 6
+
+    local function num(v)
+        return type(v) == 'number' and v or tonumber(v)
+    end
+
+    local function readProgress(p, key)
+        if type(p) ~= 'table' then return nil end
+        local v = rawget(p, key)
+        if v == nil then v = rawget(p, string.lower(key)) end
+        return num(v)
+    end
+
+    local function saveCandidate(obj, progressTable, expiresAt, claimedTable)
+        local e = num(expiresAt)
+        if not e or e <= (now - 3600) then return end
+
+        local progress = {
+            Playtime  = readProgress(progressTable, 'Playtime'),
+            Rolls     = readProgress(progressTable, 'Rolls'),
+            Towers    = readProgress(progressTable, 'Towers'),
+            UnitsSold = readProgress(progressTable, 'UnitsSold'),
+        }
+
+        local foundProgress = 0
+        for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
+            if progress[q] ~= nil then foundProgress += 1 end
+        end
+        if foundProgress == 0 then return end
+
+        local claimed = type(claimedTable) == 'table' and claimedTable or {}
+        local old = states[e]
+        local oldCount = old and old.progressCount or 0
+
+        if not old or foundProgress > oldCount then
+            states[e] = {
+                expiresAt = e,
+                progress = progress,
+                claimed = claimed,
+                progressCount = foundProgress,
+                source = obj,
+            }
+        end
+    end
+
+    local function scanTable(t, depth)
+        if type(t) ~= 'table' or depth > MAX_DEPTH or seen[t] then return end
+        seen[t] = true
+
+        -- Normal layout: {progress = {...}, claimed = {...}, expiresAt = ...}
+        local p = rawget(t, 'progress')
+        local e = rawget(t, 'expiresAt')
+        local c = rawget(t, 'claimed')
+        if type(p) == 'table' and e ~= nil then
+            saveCandidate(t, p, e, c)
+        end
+
+        -- Some versions use a differently named expiry field.
+        if type(p) == 'table' then
+            local altE = rawget(t, 'expires') or rawget(t, 'expiry') or rawget(t, 'expireAt')
+            if altE ~= nil then saveCandidate(t, p, altE, c) end
+        end
+
+        -- Search nested tables, but avoid walking huge unrelated structures.
+        for k, v in pairs(t) do
+            if type(v) == 'table' then
+                local key = type(k) == 'string' and string.lower(k) or ''
+                if depth < MAX_DEPTH and (
+                    key == 'quest' or key == 'quests' or key == 'daily' or key == 'weekly'
+                    or key == 'state' or key == 'data' or key == 'progress'
+                    or key == 'claimed' or key == 'dailyquests' or key == 'weeklyquests'
+                    or key == ''
+                ) then
+                    scanTable(v, depth + 1)
+                end
             end
         end
     end
-    local list={}
-    for _,s in pairs(states) do table.insert(list,s) end
-    table.sort(list,function(x,y) return x.expiresAt<y.expiresAt end)
-    if #list>=2 then return list[1],list[#list] end
-    if #list==1 then
-        if list[1].expiresAt-os.time()<=86400+300 then return list[1],nil end
-        return nil,list[1]
+
+    for _, obj in ipairs(getgc(true)) do
+        if type(obj) == 'table' then
+            scanTable(obj, 0)
+        end
     end
-    return nil,nil
+
+    local list = {}
+    for _, state in pairs(states) do table.insert(list, state) end
+    table.sort(list, function(a,b) return a.expiresAt < b.expiresAt end)
+
+    local daily, weekly
+    for _, state in ipairs(list) do
+        local remaining = state.expiresAt - now
+        if remaining > 0 then
+            if remaining <= 2 * 86400 and not daily then
+                daily = state
+            elseif remaining > 2 * 86400 and not weekly then
+                weekly = state
+            end
+        end
+    end
+
+    if not daily and #list >= 1 then daily = list[1] end
+    if not weekly and #list >= 2 then weekly = list[#list] end
+    if weekly == daily then weekly = nil end
+
+    print('[QUEST SCAN] candidates:', #list,
+        'daily:', daily and daily.expiresAt or 'nil',
+        'weekly:', weekly and weekly.expiresAt or 'nil')
+
+    if daily then
+        print('[QUEST DAILY STATE]',
+            'Playtime=', tostring(daily.progress.Playtime),
+            'Rolls=', tostring(daily.progress.Rolls),
+            'Towers=', tostring(daily.progress.Towers),
+            'UnitsSold=', tostring(daily.progress.UnitsSold),
+            'claimedType=', type(daily.claimed))
+    end
+
+    return daily, weekly
 end
 
 local function getQuestState(period)
-    local d,w=findQuestTokens()
-    return period=='Daily' and d or w
+    local d, w = findQuestTokens()
+    return period == 'Daily' and d or w
 end
 
 local function claimAvailableQuest(period)
-    local s=getQuestState(period)
-    if not s then return false end
-    local p=s.progress
-    local c=s.claimed
-    for _,q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
-        local target=QUEST_TARGETS[period][q]
-        if (tonumber(p[q]) or 0)>=target and c[q]~=true then
-            local ok,err=pcall(function()
+    local s = getQuestState(period)
+    if not s then
+        warn('[QUEST] No '..period..' quest state detected')
+        return false
+    end
+
+    local p = s.progress or {}
+    local c = s.claimed or {}
+
+    local allClaimed = true
+    for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
+        local current = tonumber(p[q]) or 0
+        local target = QUEST_TARGETS[period][q]
+        local isClaimed = c[q] == true or c[q] == 1 or c[q] == 'true'
+        if current < target or not isClaimed then
+            allClaimed = false
+            break
+        end
+    end
+
+    for _, q in ipairs({'Playtime','Rolls','Towers','UnitsSold'}) do
+        local current = tonumber(p[q]) or 0
+        local target = QUEST_TARGETS[period][q]
+        local isClaimed = c[q] == true or c[q] == 1 or c[q] == 'true'
+
+        print('[QUEST CHECK]', period, q,
+            'progress=', current,
+            'target=', target,
+            'claimed=', tostring(isClaimed),
+            'expiresAt=', s.expiresAt)
+
+        if current >= target and not isClaimed then
+            local ok, err = pcall(function()
                 fireRE('QuestService','Claim',period,q,s.expiresAt)
             end)
+
             if ok then
+                -- Prevent the same client-side state from being selected again
+                -- before the game refreshes its quest data.
+                c[q] = true
                 status(period..': '..QUEST_NAMES[q][period]..' claim sent')
                 print('[QUEST]',period,QUEST_NAMES[q][period],'token:',s.expiresAt)
                 return true
             end
+
             warn('[QUEST CLAIM]',period,q,err)
             return false
         end
     end
+
+    if allClaimed then
+        status(period..': all quests claimed')
+        print('[QUEST]', period, 'all quests claimed')
+    end
+
     return false
 end
 
@@ -1127,150 +1147,8 @@ teleportButton.Activated:Connect(function()
 end)
 
 --==================================================
--- RIGHT: DICE SHOP
+-- QUEST / JP SPIN QUEUE
 --==================================================
-
-section(right, "🛒 DICE SHOP")
-
-local diceShopOpen = false
-
-local diceShopButton = Instance.new("TextButton")
-diceShopButton.Size = UDim2.new(1, -16, 0, 42)
-diceShopButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-diceShopButton.Text = "🛒 Dice Shop  ▸"
-diceShopButton.TextColor3 = Color3.new(1, 1, 1)
-diceShopButton.TextSize = 14
-diceShopButton.Font = Enum.Font.GothamBold
-diceShopButton.BorderSizePixel = 0
-diceShopButton.LayoutOrder = #right:GetChildren()
-diceShopButton.Parent = right
-Instance.new("UICorner", diceShopButton).CornerRadius = UDim.new(0, 8)
-
-local function getMoney()
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if not leaderstats then
-        return 0
-    end
-
-    local money = leaderstats:FindFirstChild("Money")
-    if not money then
-        return 0
-    end
-
-    return tonumber(money.Value) or 0
-end
-
-local function formatMoney(value)
-    value = tonumber(value) or 0
-
-    local suffixes = {
-        {1e21, "sx"},
-        {1e18, "qi"},
-        {1e15, "qd"},
-        {1e12, "T"},
-        {1e9, "B"},
-        {1e6, "M"},
-        {1e3, "K"},
-    }
-
-    for _, data in ipairs(suffixes) do
-        local threshold, suffix = data[1], data[2]
-        if value >= threshold then
-            local n = value / threshold
-            local text
-
-            if n >= 100 then
-                text = string.format("%.0f", n)
-            elseif n >= 10 then
-                text = string.format("%.1f", n):gsub("%.0$", "")
-            else
-                text = string.format("%.2f", n):gsub("0+$", ""):gsub("%.$", "")
-            end
-
-            return text .. suffix
-        end
-    end
-
-    return tostring(math.floor(value))
-end
-
-local function buyDice(name)
-    local ok, result = pcall(function()
-        return fireRE("DiceShopService", "BuyDice", name)
-    end)
-
-    if ok then
-        status("Bought dice: " .. name)
-    else
-        warn("[BUY DICE]", result)
-        status("Buy failed: " .. name)
-    end
-
-    return ok, result
-end
-
-local diceItems = {}
-
-for i = #ALL_DICES, 1, -1 do
-    local d = ALL_DICES[i]
-
-    local b = button(
-        right,
-        string.format(
-            "%s  %s  | $%s  | Luck x%s",
-            d.emoji,
-            d.name,
-            d.displayPrice or formatMoney(d.price),
-            d.luckStr or tostring(d.luck)
-        ),
-        function()
-            buyDice(d.name)
-        end
-    )
-
-    b.Visible = false
-    table.insert(diceItems, b)
-end
-
-diceShopButton.Activated:Connect(function()
-    diceShopOpen = not diceShopOpen
-    diceShopButton.Text = diceShopOpen and "🛒 Dice Shop  ▾" or "🛒 Dice Shop  ▸"
-
-    for _, item in ipairs(diceItems) do
-        item.Visible = diceShopOpen
-    end
-
-    task.defer(function()
-        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
-    end)
-end)
-
---==================================================
--- RIGHT: QUEST / SHOP
---==================================================
-
-section(right, '📜 QUEST')
-
-local questOpen=false
-local questButton=Instance.new('TextButton')
-questButton.Size=UDim2.new(1,-16,0,42)
-questButton.BackgroundColor3=Color3.fromRGB(52,52,63)
-questButton.Text='📜 Quest  ▸'
-questButton.TextColor3=Color3.new(1,1,1)
-questButton.TextSize=14
-questButton.Font=Enum.Font.GothamBold
-questButton.BorderSizePixel=0
-questButton.LayoutOrder=#right:GetChildren()
-questButton.Parent=right
-Instance.new('UICorner',questButton).CornerRadius=UDim.new(0,8)
-
-local questItems={}
-local function addQuestToggle(text,onCallback,offCallback)
-    local b=toggle(right,text,nextRight(),onCallback,offCallback)
-    b.Visible=false
-    table.insert(questItems,b)
-    return b
-end
 
 local QUEST_REQUEST_INTERVAL=30
 local questQueueRunning=false
@@ -1290,9 +1168,9 @@ local function runQuestQueue()
             if categoryIndex>#categories then categoryIndex=1 end
             local category=categories[categoryIndex]
             if category=='Daily' then
-                if not claimAvailableQuest('Daily') then status('Daily: no claimable quest') end
+                claimAvailableQuest('Daily')
             elseif category=='Weekly' then
-                if not claimAvailableQuest('Weekly') then status('Weekly: no claimable quest') end
+                claimAvailableQuest('Weekly')
             else
                 pcall(function() fireRE('QuestService','Buy','Jackpot Spin') end)
                 status('JP Spin: request '..shopIndex..'/4')
@@ -1305,7 +1183,13 @@ local function runQuestQueue()
     end)
 end
 
-addQuestToggle('📅 DAILY',function()
+--==================================================
+-- RIGHT: QUEST / JP SPIN
+--==================================================
+
+section(right, '📜 QUEST')
+
+toggle(right,'📅 DAILY',nextRight(),function()
     autoDailyQuestOn=true
     status('Daily Quest Auto Claim: ON')
     runQuestQueue()
@@ -1314,7 +1198,7 @@ end,function()
     status('Daily Quest Auto Claim: OFF')
 end)
 
-addQuestToggle('🗓️ WEEKLY',function()
+toggle(right,'🗓️ WEEKLY',nextRight(),function()
     autoWeeklyQuestOn=true
     status('Weekly Quest Auto Claim: ON')
     runQuestQueue()
@@ -1323,36 +1207,9 @@ end,function()
     status('Weekly Quest Auto Claim: OFF')
 end)
 
-questButton.Activated:Connect(function()
-    questOpen=not questOpen
-    questButton.Text=questOpen and '📜 Quest  ▾' or '📜 Quest  ▸'
-    for _,item in ipairs(questItems) do item.Visible=questOpen end
-    task.defer(function() right.CanvasSize=UDim2.new(0,0,0,rightLayout.AbsoluteContentSize.Y+24) end)
-end)
-
 section(right,'🛒 SHOP')
-local shopOpen=false
-local shopButton=Instance.new('TextButton')
-shopButton.Size=UDim2.new(1,-16,0,42)
-shopButton.BackgroundColor3=Color3.fromRGB(52,52,63)
-shopButton.Text='🛒 Shop  ▸'
-shopButton.TextColor3=Color3.new(1,1,1)
-shopButton.TextSize=14
-shopButton.Font=Enum.Font.GothamBold
-shopButton.BorderSizePixel=0
-shopButton.LayoutOrder=#right:GetChildren()
-shopButton.Parent=right
-Instance.new('UICorner',shopButton).CornerRadius=UDim.new(0,8)
 
-local shopItems={}
-local function addShopToggle(text,onCallback,offCallback)
-    local b=toggle(right,text,nextRight(),onCallback,offCallback)
-    b.Visible=false
-    table.insert(shopItems,b)
-    return b
-end
-
-addShopToggle('🎰 AUTO BUY JP SPIN',function()
+toggle(right,'🎰 AUTO BUY JP SPIN',nextRight(),function()
     autoQuestShopOn=true
     status('Auto Buy JP Spin: ON')
     runQuestQueue()
@@ -1361,15 +1218,7 @@ end,function()
     status('Auto Buy JP Spin: OFF')
 end)
 
-shopButton.Activated:Connect(function()
-    shopOpen=not shopOpen
-    shopButton.Text=shopOpen and '🛒 Shop  ▾' or '🛒 Shop  ▸'
-    for _,item in ipairs(shopItems) do item.Visible=shopOpen end
-    task.defer(function() right.CanvasSize=UDim2.new(0,0,0,rightLayout.AbsoluteContentSize.Y+24) end)
-end)
-
 --==================================================
-
 -- STATS UPDATE
 --==================================================
 
@@ -1383,12 +1232,18 @@ task.spawn(function()
                 local rolls = leaderstats:FindFirstChild("Rolls")
 
                 if money then
+                    local moneyValue = tonumber(money.Value) or 0
                     moneyLabel.Text = "💰 Money: " .. tostring(money.Value)
+                    miniMoney.Text = "💰 Money: " .. formatMoney(moneyValue)
                 end
 
                 if rolls then
+                    local rollsValue = tonumber(rolls.Value) or 0
                     rollsLabel.Text = "🎲 Rolls: " .. tostring(rolls.Value)
+                    miniRolls.Text = "🎲 Rolls: " .. string.format("%d", rollsValue):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
                 end
+
+                miniTickets.Text = "🎟️ Tickets: " .. tostring(getTickets())
             end
         end)
 
@@ -1482,65 +1337,30 @@ minimize.MouseButton1Click:Connect(function()
     minimized = not minimized
 
     if minimized then
-        stats.Visible = false
-        statusLabel.Visible = false
-        left.Visible = false
-        right.Visible = false
-
-        -- TRUE COMPACT HORIZONTAL BAR.
-        -- Width is deliberately much larger than height:
-        -- [ 🎲 Dice ] [ □ ] [ X ]
-        main.Size = UDim2.new(0, 180, 0, 44)
-        titleBar.Size = UDim2.new(1, 0, 1, 0)
-
-        title.Visible = true
-        title.Size = UDim2.new(0, 92, 1, 0)
-        title.Position = UDim2.new(0, 8, 0, 0)
-        title.Text = "🎲 Dice"
-        title.TextSize = 15
-
-        minimize.Visible = true
-        minimize.Size = UDim2.new(0, 32, 0, 32)
-        minimize.Position = UDim2.new(1, -72, 0, 6)
-        minimize.Text = "□"
-        minimize.TextSize = 17
-
-        close.Visible = true
-        close.Size = UDim2.new(0, 32, 0, 32)
-        close.Position = UDim2.new(1, -38, 0, 6)
-        close.Text = "X"
-        close.TextSize = 15
-
-        mainCorner.CornerRadius = UDim.new(0, 12)
+        main.Visible = false
+        miniFrame.Visible = true
     else
-        stats.Visible = true
-        statusLabel.Visible = true
-        left.Visible = true
-        right.Visible = true
-
-        main.Size = normalSize
-        titleBar.Size = normalTitleSize
-
-        title.Visible = true
-        title.Size = UDim2.new(1, -130, 1, 0)
-        title.Position = UDim2.new(0, 16, 0, 0)
-        title.Text = "🎲 Dice Gacha Hub"
-        title.TextSize = 19
-
-        minimize.Visible = true
-        minimize.Size = UDim2.new(0, 36, 0, 34)
-        minimize.Position = UDim2.new(1, -78, 0, 7)
-        minimize.Text = "□"
-        minimize.TextSize = 20
-
-        close.Visible = true
-        close.Size = UDim2.new(0, 36, 0, 34)
-        close.Position = UDim2.new(1, -38, 0, 7)
-        close.Text = "X"
-        close.TextSize = 16
-
-        mainCorner.CornerRadius = UDim.new(0, 12)
+        miniFrame.Visible = false
+        main.Visible = true
     end
+end)
+
+miniRestore.MouseButton1Click:Connect(function()
+    minimized = false
+    miniFrame.Visible = false
+    main.Visible = true
+end)
+
+miniClose.MouseButton1Click:Connect(function()
+    closed = true
+
+    autoRollOn = false
+    autoCollectOn = false
+    autoDailyQuestOn = false
+    autoWeeklyQuestOn = false
+    autoQuestShopOn = false
+
+    gui:Destroy()
 end)
 
 --==================================================
@@ -1551,11 +1371,7 @@ close.MouseButton1Click:Connect(function()
     closed = true
 
     autoRollOn = false
-    autoFarmOn = false
     autoCollectOn = false
-    autoEquipBestOn = false
-    autoSellOn = false
-    autoRebirthOn = false
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
     autoQuestShopOn = false
