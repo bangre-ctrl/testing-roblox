@@ -428,7 +428,7 @@ end
 
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
-left.Size = UDim2.new(0, 305, 0, 410)
+left.Size = UDim2.new(0, 305, 0, 360)
 left.Position = UDim2.new(0, 10, 0, 168)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
@@ -444,7 +444,7 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
-right.Size = UDim2.new(0, 305, 0, 410)
+right.Size = UDim2.new(0, 305, 0, 360)
 right.Position = UDim2.new(0, 325, 0, 168)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
@@ -510,17 +510,19 @@ local function setupTouchScroll(frame, layout)
     local draggingScroll = false
     local dragStartY = 0
     local startCanvasY = 0
+    local moved = false
 
     local function insideFrame(position)
         local pos = frame.AbsolutePosition
         local size = frame.AbsoluteSize
-
         return position.X >= pos.X
             and position.X <= pos.X + size.X
             and position.Y >= pos.Y
             and position.Y <= pos.Y + size.Y
     end
 
+    -- Listen globally so swiping still works when the finger starts
+    -- on a child button inside the ScrollingFrame.
     UserInputService.InputBegan:Connect(function(input)
         if input.UserInputType ~= Enum.UserInputType.Touch
         and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
@@ -532,6 +534,7 @@ local function setupTouchScroll(frame, layout)
         end
 
         draggingScroll = true
+        moved = false
         dragStartY = input.Position.Y
         startCanvasY = frame.CanvasPosition.Y
     end)
@@ -547,12 +550,15 @@ local function setupTouchScroll(frame, layout)
         end
 
         local deltaY = input.Position.Y - dragStartY
+        if math.abs(deltaY) > 5 then
+            moved = true
+        end
+
         local contentHeight = math.max(
             layout.AbsoluteContentSize.Y + 24,
             frame.AbsoluteSize.Y
         )
         local maxY = math.max(0, contentHeight - frame.AbsoluteSize.Y)
-
         local newY = math.clamp(startCanvasY - deltaY, 0, maxY)
         frame.CanvasPosition = Vector2.new(0, newY)
     end)
