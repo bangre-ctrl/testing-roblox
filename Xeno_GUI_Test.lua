@@ -357,16 +357,19 @@ miniTickets.TextXAlignment = Enum.TextXAlignment.Left
 miniTickets.Parent = miniFrame
 
 local function getTickets()
+    -- Trait Reroll displays the available balance first, then the cost
+    -- on the next line (for example: "40\\n1").
     local ok, text = pcall(function()
         return player.PlayerGui.Root.Menus.Quests.Shop.ScrollingFrame
-            ["Jackpot Spin"].Buy.Frame.Info.TextLabel.Text
+            ["Trait Reroll"].Buy.Frame.Info.TextLabel.Text
     end)
 
     if not ok then
         return 0
     end
 
-    return tonumber(string.match(text, "^(%d+)")) or 0
+    local balance = string.match(text, "^%s*(%d+)")
+    return tonumber(balance) or 0
 end
 
 local miniDragging = false
