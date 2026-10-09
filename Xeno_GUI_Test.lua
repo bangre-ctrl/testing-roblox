@@ -746,12 +746,12 @@ addTower("⚔️ Slayer Tower  |  START", function()
     startTowerDirect("Slayer Tower")
 end)
 
-addTower("♾️ Infinity Tower  |  START", function()
-    startTowerDirect("Infinity Tower")
-end)
-
 addTower("🌑 Shadow Tower  |  START", function()
     startTowerDirect("Shadow Tower")
+end)
+
+addTower("♾️ Infinity Tower  |  START", function()
+    startTowerDirect("Infinity Tower")
 end)
 
 --==================================================
