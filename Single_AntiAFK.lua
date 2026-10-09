@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -153,18 +154,26 @@ local function updateButton(button, label, enabled)
     button.BackgroundColor3 = enabled and Color3.fromRGB(160, 90, 35) or Color3.fromRGB(55, 110, 70)
 end
 
--- Anti-idle input helper. Triggered by Roblox's Idled event and a slow fallback loop.
+-- Anti-idle helper: attempt a very short movement key tap, then use VirtualUser as fallback.
+-- Note: the key tap can move the character slightly; test in a safe spot first.
 local function pulseAntiAfk()
     if not antiAfkOn or antiAfkBusy then return end
     antiAfkBusy = true
-    pcall(function()
-        VirtualUser:CaptureController()
-        local camera = Workspace.CurrentCamera
-        local cameraCFrame = camera and camera.CFrame or CFrame.new()
-        VirtualUser:Button2Down(Vector2.new(0, 0), cameraCFrame)
-        task.wait(0.25)
-        VirtualUser:Button2Up(Vector2.new(0, 0), cameraCFrame)
+    local moved = pcall(function()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+        task.wait(0.12)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
     end)
+    if not moved then
+        pcall(function()
+            VirtualUser:CaptureController()
+            local camera = Workspace.CurrentCamera
+            local cameraCFrame = camera and camera.CFrame or CFrame.new()
+            VirtualUser:Button2Down(Vector2.new(0, 0), cameraCFrame)
+            task.wait(0.25)
+            VirtualUser:Button2Up(Vector2.new(0, 0), cameraCFrame)
+        end)
+    end
     antiAfkBusy = false
 end
 
@@ -227,10 +236,10 @@ task.spawn(function()
     end
 end)
 
--- Low-frequency fallback; the Idled event remains the primary trigger.
+-- Periodic input fallback; Idled event remains enabled too.
 task.spawn(function()
     while gui.Parent do
-        task.wait(30)
+        task.wait(25)
         if antiAfkOn then pulseAntiAfk() end
     end
 end)
