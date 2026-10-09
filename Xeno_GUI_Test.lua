@@ -1,6 +1,5 @@
--- Dice Gacha Hub V9
--- Auto Roll Dice uses RollService > RF > RollDice
--- Auto Roll UI (SetAutoRoll) removed.
+-- Dice Hub
+-- Rolls tab contains only the Auto Rolls toggle.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -65,35 +64,7 @@ local function invokeRF(serviceName, remoteName, ...)
     return remote:InvokeServer(...)
 end
 
---==================================================
--- DICE DATA
---==================================================
-
-local ALL_DICES = {
-    {name = "Normal",       price = 1,                  luck = 2,        emoji = "🎲", displayPrice = "1"},
-    {name = "Fire",         price = 2500,               luck = 5,        emoji = "🔥", displayPrice = "2.5K"},
-    {name = "Water",        price = 10000,              luck = 10,       emoji = "💧", displayPrice = "10K"},
-    {name = "Nature",       price = 75000,              luck = 20,       emoji = "🌿", displayPrice = "75K"},
-    {name = "Lightning",    price = 500000,             luck = 42.5,     emoji = "⚡", displayPrice = "500K"},
-    {name = "Ice",          price = 4000000,            luck = 100,      emoji = "❄️", displayPrice = "4M"},
-    {name = "Magma",        price = 30000000,           luck = 200,      emoji = "🌋", displayPrice = "30M"},
-    {name = "Storm",        price = 200000000,          luck = 400,      emoji = "🌪️", displayPrice = "200M"},
-    {name = "Shadow",       price = 1500000000,         luck = 750,      emoji = "🌑", displayPrice = "1.5B"},
-    {name = "Light",        price = 12000000000,        luck = 1500,     emoji = "✨", displayPrice = "12B"},
-    {name = "Blood Moon",   price = 100000000000,       luck = 3000,     emoji = "🔴", displayPrice = "100B"},
-    {name = "Void",         price = 750000000000,       luck = 6000,     emoji = "🕳️", displayPrice = "750B"},
-    {name = "Solar",        price = 5000000000000,      luck = 12500,    luckStr = "12.5k", emoji = "☀️", displayPrice = "5T"},
-    {name = "Lunar",        price = 37500000000000,     luck = 25000,    emoji = "🌙", displayPrice = "37.5T"},
-    {name = "Galaxy",       price = 150000000000000,    luck = 50000,    emoji = "🌌", displayPrice = "150T"},
-    {name = "Black Hole",   price = 1000000000000000,   luck = 100000,   emoji = "⚫", displayPrice = "1qd"},
-    {name = "Dragon",       price = 8500000000000000,   luck = 200000,   emoji = "🐉", displayPrice = "8.5qd"},
-    {name = "Royal",        price = 1e17,               luck = 400000,   emoji = "👑", displayPrice = "100qd"},
-    {name = "Prismatic",    price = 1e18,               luck = 1000000,  emoji = "🌈", displayPrice = "1qi"},
-    {name = "Arcane",       price = 1.25e19,            luck = 2000000,  emoji = "🔮", displayPrice = "12qi"},
-    {name = "Corrupted",    price = 1.5e20,             luck = 5000000,  emoji = "☣️", displayPrice = "150qi"},
-    {name = "Titan",        price = 1e21,               luck = 10000000, emoji = "🗿", displayPrice = "1sx"},
-    {name = "Chrono",       price = 1.5e22,             luck = 25000000, emoji = "⏳", displayPrice = "15sx"},
-}
+-- Dice catalogue removed; this hub only uses the Auto Rolls toggle.
 
 --==================================================
 -- STATE
@@ -699,102 +670,27 @@ end
 -- LEFT MENU
 --==================================================
 
-section(left, "🎁 DAILY")
-
-local dailyRewardButton = button(left, "🎁 Claim Daily Reward", function()
-    local ok, result = pcall(function()
-        fireRE("DailyRewardService", "Claim")
-    end)
-
-    if ok then
-        status("Daily Reward: Claim sent")
-    else
-        status("Daily Reward: Failed")
-        warn("[DAILY REWARD]", result)
-    end
-end)
-
-section(left, "🎲 GACHA")
+section(left, "🎲 ROLLS")
 
 toggle(
     left,
-    "🎲 Auto Roll Dice",
+    "🎲 Auto Rolls",
     nextLeft(),
     function()
         autoRollOn = true
-        status("Auto Roll Dice: ON")
-
+        status("Auto Rolls: ON")
         task.spawn(function()
             while autoRollOn and not closed do
                 pcall(function()
                     invokeRF("RollService", "RollDice")
                 end)
-
                 task.wait(0.3)
             end
         end)
     end,
     function()
         autoRollOn = false
-        status("Auto Roll Dice: OFF")
-    end
-)
-
-section(left, "🗑️ SELL")
-
-button(left, "🗑️ Sell Inventory", function()
-    local ok, result = sellInventory()
-
-    if ok then
-        status("Sell Inventory: Success")
-    else
-        status("Sell Inventory: Failed")
-        warn("[SELL]", result)
-    end
-end)
-
-section(left, "💎 COLLECT")
-
-button(left, "💎 Collect All Slots", function()
-    for i = 1, 8 do
-        pcall(function()
-            fireRE("PlotService", "CollectBalance", i)
-        end)
-        task.wait(0.05)
-    end
-
-    status("Collected slots 1-8")
-end)
-
-toggle(
-    left,
-    "💎 Auto Collect Balance",
-    nextLeft(),
-    function()
-        autoCollectOn = true
-        status("Auto Collect: ON")
-
-        task.spawn(function()
-            while autoCollectOn and not closed do
-                for i = 1, 8 do
-                    if not autoCollectOn or closed then
-                        break
-                    end
-
-                    pcall(function()
-                        fireRE("PlotService", "CollectBalance", i)
-                    end)
-
-                    task.wait(0.05)
-                end
-
-                task.wait(10)
-            end
-        end)
-    end,
-    function()
-        autoCollectOn = false
-        status("Auto Collect: OFF")
+        status("Auto Rolls: OFF")
     end
 )
 
@@ -1501,11 +1397,11 @@ minimize.MouseButton1Click:Connect(function()
         end)
         main.Visible = false
         miniFrame.Visible = true
-        dailyRewardButton.Visible = false
+        -- No daily reward button in the minimized hub.
     else
         miniFrame.Visible = false
         main.Visible = true
-        dailyRewardButton.Visible = true
+        -- No daily reward button in the minimized hub.
     end
 end)
 
@@ -1555,7 +1451,7 @@ print("========================================")
 
 print("========================================")
 print("[DiceGachaHub] Loaded successfully!")
-print("[DiceGachaHub] Auto Roll uses RollDice")
+print("[DiceHub] Rolls tab contains only Auto Rolls")
 print("[DiceGachaHub] SetAutoRoll removed")
 print("[DiceGachaHub] Anti-AFK + FPS Boost + Hide All Bases integrated")
 print("[DiceGachaHub] Responsive UI enabled")
