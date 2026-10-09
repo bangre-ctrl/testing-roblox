@@ -1,38 +1,3 @@
---[[
-    SINGLE ANTI-AFK
-    Makes the character jump every 5 seconds while enabled.
-    Toggle ON/OFF with the GUI button.
-]]
-
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local antiAfkOn = false
-local closed = false
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "SingleAntiAFK"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Name = "Main"
-frame.Size = UDim2.fromOffset(220, 105)
-frame.Position = UDim2.new(0, 20, 0.4, 0)
-frame.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
-frame.BorderSizePixel = 0
-frame.Parent = gui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = frame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -12, 0, 28)
-title.Position = UDim2.fromOffset(6, 4)
-title.BackgroundTransparency = 1
-title.Text = "SINGLE ANTI-AFK"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 13
 title.Parent = frame
@@ -47,10 +12,7 @@ toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Font = Enum.Font.GothamSemibold
 toggleButton.TextSize = 13
 toggleButton.Parent = frame
-
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 7)
-buttonCorner.Parent = toggleButton
+Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0, 7)
 
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.fromOffset(22, 22)
@@ -69,28 +31,34 @@ local function setEnabled(enabled)
         and Color3.fromRGB(170, 100, 45)
         or Color3.fromRGB(55, 125, 80)
 
-    if enabled then
-        task.spawn(function()
-            while antiAfkOn and not closed do
-                local character = player.Character
-                local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if not enabled then return end
 
-                if humanoid and humanoid.Health > 0 then
+    task.spawn(function()
+        while antiAfkOn and not closed do
+            local character = player.Character
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+            local root = character and character:FindFirstChild("HumanoidRootPart")
+
+            if humanoid and root and humanoid.Health > 0 then
+                local state = humanoid:GetState()
+                local onGround = humanoid.FloorMaterial ~= Enum.Material.Air
+                local canJump = state ~= Enum.HumanoidStateType.Seated
+                    and state ~= Enum.HumanoidStateType.Dead
+
+                if onGround and canJump then
                     pcall(function()
-                        humanoid.Jump = true
+                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                     end)
                 end
-
-                -- Wait 5 seconds, but allow OFF/close to stop quickly.
-                for _ = 1, 50 do
-                    if not antiAfkOn or closed then
-                        break
-                    end
-                    task.wait(0.1)
-                end
             end
-        end)
-    end
+
+            -- Check frequently so OFF/close stops promptly.
+            for _ = 1, 50 do
+                if not antiAfkOn or closed then break end
+                task.wait(0.1)
+            end
+        end
+    end)
 end
 
 toggleButton.Activated:Connect(function()
@@ -103,29 +71,35 @@ closeButton.Activated:Connect(function()
     gui:Destroy()
 end)
 
--- Drag the small GUI using its title area.
+-- Drag the GUI by its title.
+local dragging = false
+local dragStart
+local startPosition
+
 title.Active = true
 title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        local startInput = input.Position
-        local startPosition = frame.Position
-        local inputChangedConnection
-        inputChangedConnection = game:GetService("UserInputService").InputChanged:Connect(function(changedInput)
-            if changedInput.UserInputType == Enum.UserInputType.MouseMovement or changedInput.UserInputType == Enum.UserInputType.Touch then
-                local delta = changedInput.Position - startInput
-                frame.Position = UDim2.new(
-                    startPosition.X.Scale, startPosition.X.Offset + delta.X,
-                    startPosition.Y.Scale, startPosition.Y.Offset + delta.Y
-                )
-            end
-        end)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPosition = frame.Position
+    end
+end)
 
-        local endedConnection
-        endedConnection = game:GetService("UserInputService").InputEnded:Connect(function(endedInput)
-            if endedInput == input then
-                if inputChangedConnection then inputChangedConnection:Disconnect() end
-                if endedConnection then endedConnection:Disconnect() end
-            end
-        end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPosition.X.Scale, startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale, startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
     end
 end)
