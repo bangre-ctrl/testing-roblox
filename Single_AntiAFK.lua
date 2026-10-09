@@ -145,7 +145,7 @@ local function applyClaimedBases()
     local plots = Workspace:FindFirstChild("Plots")
     local claimed = plots and plots:FindFirstChild("Claimed")
     if not claimed then
-        status.Text = "Plots.Claimed not found"
+        warn("[Single Anti-AFK] Workspace.Plots.Claimed not found")
         return
     end
 
