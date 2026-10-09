@@ -224,6 +224,13 @@ task.spawn(function()
         task.wait(3)
         if hideBasesOn then applyAllBases() end
         if fpsOn then applyFPS() end
+    end
+end)
+
+-- Low-frequency fallback; the Idled event remains the primary trigger.
+task.spawn(function()
+    while gui.Parent do
+        task.wait(30)
         if antiAfkOn then pulseAntiAfk() end
     end
 end)
