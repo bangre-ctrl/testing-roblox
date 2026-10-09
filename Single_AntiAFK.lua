@@ -1,4 +1,4 @@
--- Single_AntiAFK.lua | Step 2: FPS Boost + Performance Mode (hide other players' bases)
+-- Single_AntiAFK.lua | FPS Boost + Hide All Bases
 -- Local-only visual changes. Turn toggles OFF or close the GUI to restore saved properties.
 
 local Players = game:GetService("Players")
@@ -11,9 +11,8 @@ local playerGui = player:WaitForChild("PlayerGui")
 local oldGui = playerGui:FindFirstChild("SingleAntiAFK")
 if oldGui then oldGui:Destroy() end
 
-local fpsOn, performanceOn, hideBasesOn = false, false, false
+local fpsOn, hideBasesOn = false, false
 local savedProperties, savedLighting = {}, {}
-local scanBusy = false
 
 local function remember(object, property)
     if not savedProperties[object] then savedProperties[object] = {} end
@@ -63,54 +62,6 @@ local function applyFPS()
     end
 end
 
-local function isOtherPlayerBase(root)
-    -- Best-effort matching for common tycoon/base layouts: model/folder named after
-    -- another player's username/display name, or a base/plot model with an owner value.
-    local names = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player then
-            names[string.lower(p.Name)] = true
-            names[string.lower(p.DisplayName)] = true
-        end
-    end
-
-    local rootName = string.lower(root.Name)
-    for name in pairs(names) do
-        if name ~= "" and (rootName == name or string.find(rootName, name, 1, true)) then
-            return true
-        end
-    end
-
-    local rootLooksLikeBase = string.find(rootName, "base", 1, true)
-        or string.find(rootName, "plot", 1, true)
-        or string.find(rootName, "tycoon", 1, true)
-    if not rootLooksLikeBase then return false end
-
-    for _, d in ipairs(root:GetDescendants()) do
-        if d:IsA("ObjectValue") and string.find(string.lower(d.Name), "owner", 1, true) then
-            local v = d.Value
-            if v and v:IsA("Player") and v ~= player then return true end
-        elseif (d:IsA("StringValue") or d:IsA("IntValue") or d:IsA("NumberValue"))
-            and (string.find(string.lower(d.Name), "owner", 1, true)
-                or string.find(string.lower(d.Name), "player", 1, true)) then
-            local val = string.lower(tostring(d.Value))
-            for name in pairs(names) do
-                if name ~= "" and (val == name or string.find(val, name, 1, true)) then return true end
-            end
-        end
-    end
-    for attribute, value in pairs(root:GetAttributes()) do
-        if string.find(string.lower(attribute), "owner", 1, true)
-            or string.find(string.lower(attribute), "player", 1, true) then
-            local val = string.lower(tostring(value))
-            for name in pairs(names) do
-                if name ~= "" and (val == name or string.find(val, name, 1, true)) then return true end
-            end
-        end
-    end
-    return false
-end
-
 local function hideBase(root)
     for _, obj in ipairs(root:GetDescendants()) do
         if obj:IsA("BasePart") then
@@ -124,43 +75,21 @@ local function hideBase(root)
     end
 end
 
-local function applyPerformance()
-    if not performanceOn or scanBusy then return end
-    scanBusy = true
-    local ok, err = pcall(function()
-        for _, root in ipairs(Workspace:GetChildren()) do
-            if (root:IsA("Model") or root:IsA("Folder")) and isOtherPlayerBase(root) then
-                hideBase(root)
-            end
-        end
-    end)
-    scanBusy = false
-    if not ok then warn("[Single Anti-AFK] Performance Mode scan error:", err) end
-end
-
--- Hide every claimed base locally, including the local player's own base.
--- Uses the game's confirmed Workspace.Plots.Claimed layout; no server objects are deleted.
-local function applyClaimedBases()
+-- Hide all plot visuals locally, including claimed and unclaimed plots.
+local function applyAllBases()
     if not hideBasesOn then return end
     local plots = Workspace:FindFirstChild("Plots")
-    local claimed = plots and plots:FindFirstChild("Claimed")
-    if not claimed then
-        warn("[Single Anti-AFK] Workspace.Plots.Claimed not found")
+    if not plots then
+        warn("[Single Anti-AFK] Workspace.Plots not found")
         return
     end
-
-    for _, base in ipairs(claimed:GetChildren()) do
-        if base:IsA("Model") or base:IsA("Folder") then
-            hideBase(base)
-        end
-    end
+    hideBase(plots)
 end
 
 local function reapply()
     restoreAll()
     applyFPS()
-    applyPerformance()
-    applyClaimedBases()
+    applyAllBases()
 end
 
 local gui = Instance.new("ScreenGui")
@@ -170,7 +99,7 @@ gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "Panel"
-frame.Size = UDim2.new(0, 270, 0, 183)
+frame.Size = UDim2.new(0, 270, 0, 145)
 frame.Position = UDim2.new(0, 20, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
 frame.BorderSizePixel = 0
@@ -180,7 +109,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -36, 0, 28)
 title.Position = UDim2.new(0, 8, 0, 3)
 title.BackgroundTransparency = 1
-title.Text = "SINGLE ANTI-AFK | STEP 3"
+title.Text = "SINGLE ANTI-AFK"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.TextSize = 14
 title.Parent = frame
@@ -214,8 +143,7 @@ local function makeButton(text, y)
 end
 
 local fpsButton = makeButton("FPS Boost: OFF", 58)
-local perfButton = makeButton("Performance Mode: OFF", 96)
-local hideBasesButton = makeButton("Hide All Bases: OFF", 134)
+local hideBasesButton = makeButton("Hide All Bases: OFF", 96)
 
 local function updateButton(button, label, enabled)
     button.Text = label .. ": " .. (enabled and "ON" or "OFF")
@@ -229,22 +157,15 @@ fpsButton.Activated:Connect(function()
     status.Text = fpsOn and "FPS optimization enabled" or (hideBasesOn and "Hide All Bases enabled" or "Visuals restored")
 end)
 
-perfButton.Activated:Connect(function()
-    performanceOn = not performanceOn
-    updateButton(perfButton, "Performance Mode", performanceOn)
-    reapply()
-    status.Text = performanceOn and "Hiding detected other bases" or (fpsOn and "FPS optimization enabled" or (hideBasesOn and "Hide All Bases enabled" or "Visuals restored"))
-end)
-
 hideBasesButton.Activated:Connect(function()
     hideBasesOn = not hideBasesOn
     updateButton(hideBasesButton, "Hide All Bases", hideBasesOn)
     reapply()
-    status.Text = hideBasesOn and "All claimed bases hidden locally" or (fpsOn and "FPS optimization enabled" or (performanceOn and "Performance Mode enabled" or "Visuals restored"))
+    status.Text = hideBasesOn and "All plots hidden locally" or (fpsOn and "FPS optimization enabled" or "Visuals restored")
 end)
 
 close.Activated:Connect(function()
-    fpsOn, performanceOn, hideBasesOn = false, false, false
+    fpsOn, hideBasesOn = false, false
     restoreAll()
     gui:Destroy()
 end)
@@ -271,8 +192,7 @@ end)
 task.spawn(function()
     while gui.Parent do
         task.wait(3)
-        if performanceOn then applyPerformance() end
-        if hideBasesOn then applyClaimedBases() end
+        if hideBasesOn then applyAllBases() end
         if fpsOn then applyFPS() end
     end
 end)
