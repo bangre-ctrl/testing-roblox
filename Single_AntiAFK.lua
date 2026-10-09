@@ -1,3 +1,35 @@
+--[[
+    SINGLE ANTI-AFK
+    Toggle ON/OFF. Attempts to jump every 5 seconds.
+]]
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+local antiAfkOn = false
+local closed = false
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "SingleAntiAFK"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Name = "Main"
+frame.Size = UDim2.fromOffset(220, 105)
+frame.Position = UDim2.new(0, 20, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+frame.BorderSizePixel = 0
+frame.Parent = gui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 28)
+title.Position = UDim2.fromOffset(8, 4)
+title.BackgroundTransparency = 1
+title.Text = "SINGLE ANTI-AFK"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 13
 title.Parent = frame
@@ -62,44 +94,3 @@ local function setEnabled(enabled)
 end
 
 toggleButton.Activated:Connect(function()
-    setEnabled(not antiAfkOn)
-end)
-
-closeButton.Activated:Connect(function()
-    closed = true
-    antiAfkOn = false
-    gui:Destroy()
-end)
-
--- Drag the GUI by its title.
-local dragging = false
-local dragStart
-local startPosition
-
-title.Active = true
-title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPosition = frame.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPosition.X.Scale, startPosition.X.Offset + delta.X,
-            startPosition.Y.Scale, startPosition.Y.Offset + delta.Y
-        )
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
