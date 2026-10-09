@@ -104,7 +104,7 @@ main.Parent = gui
 --==================================================
 -- RESPONSIVE UI SCALE
 --==================================================
--- Base design is 680x540.
+-- Base design is 760x550.
 -- On smaller screens (especially phones), the whole hub
 -- scales down proportionally so nothing gets cut off.
 local mainScale = Instance.new("UIScale")
@@ -210,36 +210,7 @@ Instance.new("UICorner", close).CornerRadius = UDim.new(0, 7)
 -- STATS
 --==================================================
 
-local stats = Instance.new("Frame")
-stats.Size = UDim2.new(1, -24, 0, 38)
-stats.Position = UDim2.new(0, 12, 0, 56)
-stats.BackgroundColor3 = Color3.fromRGB(31, 31, 39)
-stats.BorderSizePixel = 0
-stats.Parent = main
-
-Instance.new("UICorner", stats).CornerRadius = UDim.new(0, 8)
-
-local moneyLabel = Instance.new("TextLabel")
-moneyLabel.Size = UDim2.new(0.5, -8, 1, 0)
-moneyLabel.Position = UDim2.new(0, 12, 0, 0)
-moneyLabel.BackgroundTransparency = 1
-moneyLabel.Text = "💰 Money: --"
-moneyLabel.TextColor3 = Color3.new(1, 1, 1)
-moneyLabel.TextSize = 14
-moneyLabel.Font = Enum.Font.GothamBold
-moneyLabel.TextXAlignment = Enum.TextXAlignment.Left
-moneyLabel.Parent = stats
-
-local rollsLabel = Instance.new("TextLabel")
-rollsLabel.Size = UDim2.new(0.5, -8, 1, 0)
-rollsLabel.Position = UDim2.new(0.5, 0, 0, 0)
-rollsLabel.BackgroundTransparency = 1
-rollsLabel.Text = "🎲 Rolls: --"
-rollsLabel.TextColor3 = Color3.new(1, 1, 1)
-rollsLabel.TextSize = 14
-rollsLabel.Font = Enum.Font.GothamBold
-rollsLabel.TextXAlignment = Enum.TextXAlignment.Right
-rollsLabel.Parent = stats
+-- The full-size layout uses the sidebar and page panes; stats are shown in the mini HUD only.
 
 --==================================================
 -- MINI STATS (shown while minimized)
@@ -247,8 +218,8 @@ rollsLabel.Parent = stats
 
 local miniFrame = Instance.new("Frame")
 miniFrame.Name = "MiniStats"
-miniFrame.Size = UDim2.new(0, 220, 0, 104)
-miniFrame.Position = UDim2.new(0.5, -110, 0, 10)
+miniFrame.Size = UDim2.new(0, 360, 0, 154)
+miniFrame.Position = UDim2.new(0.5, -180, 0, 10)
 miniFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
 miniFrame.BorderSizePixel = 0
 miniFrame.Visible = false
@@ -260,10 +231,10 @@ miniCorner.CornerRadius = UDim.new(0, 10)
 miniCorner.Parent = miniFrame
 
 local miniTitle = Instance.new("TextLabel")
-miniTitle.Size = UDim2.new(1, -48, 0, 26)
+miniTitle.Size = UDim2.new(1, -84, 0, 30)
 miniTitle.Position = UDim2.new(0, 8, 0, 4)
 miniTitle.BackgroundTransparency = 1
-miniTitle.Text = "🎲 Dice Hub"
+miniTitle.Text = "Dice Hub"
 miniTitle.TextColor3 = Color3.new(1, 1, 1)
 miniTitle.TextSize = 14
 miniTitle.Font = Enum.Font.GothamBold
@@ -295,34 +266,34 @@ miniClose.Parent = miniFrame
 Instance.new("UICorner", miniClose).CornerRadius = UDim.new(0, 7)
 
 local miniMoney = Instance.new("TextLabel")
-miniMoney.Size = UDim2.new(1, -16, 0, 20)
-miniMoney.Position = UDim2.new(0, 8, 0, 31)
+miniMoney.Size = UDim2.new(1, -20, 0, 24)
+miniMoney.Position = UDim2.new(0, 12, 0, 42)
 miniMoney.BackgroundTransparency = 1
 miniMoney.Text = "💰 Money: --"
 miniMoney.TextColor3 = Color3.new(1, 1, 1)
-miniMoney.TextSize = 13
+miniMoney.TextSize = 15
 miniMoney.Font = Enum.Font.GothamBold
 miniMoney.TextXAlignment = Enum.TextXAlignment.Left
 miniMoney.Parent = miniFrame
 
 local miniRolls = Instance.new("TextLabel")
-miniRolls.Size = UDim2.new(1, -16, 0, 20)
-miniRolls.Position = UDim2.new(0, 8, 0, 52)
+miniRolls.Size = UDim2.new(1, -20, 0, 24)
+miniRolls.Position = UDim2.new(0, 12, 0, 72)
 miniRolls.BackgroundTransparency = 1
 miniRolls.Text = "🎲 Rolls: --"
 miniRolls.TextColor3 = Color3.new(1, 1, 1)
-miniRolls.TextSize = 13
+miniRolls.TextSize = 15
 miniRolls.Font = Enum.Font.GothamBold
 miniRolls.TextXAlignment = Enum.TextXAlignment.Left
 miniRolls.Parent = miniFrame
 
 local miniTickets = Instance.new("TextLabel")
-miniTickets.Size = UDim2.new(1, -16, 0, 20)
-miniTickets.Position = UDim2.new(0, 8, 0, 73)
+miniTickets.Size = UDim2.new(1, -20, 0, 24)
+miniTickets.Position = UDim2.new(0, 12, 0, 102)
 miniTickets.BackgroundTransparency = 1
 miniTickets.Text = "🎟️ Tickets: --"
 miniTickets.TextColor3 = Color3.new(1, 1, 1)
-miniTickets.TextSize = 13
+miniTickets.TextSize = 15
 miniTickets.Font = Enum.Font.GothamBold
 miniTickets.TextXAlignment = Enum.TextXAlignment.Left
 miniTickets.Parent = miniFrame
@@ -410,8 +381,8 @@ end
 
 local sidebar = Instance.new("Frame")
 sidebar.Name = "Sidebar"
-sidebar.Size = UDim2.new(0, 122, 0, 360)
-sidebar.Position = UDim2.new(0, 10, 0, 168)
+sidebar.Size = UDim2.new(0, 142, 0, 414)
+sidebar.Position = UDim2.new(0, 10, 0, 112)
 sidebar.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 sidebar.BorderSizePixel = 0
 sidebar.Parent = main
@@ -437,8 +408,8 @@ end
 addTab("Rolls","🎲"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Setting","⚙️")
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
-left.Size = UDim2.new(0, 296, 0, 360)
-left.Position = UDim2.new(0, 140, 0, 168)
+left.Size = UDim2.new(0, 588, 0, 414)
+left.Position = UDim2.new(0, 162, 0, 112)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
 left.ScrollBarThickness = 7
@@ -453,8 +424,8 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
-right.Size = UDim2.new(0, 296, 0, 360)
-right.Position = UDim2.new(0, 444, 0, 168)
+right.Size = UDim2.new(0, 588, 0, 414)
+right.Position = UDim2.new(0, 162, 0, 112)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
 right.ScrollBarThickness = 7
@@ -1409,7 +1380,6 @@ miniRestore.MouseButton1Click:Connect(function()
     minimized = false
     miniFrame.Visible = false
     main.Visible = true
-    dailyRewardButton.Visible = true
 end)
 
 miniClose.MouseButton1Click:Connect(function()
@@ -1454,7 +1424,7 @@ print("[DiceGachaHub] Loaded successfully!")
 print("[DiceHub] Rolls tab contains only Auto Rolls")
 print("[DiceGachaHub] SetAutoRoll removed")
 print("[DiceGachaHub] Anti-AFK + FPS Boost + Hide All Bases integrated")
-print("[DiceGachaHub] Responsive UI enabled")
+print("[DiceGachaHub] Sidebar layout and mini HUD enabled")
 print("[DiceGachaHub] Compact columns enabled")
 print("[DiceGachaHub] V16 horizontal minimize bar loaded")
 print("[DiceGachaHub] Quest Auto-Detect enabled - no hardcoded quest token")
