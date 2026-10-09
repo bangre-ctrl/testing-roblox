@@ -772,6 +772,11 @@ local QUEST_NAMES = {
 
 local function findQuestTokens()
     -- Recursive quest-state scanner.
+    -- getgc is executor-specific; stop cleanly if it is not provided.
+    if type(getgc) ~= "function" then
+        warn("[QUEST SCAN] getgc is unavailable in this executor; quest auto-detect cannot run.")
+        return nil, nil
+    end
     -- Some sessions keep the actual Daily/Weekly state nested inside
     -- another client table, so only checking obj.progress misses it.
     local now = os.time()
@@ -970,7 +975,7 @@ end
 currentGroup = "Teleport"
 section(right, "📍 TELEPORT")
 
-remove teleport expanderlocal TELEPORT_LOCATIONS = {
+local TELEPORT_LOCATIONS = {
     {name = "Quest",  cframe = CFrame.new(324.563, 12.285, 4.673)},
     {name = "Grades", cframe = CFrame.new(245.927, 12.285, 84.685)},
     {name = "Traits", cframe = CFrame.new(325.477, 12.285, 82.21)},
@@ -1014,7 +1019,7 @@ addTeleport("📍 Grades", "Grades", TELEPORT_LOCATIONS[2].cframe)
 addTeleport("📍 Traits", "Traits", TELEPORT_LOCATIONS[3].cframe)
 addTeleport("📍 Trade", "Trade", TELEPORT_LOCATIONS[4].cframe)
 
-remove teleport toggle--==================================================
+--==================================================
 -- QUEST / JP SPIN QUEUE
 --==================================================
 
@@ -1194,13 +1199,11 @@ task.spawn(function()
 
                 if money then
                     local moneyValue = tonumber(money.Value) or 0
-                    moneyLabel.Text = "💰 Money: " .. tostring(money.Value)
                     miniMoney.Text = "💰 Money: " .. formatMoney(moneyValue)
                 end
 
                 if rolls then
                     local rollsValue = tonumber(rolls.Value) or 0
-                    rollsLabel.Text = "🎲 Rolls: " .. tostring(rolls.Value)
                     miniRolls.Text = "🎲 Rolls: " .. string.format("%d", rollsValue):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
                 end
 
