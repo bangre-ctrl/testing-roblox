@@ -359,12 +359,12 @@ end)
 --==================================================
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -24, 0, 25)
-statusLabel.Position = UDim2.new(0, 12, 0, 98)
+statusLabel.Size = UDim2.new(1, -24, 0, 18)
+statusLabel.Position = UDim2.new(0, 12, 0, 50)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Text = "Ready"
 statusLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
-statusLabel.TextSize = 13
+statusLabel.TextSize = 14
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = main
@@ -381,8 +381,8 @@ end
 
 local sidebar = Instance.new("Frame")
 sidebar.Name = "Sidebar"
-sidebar.Size = UDim2.new(0, 142, 0, 414)
-sidebar.Position = UDim2.new(0, 10, 0, 112)
+sidebar.Size = UDim2.new(0, 142, 0, 448)
+sidebar.Position = UDim2.new(0, 10, 0, 78)
 sidebar.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 sidebar.BorderSizePixel = 0
 sidebar.Parent = main
@@ -408,8 +408,8 @@ end
 addTab("Rolls","🎲"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Setting","⚙️")
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
-left.Size = UDim2.new(0, 588, 0, 414)
-left.Position = UDim2.new(0, 162, 0, 112)
+left.Size = UDim2.new(0, 588, 0, 448)
+left.Position = UDim2.new(0, 162, 0, 78)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
 left.ScrollBarThickness = 7
@@ -424,8 +424,8 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
-right.Size = UDim2.new(0, 588, 0, 414)
-right.Position = UDim2.new(0, 162, 0, 112)
+right.Size = UDim2.new(0, 588, 0, 448)
+right.Position = UDim2.new(0, 162, 0, 78)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
 right.ScrollBarThickness = 7
@@ -573,7 +573,7 @@ local function section(parent, text)
     label.BackgroundTransparency = 1
     label.Text = text
     label.TextColor3 = Color3.fromRGB(180, 210, 255)
-    label.TextSize = 14
+    label.TextSize = 16
     label.Font = Enum.Font.GothamBold
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.LayoutOrder = #parent:GetChildren()
@@ -588,7 +588,7 @@ local function button(parent, text, callback)
     b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
-    b.TextSize = 13
+    b.TextSize = 15
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.LayoutOrder = #parent:GetChildren()
@@ -672,22 +672,7 @@ toggle(
 currentGroup = "Tower"
 section(right, "🏰 TOWER")
 
-local towerOpen = false
-
-local towerButton = Instance.new("TextButton")
-towerButton:SetAttribute("PageGroup", currentGroup)
-towerButton.Size = UDim2.new(1, -16, 0, 42)
-towerButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-towerButton.Text = "🏰 Tower  ▸"
-towerButton.TextColor3 = Color3.new(1, 1, 1)
-towerButton.TextSize = 14
-towerButton.Font = Enum.Font.GothamBold
-towerButton.BorderSizePixel = 0
-towerButton.LayoutOrder = #right:GetChildren()
-towerButton.Parent = right
-Instance.new("UICorner", towerButton).CornerRadius = UDim.new(0, 8)
-
-local TowerController = nil
+remove tower expanderlocal TowerController = nil
 pcall(function()
     TowerController = require(
         ReplicatedStorage
@@ -736,7 +721,7 @@ local towerItems = {}
 
 local function addTower(text, callback)
     local b = button(right, text, callback)
-    b.Visible = false
+    b.Visible = true
     table.insert(towerItems, b)
     return b
 end
@@ -765,17 +750,8 @@ addTower("♾️ Infinity Tower  |  START", function()
     startTowerDirect("Infinity Tower")
 end)
 
-towerButton.Activated:Connect(function()
-    towerOpen = not towerOpen
-    towerButton.Text = towerOpen and "🏰 Tower  ▾" or "🏰 Tower  ▸"
-
-    for _, item in ipairs(towerItems) do
-        item.Visible = towerOpen
-    end
-
-    task.defer(function()
-        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
-    end)
+addTower("🌑 Shadow Tower  |  START", function()
+    startTowerDirect("Shadow Tower")
 end)
 
 --==================================================
@@ -994,22 +970,7 @@ end
 currentGroup = "Teleport"
 section(right, "📍 TELEPORT")
 
-local teleportOpen = false
-
-local teleportButton = Instance.new("TextButton")
-teleportButton:SetAttribute("PageGroup", currentGroup)
-teleportButton.Size = UDim2.new(1, -16, 0, 42)
-teleportButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
-teleportButton.Text = "📍 Teleport  ▸"
-teleportButton.TextColor3 = Color3.new(1, 1, 1)
-teleportButton.TextSize = 14
-teleportButton.Font = Enum.Font.GothamBold
-teleportButton.BorderSizePixel = 0
-teleportButton.LayoutOrder = #right:GetChildren()
-teleportButton.Parent = right
-Instance.new("UICorner", teleportButton).CornerRadius = UDim.new(0, 8)
-
-local TELEPORT_LOCATIONS = {
+remove teleport expanderlocal TELEPORT_LOCATIONS = {
     {name = "Quest",  cframe = CFrame.new(324.563, 12.285, 4.673)},
     {name = "Grades", cframe = CFrame.new(245.927, 12.285, 84.685)},
     {name = "Traits", cframe = CFrame.new(325.477, 12.285, 82.21)},
@@ -1043,7 +1004,7 @@ local function addTeleport(text, name, targetCFrame)
     local b = button(right, text, function()
         teleportTo(name, targetCFrame)
     end)
-    b.Visible = false
+    b.Visible = true
     table.insert(teleportItems, b)
     return b
 end
@@ -1053,20 +1014,7 @@ addTeleport("📍 Grades", "Grades", TELEPORT_LOCATIONS[2].cframe)
 addTeleport("📍 Traits", "Traits", TELEPORT_LOCATIONS[3].cframe)
 addTeleport("📍 Trade", "Trade", TELEPORT_LOCATIONS[4].cframe)
 
-teleportButton.Activated:Connect(function()
-    teleportOpen = not teleportOpen
-    teleportButton.Text = teleportOpen and "📍 Teleport  ▾" or "📍 Teleport  ▸"
-
-    for _, item in ipairs(teleportItems) do
-        item.Visible = teleportOpen
-    end
-
-    task.defer(function()
-        right.CanvasSize = UDim2.new(0, 0, 0, rightLayout.AbsoluteContentSize.Y + 24)
-    end)
-end)
-
---==================================================
+remove teleport toggle--==================================================
 -- QUEST / JP SPIN QUEUE
 --==================================================
 
@@ -1182,6 +1130,8 @@ toggle(left,"🛡️ Anti-AFK",nextLeft(),function() antiAfkOn=true; status("Ant
 toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
 toggle(left,"👁️ Hide All Bases",nextLeft(),function() hideBasesOn=true; reapplyVisuals(); status("Hide All Bases: ON") end,function() hideBasesOn=false; reapplyVisuals(); status("Hide All Bases: OFF") end)
 local function showGroup(group)
+ left.Visible = (group == "Rolls" or group == "Setting")
+ right.Visible = (group == "Quest" or group == "Tower" or group == "Teleport")
  for _,container in ipairs({left,right}) do
   for _,o in ipairs(container:GetChildren()) do if o:IsA("GuiObject") then o.Visible=(o:GetAttribute("PageGroup")==group) end end
   container.CanvasPosition=Vector2.new(0,0)
@@ -1415,7 +1365,7 @@ close.MouseButton1Click:Connect(function()
 end)
 
 print("========================================")
-print("[DiceGachaHub] V17 TOWER METHOD: CONTROLLER ONLY")
+print("[DiceHub] Tower list includes Shadow Tower; no expand button")
 print("[DiceGachaHub] 6 towers = EquipBestTowerTeam -> TowerController.startTower()")
 print("========================================")
 
