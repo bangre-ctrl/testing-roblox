@@ -226,7 +226,7 @@ fpsButton.Activated:Connect(function()
     fpsOn = not fpsOn
     updateButton(fpsButton, "FPS Boost", fpsOn)
     reapply()
-    status.Text = fpsOn and "FPS optimization enabled" or (performanceOn and "Performance Mode enabled" or "Visuals restored")
+    status.Text = fpsOn and "FPS optimization enabled" or (hideBasesOn and "Hide All Bases enabled" or "Visuals restored")
 end)
 
 perfButton.Activated:Connect(function()
