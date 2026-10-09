@@ -5,13 +5,15 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local VirtualUser = game:GetService("VirtualUser")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 local oldGui = playerGui:FindFirstChild("SingleAntiAFK")
 if oldGui then oldGui:Destroy() end
 
-local fpsOn, hideBasesOn = false, false
+local antiAfkOn, fpsOn, hideBasesOn = false, false, false
+local antiAfkBusy = false
 local savedProperties, savedLighting = {}, {}
 
 local function remember(object, property)
@@ -99,7 +101,7 @@ gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "Panel"
-frame.Size = UDim2.new(0, 270, 0, 145)
+frame.Size = UDim2.new(0, 270, 0, 183)
 frame.Position = UDim2.new(0, 20, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
 frame.BorderSizePixel = 0
@@ -142,13 +144,41 @@ local function makeButton(text, y)
     return b
 end
 
-local fpsButton = makeButton("FPS Boost: OFF", 58)
-local hideBasesButton = makeButton("Hide All Bases: OFF", 96)
+local antiAfkButton = makeButton("Anti-AFK: OFF", 58)
+local fpsButton = makeButton("FPS Boost: OFF", 96)
+local hideBasesButton = makeButton("Hide All Bases: OFF", 134)
 
 local function updateButton(button, label, enabled)
     button.Text = label .. ": " .. (enabled and "ON" or "OFF")
     button.BackgroundColor3 = enabled and Color3.fromRGB(160, 90, 35) or Color3.fromRGB(55, 110, 70)
 end
+
+-- Anti-idle input helper. Triggered by Roblox's Idled event and a slow fallback loop.
+local function pulseAntiAfk()
+    if not antiAfkOn or antiAfkBusy then return end
+    antiAfkBusy = true
+    pcall(function()
+        VirtualUser:CaptureController()
+        local camera = Workspace.CurrentCamera
+        local cameraCFrame = camera and camera.CFrame or CFrame.new()
+        VirtualUser:Button2Down(Vector2.new(0, 0), cameraCFrame)
+        task.wait(0.25)
+        VirtualUser:Button2Up(Vector2.new(0, 0), cameraCFrame)
+    end)
+    antiAfkBusy = false
+end
+
+player.Idled:Connect(function()
+    if antiAfkOn then
+        pulseAntiAfk()
+    end
+end)
+
+antiAfkButton.Activated:Connect(function()
+    antiAfkOn = not antiAfkOn
+    updateButton(antiAfkButton, "Anti-AFK", antiAfkOn)
+    status.Text = antiAfkOn and "Anti-AFK enabled" or "Anti-AFK disabled"
+end)
 
 fpsButton.Activated:Connect(function()
     fpsOn = not fpsOn
@@ -165,7 +195,7 @@ hideBasesButton.Activated:Connect(function()
 end)
 
 close.Activated:Connect(function()
-    fpsOn, hideBasesOn = false, false
+    antiAfkOn, fpsOn, hideBasesOn = false, false, false
     restoreAll()
     gui:Destroy()
 end)
@@ -194,5 +224,6 @@ task.spawn(function()
         task.wait(3)
         if hideBasesOn then applyAllBases() end
         if fpsOn then applyFPS() end
+        if antiAfkOn then pulseAntiAfk() end
     end
 end)
