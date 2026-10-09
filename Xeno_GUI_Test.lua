@@ -672,7 +672,7 @@ toggle(
 currentGroup = "Tower"
 section(right, "🏰 TOWER")
 
-remove tower expanderlocal TowerController = nil
+local TowerController = nil
 pcall(function()
     TowerController = require(
         ReplicatedStorage
