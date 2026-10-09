@@ -5,6 +5,10 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 
@@ -100,7 +104,11 @@ local autoCollectOn = false
 local autoDailyQuestOn = false
 local autoWeeklyQuestOn = false
 local autoQuestShopOn = false
+local antiAfkOn, fpsOn, hideBasesOn = false, false, false
+local antiAfkBusy = false
+local savedProperties, savedLighting = {}, {}
 local closed = false
+local currentGroup = "Rolls"
 
 --==================================================
 -- GUI
@@ -114,7 +122,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
 main.Name = "MainFrame"
-main.Size = UDim2.new(0, 640, 0, 550)
+main.Size = UDim2.new(0, 760, 0, 550)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
@@ -163,7 +171,7 @@ local function updateMainScale()
     end
 
     -- Also make sure the complete hub fits inside the viewport.
-    local fitX = (viewport.X - 20) / 640
+    local fitX = (viewport.X - 20) / 760
     local fitY = (viewport.Y - 20) / 550
     scale = math.min(scale, fitX, fitY)
 
@@ -194,7 +202,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -130, 1, 0)
 title.Position = UDim2.new(0, 16, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "🎲 Dice Gacha Hub"
+title.Text = "🎲 Dice Hub"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.TextSize = 19
 title.Font = Enum.Font.GothamBold
@@ -284,7 +292,7 @@ local miniTitle = Instance.new("TextLabel")
 miniTitle.Size = UDim2.new(1, -48, 0, 26)
 miniTitle.Position = UDim2.new(0, 8, 0, 4)
 miniTitle.BackgroundTransparency = 1
-miniTitle.Text = "🎲 Dice"
+miniTitle.Text = "🎲 Dice Hub"
 miniTitle.TextColor3 = Color3.new(1, 1, 1)
 miniTitle.TextSize = 14
 miniTitle.Font = Enum.Font.GothamBold
@@ -426,10 +434,37 @@ end
 -- COLUMNS
 --==================================================
 
+local sidebar = Instance.new("Frame")
+sidebar.Name = "Sidebar"
+sidebar.Size = UDim2.new(0, 122, 0, 360)
+sidebar.Position = UDim2.new(0, 10, 0, 168)
+sidebar.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
+sidebar.BorderSizePixel = 0
+sidebar.Parent = main
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 9)
+local sidebarLayout = Instance.new("UIListLayout")
+sidebarLayout.Padding = UDim.new(0, 7)
+sidebarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+sidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+sidebarLayout.Parent = sidebar
+local sidebarPad = Instance.new("UIPadding")
+sidebarPad.PaddingTop = UDim.new(0, 10)
+sidebarPad.PaddingLeft = UDim.new(0, 5)
+sidebarPad.PaddingRight = UDim.new(0, 5)
+sidebarPad.Parent = sidebar
+local tabButtons = {}
+local function addTab(name, emoji)
+ local b=Instance.new("TextButton"); b.Name=name.."Tab"; b.Size=UDim2.new(1,-8,0,43)
+ b.BackgroundColor3=Color3.fromRGB(45,45,55); b.Text=emoji.."  "..name
+ b.TextColor3=Color3.new(1,1,1); b.TextSize=13; b.Font=Enum.Font.GothamBold
+ b.BorderSizePixel=0; b.LayoutOrder=#tabButtons+1; b.Parent=sidebar
+ Instance.new("UICorner",b).CornerRadius=UDim.new(0,8); tabButtons[name]=b
+end
+addTab("Rolls","🎲"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Setting","⚙️")
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
-left.Size = UDim2.new(0, 305, 0, 360)
-left.Position = UDim2.new(0, 10, 0, 168)
+left.Size = UDim2.new(0, 296, 0, 360)
+left.Position = UDim2.new(0, 140, 0, 168)
 left.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 left.BorderSizePixel = 0
 left.ScrollBarThickness = 7
@@ -444,8 +479,8 @@ Instance.new("UICorner", left).CornerRadius = UDim.new(0, 9)
 
 local right = Instance.new("ScrollingFrame")
 right.Name = "Right"
-right.Size = UDim2.new(0, 305, 0, 360)
-right.Position = UDim2.new(0, 325, 0, 168)
+right.Size = UDim2.new(0, 296, 0, 360)
+right.Position = UDim2.new(0, 444, 0, 168)
 right.BackgroundColor3 = Color3.fromRGB(29, 29, 36)
 right.BorderSizePixel = 0
 right.ScrollBarThickness = 7
@@ -588,6 +623,7 @@ end
 
 local function section(parent, text)
     local label = Instance.new("TextLabel")
+    label:SetAttribute("PageGroup", currentGroup)
     label.Size = UDim2.new(1, -16, 0, 28)
     label.BackgroundTransparency = 1
     label.Text = text
@@ -602,6 +638,7 @@ end
 
 local function button(parent, text, callback)
     local b = Instance.new("TextButton")
+    b:SetAttribute("PageGroup", currentGroup)
     b.Size = UDim2.new(1, -16, 0, 40)
     b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
     b.Text = text
@@ -623,6 +660,7 @@ end
 
 local function toggle(parent, text, _, onCallback, offCallback)
     local b = Instance.new("TextButton")
+    b:SetAttribute("PageGroup", currentGroup)
     b.Size = UDim2.new(1, -16, 0, 42)
     b.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
     b.Text = text .. " : OFF"
@@ -761,11 +799,13 @@ toggle(
 -- RIGHT: TOWER
 --==================================================
 
+currentGroup = "Tower"
 section(right, "🏰 TOWER")
 
 local towerOpen = false
 
 local towerButton = Instance.new("TextButton")
+towerButton:SetAttribute("PageGroup", currentGroup)
 towerButton.Size = UDim2.new(1, -16, 0, 42)
 towerButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
 towerButton.Text = "🏰 Tower  ▸"
@@ -1081,11 +1121,13 @@ end
 -- RIGHT: TELEPORT
 --==================================================
 
+currentGroup = "Teleport"
 section(right, "📍 TELEPORT")
 
 local teleportOpen = false
 
 local teleportButton = Instance.new("TextButton")
+teleportButton:SetAttribute("PageGroup", currentGroup)
 teleportButton.Size = UDim2.new(1, -16, 0, 42)
 teleportButton.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
 teleportButton.Text = "📍 Teleport  ▸"
@@ -1195,6 +1237,7 @@ end
 -- RIGHT: QUEST / JP SPIN
 --==================================================
 
+currentGroup = "Quest"
 section(right, '📜 QUEST')
 
 toggle(right,'📅 DAILY',nextRight(),function()
@@ -1225,6 +1268,60 @@ end,function()
     autoQuestShopOn=false
     status('Auto Buy JP Spin: OFF')
 end)
+
+-- SETTINGS: Anti-AFK, FPS Boost, Hide All Bases
+currentGroup = "Setting"
+section(left, "⚙️ SETTINGS")
+local function remember(o,p)
+ if not savedProperties[o] then savedProperties[o]={} end
+ if savedProperties[o][p]==nil then local ok,v=pcall(function() return o[p] end); if ok then savedProperties[o][p]=v end end
+end
+local function setSaved(o,p,v) remember(o,p); pcall(function() o[p]=v end) end
+local function restoreVisuals()
+ for o,props in pairs(savedProperties) do if o and o.Parent then for p,v in pairs(props) do pcall(function() o[p]=v end) end end end
+ table.clear(savedProperties)
+ for p,v in pairs(savedLighting) do pcall(function() Lighting[p]=v end) end
+ table.clear(savedLighting)
+end
+local function applyFPS()
+ if not fpsOn then return end
+ if savedLighting.GlobalShadows==nil then savedLighting.GlobalShadows=Lighting.GlobalShadows end
+ pcall(function() Lighting.GlobalShadows=false end)
+ for _,o in ipairs(Workspace:GetDescendants()) do
+  if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") or o:IsA("Smoke") or o:IsA("Fire") or o:IsA("Sparkles") or o:IsA("PostEffect") then setSaved(o,"Enabled",false) end
+ end
+end
+local function applyHideBases()
+ if not hideBasesOn then return end
+ local plots=Workspace:FindFirstChild("Plots"); if not plots then return end
+ for _,o in ipairs(plots:GetDescendants()) do
+  if o:IsA("BasePart") then setSaved(o,"LocalTransparencyModifier",1)
+  elseif o:IsA("Decal") or o:IsA("Texture") then setSaved(o,"Transparency",1)
+  elseif o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") or o:IsA("BillboardGui") or o:IsA("SurfaceGui") or o:IsA("ProximityPrompt") then setSaved(o,"Enabled",false) end
+ end
+end
+local function reapplyVisuals() restoreVisuals(); applyFPS(); applyHideBases() end
+local function pulseAntiAfk()
+ if not antiAfkOn or antiAfkBusy then return end; antiAfkBusy=true
+ local ok=pcall(function() VirtualInputManager:SendKeyEvent(true,Enum.KeyCode.W,false,game); task.wait(0.12); VirtualInputManager:SendKeyEvent(false,Enum.KeyCode.W,false,game) end)
+ if not ok then pcall(function() VirtualUser:CaptureController(); local cam=Workspace.CurrentCamera; local cf=cam and cam.CFrame or CFrame.new(); VirtualUser:Button2Down(Vector2.new(0,0),cf); task.wait(0.25); VirtualUser:Button2Up(Vector2.new(0,0),cf) end) end
+ antiAfkBusy=false
+end
+player.Idled:Connect(function() if antiAfkOn then pulseAntiAfk() end end)
+toggle(left,"🛡️ Anti-AFK",nextLeft(),function() antiAfkOn=true; status("Anti-AFK: ON") end,function() antiAfkOn=false; pcall(function() VirtualInputManager:SendKeyEvent(false,Enum.KeyCode.W,false,game) end); status("Anti-AFK: OFF") end)
+toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
+toggle(left,"👁️ Hide All Bases",nextLeft(),function() hideBasesOn=true; reapplyVisuals(); status("Hide All Bases: ON") end,function() hideBasesOn=false; reapplyVisuals(); status("Hide All Bases: OFF") end)
+local function showGroup(group)
+ for _,container in ipairs({left,right}) do
+  for _,o in ipairs(container:GetChildren()) do if o:IsA("GuiObject") then o.Visible=(o:GetAttribute("PageGroup")==group) end end
+  container.CanvasPosition=Vector2.new(0,0)
+ end
+ for name,b in pairs(tabButtons) do b.BackgroundColor3=(name==group) and Color3.fromRGB(95,55,190) or Color3.fromRGB(45,45,55) end
+ status(group.." selected")
+end
+for name,b in pairs(tabButtons) do b.Activated:Connect(function() showGroup(name) end) end
+showGroup("Rolls")
+task.spawn(function() while not closed and gui.Parent do task.wait(25); if antiAfkOn then pulseAntiAfk() end; if fpsOn then applyFPS() end; if hideBasesOn then applyHideBases() end end end)
 
 --==================================================
 -- MINI STATS HELPERS
@@ -1424,6 +1521,8 @@ miniClose.MouseButton1Click:Connect(function()
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
     autoQuestShopOn = false
+    antiAfkOn, fpsOn, hideBasesOn = false, false, false
+    restoreVisuals()
 
     gui:Destroy()
 end)
@@ -1440,6 +1539,8 @@ close.MouseButton1Click:Connect(function()
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
     autoQuestShopOn = false
+    antiAfkOn, fpsOn, hideBasesOn = false, false, false
+    restoreVisuals()
     gui:Destroy()
 
 end)
@@ -1453,7 +1554,7 @@ print("========================================")
 print("[DiceGachaHub] Loaded successfully!")
 print("[DiceGachaHub] Auto Roll uses RollDice")
 print("[DiceGachaHub] SetAutoRoll removed")
-print("[DiceGachaHub] Anti-AFK removed - V2")
+print("[DiceGachaHub] Anti-AFK + FPS Boost + Hide All Bases integrated")
 print("[DiceGachaHub] Responsive UI enabled")
 print("[DiceGachaHub] Compact columns enabled")
 print("[DiceGachaHub] V16 horizontal minimize bar loaded")
