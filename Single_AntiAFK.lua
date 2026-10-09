@@ -11,7 +11,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local oldGui = playerGui:FindFirstChild("SingleAntiAFK")
 if oldGui then oldGui:Destroy() end
 
-local fpsOn, performanceOn = false, false
+local fpsOn, performanceOn, hideBasesOn = false, false, false
 local savedProperties, savedLighting = {}, {}
 local scanBusy = false
 
@@ -138,10 +138,29 @@ local function applyPerformance()
     if not ok then warn("[Single Anti-AFK] Performance Mode scan error:", err) end
 end
 
+-- Hide every claimed base locally, including the local player's own base.
+-- Uses the game's confirmed Workspace.Plots.Claimed layout; no server objects are deleted.
+local function applyClaimedBases()
+    if not hideBasesOn then return end
+    local plots = Workspace:FindFirstChild("Plots")
+    local claimed = plots and plots:FindFirstChild("Claimed")
+    if not claimed then
+        status.Text = "Plots.Claimed not found"
+        return
+    end
+
+    for _, base in ipairs(claimed:GetChildren()) do
+        if base:IsA("Model") or base:IsA("Folder") then
+            hideBase(base)
+        end
+    end
+end
+
 local function reapply()
     restoreAll()
     applyFPS()
     applyPerformance()
+    applyClaimedBases()
 end
 
 local gui = Instance.new("ScreenGui")
@@ -151,7 +170,7 @@ gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "Panel"
-frame.Size = UDim2.new(0, 270, 0, 145)
+frame.Size = UDim2.new(0, 270, 0, 183)
 frame.Position = UDim2.new(0, 20, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
 frame.BorderSizePixel = 0
@@ -161,7 +180,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -36, 0, 28)
 title.Position = UDim2.new(0, 8, 0, 3)
 title.BackgroundTransparency = 1
-title.Text = "SINGLE ANTI-AFK | STEP 2"
+title.Text = "SINGLE ANTI-AFK | STEP 3"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.TextSize = 14
 title.Parent = frame
@@ -196,6 +215,7 @@ end
 
 local fpsButton = makeButton("FPS Boost: OFF", 58)
 local perfButton = makeButton("Performance Mode: OFF", 96)
+local hideBasesButton = makeButton("Hide All Bases: OFF", 134)
 
 local function updateButton(button, label, enabled)
     button.Text = label .. ": " .. (enabled and "ON" or "OFF")
@@ -213,11 +233,18 @@ perfButton.Activated:Connect(function()
     performanceOn = not performanceOn
     updateButton(perfButton, "Performance Mode", performanceOn)
     reapply()
-    status.Text = performanceOn and "Hiding detected other bases" or (fpsOn and "FPS optimization enabled" or "Visuals restored")
+    status.Text = performanceOn and "Hiding detected other bases" or (fpsOn and "FPS optimization enabled" or (hideBasesOn and "Hide All Bases enabled" or "Visuals restored"))
+end)
+
+hideBasesButton.Activated:Connect(function()
+    hideBasesOn = not hideBasesOn
+    updateButton(hideBasesButton, "Hide All Bases", hideBasesOn)
+    reapply()
+    status.Text = hideBasesOn and "All claimed bases hidden locally" or (fpsOn and "FPS optimization enabled" or (performanceOn and "Performance Mode enabled" or "Visuals restored"))
 end)
 
 close.Activated:Connect(function()
-    fpsOn, performanceOn = false, false
+    fpsOn, performanceOn, hideBasesOn = false, false, false
     restoreAll()
     gui:Destroy()
 end)
@@ -245,6 +272,7 @@ task.spawn(function()
     while gui.Parent do
         task.wait(3)
         if performanceOn then applyPerformance() end
+        if hideBasesOn then applyClaimedBases() end
         if fpsOn then applyFPS() end
     end
 end)
