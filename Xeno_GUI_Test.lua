@@ -1124,14 +1124,49 @@ local function applyHideBases()
  end
 end
 local function reapplyVisuals() restoreVisuals(); applyFPS(); applyHideBases() end
+local antiAfkNextKey = Enum.KeyCode.W
 local function pulseAntiAfk()
- if not antiAfkOn or antiAfkBusy then return end; antiAfkBusy=true
- local ok=pcall(function() VirtualInputManager:SendKeyEvent(true,Enum.KeyCode.W,false,game); task.wait(0.12); VirtualInputManager:SendKeyEvent(false,Enum.KeyCode.W,false,game) end)
- if not ok then pcall(function() VirtualUser:CaptureController(); local cam=Workspace.CurrentCamera; local cf=cam and cam.CFrame or CFrame.new(); VirtualUser:Button2Down(Vector2.new(0,0),cf); task.wait(0.25); VirtualUser:Button2Up(Vector2.new(0,0),cf) end) end
- antiAfkBusy=false
+ if not antiAfkOn or antiAfkBusy then return end
+ antiAfkBusy = true
+ local key = antiAfkNextKey
+ local ok = pcall(function()
+  VirtualInputManager:SendKeyEvent(true, key, false, game)
+  task.wait(0.12)
+  VirtualInputManager:SendKeyEvent(false, key, false, game)
+ end)
+ -- Alternate direction each pulse: W, then S, then repeat.
+ antiAfkNextKey = (key == Enum.KeyCode.W) and Enum.KeyCode.S or Enum.KeyCode.W
+ antiAfkBusy = false
+ if not ok then
+  pcall(function()
+   VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+   VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.S, false, game)
+  end)
+ end
 end
-player.Idled:Connect(function() if antiAfkOn then pulseAntiAfk() end end)
-toggle(left,"🛡️ Anti-AFK",nextLeft(),function() antiAfkOn=true; status("Anti-AFK: ON") end,function() antiAfkOn=false; pcall(function() VirtualInputManager:SendKeyEvent(false,Enum.KeyCode.W,false,game) end); status("Anti-AFK: OFF") end)
+
+toggle(left,"🛡️ Anti-AFK",nextLeft(),function()
+ antiAfkOn = true
+ antiAfkNextKey = Enum.KeyCode.W
+ status("Anti-AFK: ON (W/S every 10s)")
+ task.spawn(function()
+  while antiAfkOn and not closed do
+   pulseAntiAfk()
+   -- Wait 10 seconds between taps; direction alternates W -> S.
+   for _ = 1, 100 do
+    if not antiAfkOn or closed then break end
+    task.wait(0.1)
+   end
+  end
+ end)
+end,function()
+ antiAfkOn = false
+ pcall(function()
+  VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+  VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.S, false, game)
+ end)
+ status("Anti-AFK: OFF")
+end)
 toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
 toggle(left,"👁️ Hide All Bases",nextLeft(),function() hideBasesOn=true; reapplyVisuals(); status("Hide All Bases: ON") end,function() hideBasesOn=false; reapplyVisuals(); status("Hide All Bases: OFF") end)
 local function showGroup(group)
@@ -1146,7 +1181,7 @@ local function showGroup(group)
 end
 for name,b in pairs(tabButtons) do b.Activated:Connect(function() showGroup(name) end) end
 showGroup("Rolls")
-task.spawn(function() while not closed and gui.Parent do task.wait(25); if antiAfkOn then pulseAntiAfk() end; if fpsOn then applyFPS() end; if hideBasesOn then applyHideBases() end end end)
+task.spawn(function() while not closed and gui.Parent do task.wait(25); if fpsOn then applyFPS() end; if hideBasesOn then applyHideBases() end end end)
 
 --==================================================
 -- MINI STATS HELPERS
