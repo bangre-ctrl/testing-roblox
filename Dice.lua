@@ -11,6 +11,10 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 
+-- A newer execution invalidates loops from any older DiceHub instance.
+shared.__DiceHubRunId = (shared.__DiceHubRunId or 0) + 1
+local thisDiceHubRunId = shared.__DiceHubRunId
+
 --==================================================
 -- CLEANUP OLD HUB / OLD ANTI-AFK INDICATOR
 --==================================================
@@ -1145,9 +1149,9 @@ local LUCK_POTIONS = {
 local function runPotionCycle(enabledCheck, potionList, label)
     task.spawn(function()
         local nextUse = {}
-        while enabledCheck() and not closed do
+        while enabledCheck() and not closed and thisDiceHubRunId == shared.__DiceHubRunId do
             for _, potionName in ipairs(potionList) do
-                if not enabledCheck() or closed then break end
+                if not enabledCheck() or closed or thisDiceHubRunId ~= shared.__DiceHubRunId then break end
                 local now = os.clock()
                 if not nextUse[potionName] or now >= nextUse[potionName] then
                     local ok, err = pcall(function() fireRE("BoostService", "Use", potionName) end)
