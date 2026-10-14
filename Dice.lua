@@ -1505,7 +1505,6 @@ close.MouseButton1Click:Connect(function()
     autoCollectOn = false
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
-    autoQuestShopOn = false
     antiAfkOn, fpsOn, hideBasesOn = false, false, false
     restoreVisuals()
     gui:Destroy()
