@@ -1240,28 +1240,34 @@ local function pulseAntiAfk()
  if not antiAfkOn or antiAfkBusy then return end
  antiAfkBusy = true
 
- local ok = pcall(function()
-  local character = player.Character
-  local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-  local root = character and character:FindFirstChild("HumanoidRootPart")
-  if not humanoid or not root then return end
+ local character = player.Character
+ local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+ local root = character and character:FindFirstChild("HumanoidRootPart")
+ if not humanoid or not root then
+  antiAfkBusy = false
+  return
+ end
 
-  -- Use Humanoid movement instead of synthetic keyboard events.
-  -- This avoids switching mobile players out of touch-control mode.
-  local direction = root.CFrame.LookVector
-  if not antiAfkForward then direction = -direction end
-  humanoid:Move(direction, false)
-  task.wait(0.12)
-  humanoid:Move(Vector3.zero, false)
+ -- Use a short MoveTo pulse; Humanoid:Move can be overwritten by
+ -- Roblox's mobile PlayerModule controls on the next frame.
+ local origin = root.Position
+ local direction = root.CFrame.LookVector
+ if not antiAfkForward then direction = -direction end
+
+ local ok = pcall(function()
+  humanoid:MoveTo(origin + direction * 2)
+  task.wait(0.25)
+  if humanoid.Parent and root.Parent then
+   humanoid:MoveTo(root.Position)
+  end
  end)
 
- -- Alternate forward/backward every pulse: W-like, S-like, repeat.
  antiAfkForward = not antiAfkForward
  antiAfkBusy = false
  if not ok then
-  local character = player.Character
-  local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-  if humanoid then pcall(function() humanoid:Move(Vector3.zero, false) end) end
+  pcall(function()
+   if humanoid.Parent and root.Parent then humanoid:MoveTo(root.Position) end
+  end)
  end
 end
 
