@@ -72,7 +72,6 @@ end
 
 local autoRollOn = false
 local autoCollectBalanceOn = false
-local autoTeleportQuirksOn = false
 local autoIncomePotionOn = false
 local autoLuckPotionOn = false
 local autoCollectOn = false
@@ -1044,22 +1043,6 @@ addTeleport("📍 Traits", "Traits", TELEPORT_LOCATIONS[3].cframe)
 addTeleport("📍 Trade", "Trade", TELEPORT_LOCATIONS[4].cframe)
 addTeleport("🌀 Quirks", "Quirks", TELEPORT_LOCATIONS[5].cframe)
 
-toggle(right, "🌀 Auto Teleport Quirks", nextRight(), function()
-    autoTeleportQuirksOn = true
-    status("Auto Teleport Quirks: ON")
-    task.spawn(function()
-        while autoTeleportQuirksOn and not closed do
-            teleportTo("Quirks", TELEPORT_LOCATIONS[5].cframe)
-            for _ = 1, 100 do
-                if not autoTeleportQuirksOn or closed then break end
-                task.wait(0.1)
-            end
-        end
-    end)
-end, function()
-    autoTeleportQuirksOn = false
-    status("Auto Teleport Quirks: OFF")
-end)
 
 --==================================================
 -- QUEST / JP SPIN QUEUE
@@ -1482,7 +1465,6 @@ miniClose.MouseButton1Click:Connect(function()
 
     autoRollOn = false
     autoCollectBalanceOn = false
-    autoTeleportQuirksOn = false
     autoIncomePotionOn = false
     autoLuckPotionOn = false
     autoCollectOn = false
