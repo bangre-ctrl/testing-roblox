@@ -1235,27 +1235,25 @@ local function applyHideBases()
  end
 end
 local function reapplyVisuals() restoreVisuals(); applyFPS(); applyHideBases() end
-local antiAfkNextKey = Enum.KeyCode.W
 local function pulseAntiAfk()
  if not antiAfkOn or antiAfkBusy then return end
  antiAfkBusy = true
- local key = antiAfkNextKey
  local ok = pcall(function()
-  VirtualInputManager:SendKeyEvent(true, key, false, game)
+  VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.W, false, game)
   task.wait(0.12)
-  VirtualInputManager:SendKeyEvent(false, key, false, game)
+  VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
  end)
- antiAfkNextKey = (key == Enum.KeyCode.W) and Enum.KeyCode.S or Enum.KeyCode.W
  antiAfkBusy = false
  if not ok then
-  pcall(function() VirtualInputManager:SendKeyEvent(false, key, false, game) end)
+  pcall(function()
+   VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+  end)
  end
 end
 
 toggle(left,"🛡️ Anti-AFK",nextLeft(),function()
  antiAfkOn = true
- antiAfkNextKey = Enum.KeyCode.W
- status("Anti-AFK: ON (W/S every 10s)")
+ status("Anti-AFK: ON (W tap every 10s)")
  task.spawn(function()
   while antiAfkOn and not closed do
    pulseAntiAfk()
@@ -1269,7 +1267,6 @@ end,function()
  antiAfkOn = false
  pcall(function()
   VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
-  VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.S, false, game)
  end)
  status("Anti-AFK: OFF")
 end)
