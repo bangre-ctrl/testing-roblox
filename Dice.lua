@@ -1235,35 +1235,44 @@ local function applyHideBases()
  end
 end
 local function reapplyVisuals() restoreVisuals(); applyFPS(); applyHideBases() end
-local antiAfkNextKey = Enum.KeyCode.W
+local antiAfkForward = true
 local function pulseAntiAfk()
  if not antiAfkOn or antiAfkBusy then return end
  antiAfkBusy = true
- local key = antiAfkNextKey
+
  local ok = pcall(function()
-  VirtualInputManager:SendKeyEvent(true, key, false, game)
+  local character = player.Character
+  local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+  local root = character and character:FindFirstChild("HumanoidRootPart")
+  if not humanoid or not root then return end
+
+  -- Use Humanoid movement instead of synthetic keyboard events.
+  -- This avoids switching mobile players out of touch-control mode.
+  local direction = root.CFrame.LookVector
+  if not antiAfkForward then direction = -direction end
+  humanoid:Move(direction, false)
   task.wait(0.12)
-  VirtualInputManager:SendKeyEvent(false, key, false, game)
+  humanoid:Move(Vector3.zero, false)
  end)
- -- Alternate direction each pulse: W, then S, then repeat.
- antiAfkNextKey = (key == Enum.KeyCode.W) and Enum.KeyCode.S or Enum.KeyCode.W
+
+ -- Alternate forward/backward every pulse: W-like, S-like, repeat.
+ antiAfkForward = not antiAfkForward
  antiAfkBusy = false
  if not ok then
-  pcall(function()
-   VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
-   VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.S, false, game)
-  end)
+  local character = player.Character
+  local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+  if humanoid then pcall(function() humanoid:Move(Vector3.zero, false) end) end
  end
 end
 
 toggle(left,"🛡️ Anti-AFK",nextLeft(),function()
  antiAfkOn = true
- antiAfkNextKey = Enum.KeyCode.W
- status("Anti-AFK: ON (W/S every 10s)")
+ antiAfkForward = true
+ status("Anti-AFK: ON (forward/back every 10s)")
  task.spawn(function()
   while antiAfkOn and not closed do
    pulseAntiAfk()
-   -- Wait 10 seconds between taps; direction alternates W -> S.
+   -- Wait 10 seconds between short movement pulses.
    for _ = 1, 100 do
     if not antiAfkOn or closed then break end
     task.wait(0.1)
@@ -1272,10 +1281,9 @@ toggle(left,"🛡️ Anti-AFK",nextLeft(),function()
  end)
 end,function()
  antiAfkOn = false
- pcall(function()
-  VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
-  VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.S, false, game)
- end)
+ local character = player.Character
+ local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+ if humanoid then pcall(function() humanoid:Move(Vector3.zero, false) end) end
  status("Anti-AFK: OFF")
 end)
 toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
