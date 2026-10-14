@@ -225,8 +225,8 @@ Instance.new("UICorner", close).CornerRadius = UDim.new(0, 7)
 
 local miniFrame = Instance.new("Frame")
 miniFrame.Name = "MiniStats"
-miniFrame.Size = UDim2.new(0, 210, 0, 88)
-miniFrame.Position = UDim2.new(0.5, -105, 0, 10)
+miniFrame.Size = UDim2.new(0, 185, 0, 76)
+miniFrame.Position = UDim2.new(0.5, -92, 0, 10)
 miniFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
 miniFrame.BorderSizePixel = 0
 miniFrame.Visible = false
@@ -238,7 +238,7 @@ miniCorner.CornerRadius = UDim.new(0, 10)
 miniCorner.Parent = miniFrame
 
 local miniTitle = Instance.new("TextLabel")
-miniTitle.Size = UDim2.new(1, -66, 0, 20)
+miniTitle.Size = UDim2.new(1, -54, 0, 20)
 miniTitle.Position = UDim2.new(0, 8, 0, 2)
 miniTitle.BackgroundTransparency = 1
 miniTitle.Text = "Dice Hub"
@@ -250,7 +250,7 @@ miniTitle.Parent = miniFrame
 
 local miniRestore = Instance.new("TextButton")
 miniRestore.Size = UDim2.new(0, 20, 0, 20)
-miniRestore.Position = UDim2.new(1, -44, 0, 3)
+miniRestore.Position = UDim2.new(1, -43, 0, 3)
 miniRestore.BackgroundColor3 = Color3.fromRGB(75, 75, 88)
 miniRestore.Text = "□"
 miniRestore.TextColor3 = Color3.new(1, 1, 1)
@@ -273,8 +273,8 @@ miniClose.Parent = miniFrame
 Instance.new("UICorner", miniClose).CornerRadius = UDim.new(0, 7)
 
 local miniRolls = Instance.new("TextLabel")
-miniRolls.Size = UDim2.new(1, -14, 0, 18)
-miniRolls.Position = UDim2.new(0, 8, 0, 29)
+miniRolls.Size = UDim2.new(1, -12, 0, 18)
+miniRolls.Position = UDim2.new(0, 7, 0, 27)
 miniRolls.BackgroundTransparency = 1
 miniRolls.Text = "🎲 Rolls: --"
 miniRolls.TextColor3 = Color3.new(1, 1, 1)
@@ -284,8 +284,8 @@ miniRolls.TextXAlignment = Enum.TextXAlignment.Left
 miniRolls.Parent = miniFrame
 
 local miniTickets = Instance.new("TextLabel")
-miniTickets.Size = UDim2.new(1, -14, 0, 18)
-miniTickets.Position = UDim2.new(0, 8, 0, 54)
+miniTickets.Size = UDim2.new(1, -12, 0, 18)
+miniTickets.Position = UDim2.new(0, 7, 0, 47)
 miniTickets.BackgroundTransparency = 1
 miniTickets.Text = "🎟️ Tickets: --"
 miniTickets.TextColor3 = Color3.new(1, 1, 1)
