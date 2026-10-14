@@ -272,20 +272,9 @@ miniClose.BorderSizePixel = 0
 miniClose.Parent = miniFrame
 Instance.new("UICorner", miniClose).CornerRadius = UDim.new(0, 7)
 
-local miniMoney = Instance.new("TextLabel")
-miniMoney.Size = UDim2.new(1, -20, 0, 24)
-miniMoney.Position = UDim2.new(0, 12, 0, 42)
-miniMoney.BackgroundTransparency = 1
-miniMoney.Text = "💰 Money: --"
-miniMoney.TextColor3 = Color3.new(1, 1, 1)
-miniMoney.TextSize = 15
-miniMoney.Font = Enum.Font.GothamBold
-miniMoney.TextXAlignment = Enum.TextXAlignment.Left
-miniMoney.Parent = miniFrame
-
 local miniRolls = Instance.new("TextLabel")
 miniRolls.Size = UDim2.new(1, -20, 0, 24)
-miniRolls.Position = UDim2.new(0, 12, 0, 72)
+miniRolls.Position = UDim2.new(0, 12, 0, 42)
 miniRolls.BackgroundTransparency = 1
 miniRolls.Text = "🎲 Rolls: --"
 miniRolls.TextColor3 = Color3.new(1, 1, 1)
@@ -296,7 +285,7 @@ miniRolls.Parent = miniFrame
 
 local miniTickets = Instance.new("TextLabel")
 miniTickets.Size = UDim2.new(1, -20, 0, 24)
-miniTickets.Position = UDim2.new(0, 12, 0, 102)
+miniTickets.Position = UDim2.new(0, 12, 0, 72)
 miniTickets.BackgroundTransparency = 1
 miniTickets.Text = "🎟️ Tickets: --"
 miniTickets.TextColor3 = Color3.new(1, 1, 1)
@@ -1351,13 +1340,7 @@ task.spawn(function()
             local leaderstats = player:FindFirstChild("leaderstats")
 
             if leaderstats then
-                local money = leaderstats:FindFirstChild("Money")
                 local rolls = leaderstats:FindFirstChild("Rolls")
-
-                if money then
-                    local moneyValue = tonumber(money.Value) or 0
-                    miniMoney.Text = "💰 Money: " .. formatMoney(moneyValue)
-                end
 
                 if rolls then
                     local rollsValue = tonumber(rolls.Value) or 0
@@ -1464,11 +1447,7 @@ minimize.MouseButton1Click:Connect(function()
         pcall(function()
             local leaderstats = player:FindFirstChild("leaderstats")
             if leaderstats then
-                local money = leaderstats:FindFirstChild("Money")
                 local rolls = leaderstats:FindFirstChild("Rolls")
-                if money then
-                    miniMoney.Text = "💰 Money: " .. formatMoney(money.Value)
-                end
                 if rolls then
                     local n = tonumber(rolls.Value) or 0
                     miniRolls.Text = "🎲 Rolls: " .. string.format("%d", n):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
