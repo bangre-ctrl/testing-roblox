@@ -1235,51 +1235,35 @@ local function applyHideBases()
  end
 end
 local function reapplyVisuals() restoreVisuals(); applyFPS(); applyHideBases() end
-local antiAfkForward = true
 local function pulseAntiAfk()
  if not antiAfkOn or antiAfkBusy then return end
  antiAfkBusy = true
 
- local character = player.Character
- local humanoid = character and character:FindFirstChildOfClass("Humanoid")
- local root = character and character:FindFirstChild("HumanoidRootPart")
- if not humanoid or not root then
-  antiAfkBusy = false
-  return
- end
-
- -- Use a short MoveTo pulse; Humanoid:Move can be overwritten by
- -- Roblox's mobile PlayerModule controls on the next frame.
- local origin = root.Position
- local direction = root.CFrame.LookVector
- if not antiAfkForward then direction = -direction end
-
+ -- Send a brief virtual mouse click instead of moving the character.
  local ok = pcall(function()
-  humanoid:MoveTo(origin + direction * 2)
-  task.wait(0.25)
-  if humanoid.Parent and root.Parent then
-   humanoid:MoveTo(root.Position)
-  end
+  VirtualUser:CaptureController()
+  local camera = Workspace.CurrentCamera
+  local viewCFrame = camera and camera.CFrame or CFrame.new()
+  VirtualUser:Button2Down(Vector2.new(0, 0), viewCFrame)
+  task.wait(0.15)
+  VirtualUser:Button2Up(Vector2.new(0, 0), viewCFrame)
  end)
 
- antiAfkForward = not antiAfkForward
  antiAfkBusy = false
  if not ok then
   pcall(function()
-   if humanoid.Parent and root.Parent then humanoid:MoveTo(root.Position) end
+   VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
   end)
  end
 end
 
 toggle(left,"🛡️ Anti-AFK",nextLeft(),function()
  antiAfkOn = true
- antiAfkForward = true
- status("Anti-AFK: ON (forward/back every 10s)")
+ status("Anti-AFK: ON (virtual click every 30s)")
  task.spawn(function()
   while antiAfkOn and not closed do
    pulseAntiAfk()
-   -- Wait 10 seconds between short movement pulses.
-   for _ = 1, 100 do
+   for _ = 1, 300 do
     if not antiAfkOn or closed then break end
     task.wait(0.1)
    end
@@ -1287,9 +1271,9 @@ toggle(left,"🛡️ Anti-AFK",nextLeft(),function()
  end)
 end,function()
  antiAfkOn = false
- local character = player.Character
- local humanoid = character and character:FindFirstChildOfClass("Humanoid")
- if humanoid then pcall(function() humanoid:Move(Vector3.zero, false) end) end
+ pcall(function()
+  VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+ end)
  status("Anti-AFK: OFF")
 end)
 toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
