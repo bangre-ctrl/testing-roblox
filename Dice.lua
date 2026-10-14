@@ -1181,7 +1181,7 @@ local function runPotionCycle(enabledCheck, potionList, label)
             task.wait(1)
         end
     end)
-}
+end
 toggle(right, "🪙 Auto Use Potion Income I–IV + variants", nextRight(), function()
     autoIncomePotionOn = true
     status("Auto Income Potions: ON")
