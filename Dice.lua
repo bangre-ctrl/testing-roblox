@@ -78,6 +78,7 @@ local autoRollOn = false
 local autoCollectBalanceOn = false
 local autoIncomePotionOn = false
 local autoLuckPotionOn = false
+local autoDamagePotionOn = false
 local autoCollectOn = false
 local autoDailyQuestOn = false
 local autoWeeklyQuestOn = false
@@ -1127,6 +1128,13 @@ local POTION_USE_INTERVALS = {
     ["Pirate Luck I"] = 240, ["Pirate Luck II"] = 240, ["Pirate Luck III"] = 240,
     ["Shadow Luck I"] = 240, ["Shadow Luck II"] = 240, ["Shadow Luck III"] = 240, ["Shadow Luck IV"] = 240,
     ["Slayer Luck I"] = 210, ["Slayer Luck II"] = 210, ["Slayer Luck III"] = 210,
+    ["Damage I"] = 300, ["Damage II"] = 300, ["Damage III"] = 300, ["Damage IV"] = 300,
+    ["Leaf Damage I"] = 210, ["Leaf Damage II"] = 210, ["Leaf Damage III"] = 210,
+    ["Cursed Damage I"] = 180, ["Cursed Damage II"] = 180, ["Cursed Damage III"] = 180,
+    ["Dragon Damage I"] = 120, ["Dragon Damage II"] = 120, ["Dragon Damage III"] = 120,
+    ["Pirate Damage I"] = 240, ["Pirate Damage II"] = 240, ["Pirate Damage III"] = 240,
+    ["Shadow Damage I"] = 240, ["Shadow Damage II"] = 240, ["Shadow Damage III"] = 240, ["Shadow Damage IV"] = 240,
+    ["Slayer Damage I"] = 210, ["Slayer Damage II"] = 210, ["Slayer Damage III"] = 210,
 }
 local INCOME_POTIONS = {
     "Income I", "Income II", "Income III", "Income IV",
@@ -1146,6 +1154,17 @@ local LUCK_POTIONS = {
     "Shadow Luck I", "Shadow Luck II", "Shadow Luck III", "Shadow Luck IV",
     "Slayer Luck I", "Slayer Luck II", "Slayer Luck III",
 }
+
+local DAMAGE_POTIONS = {
+    "Damage I", "Damage II", "Damage III", "Damage IV",
+    "Leaf Damage I", "Leaf Damage II", "Leaf Damage III",
+    "Cursed Damage I", "Cursed Damage II", "Cursed Damage III",
+    "Dragon Damage I", "Dragon Damage II", "Dragon Damage III",
+    "Pirate Damage I", "Pirate Damage II", "Pirate Damage III",
+    "Shadow Damage I", "Shadow Damage II", "Shadow Damage III", "Shadow Damage IV",
+    "Slayer Damage I", "Slayer Damage II", "Slayer Damage III",
+}
+
 local function runPotionCycle(enabledCheck, potionList, label)
     task.spawn(function()
         local nextUse = {}
@@ -1184,6 +1203,15 @@ toggle(right, "🍀 Auto Use Potion Luck I–IV + variants", nextRight(), functi
 end, function()
     autoLuckPotionOn = false
     status("Auto Luck Potions: OFF")
+end)
+
+toggle(right, "⚔️ Auto Use Potion Damage I–IV + variants", nextRight(), function()
+    autoDamagePotionOn = true
+    status("Auto Damage Potions: ON")
+    runPotionCycle(function() return autoDamagePotionOn end, DAMAGE_POTIONS, "Damage")
+end, function()
+    autoDamagePotionOn = false
+    status("Auto Damage Potions: OFF")
 end)
 
 -- SETTINGS: Anti-AFK, FPS Boost, Hide All Bases
@@ -1471,6 +1499,7 @@ miniClose.MouseButton1Click:Connect(function()
     autoCollectBalanceOn = false
     autoIncomePotionOn = false
     autoLuckPotionOn = false
+    autoDamagePotionOn = false
     autoCollectOn = false
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
