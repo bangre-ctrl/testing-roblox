@@ -1235,35 +1235,31 @@ local function applyHideBases()
  end
 end
 local function reapplyVisuals() restoreVisuals(); applyFPS(); applyHideBases() end
+local antiAfkNextKey = Enum.KeyCode.W
 local function pulseAntiAfk()
  if not antiAfkOn or antiAfkBusy then return end
  antiAfkBusy = true
-
- -- Send a brief virtual mouse click instead of moving the character.
+ local key = antiAfkNextKey
  local ok = pcall(function()
-  VirtualUser:CaptureController()
-  local camera = Workspace.CurrentCamera
-  local viewCFrame = camera and camera.CFrame or CFrame.new()
-  VirtualUser:Button2Down(Vector2.new(0, 0), viewCFrame)
-  task.wait(0.15)
-  VirtualUser:Button2Up(Vector2.new(0, 0), viewCFrame)
+  VirtualInputManager:SendKeyEvent(true, key, false, game)
+  task.wait(0.12)
+  VirtualInputManager:SendKeyEvent(false, key, false, game)
  end)
-
+ antiAfkNextKey = (key == Enum.KeyCode.W) and Enum.KeyCode.S or Enum.KeyCode.W
  antiAfkBusy = false
  if not ok then
-  pcall(function()
-   VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
-  end)
+  pcall(function() VirtualInputManager:SendKeyEvent(false, key, false, game) end)
  end
 end
 
 toggle(left,"🛡️ Anti-AFK",nextLeft(),function()
  antiAfkOn = true
- status("Anti-AFK: ON (virtual click every 30s)")
+ antiAfkNextKey = Enum.KeyCode.W
+ status("Anti-AFK: ON (W/S every 10s)")
  task.spawn(function()
   while antiAfkOn and not closed do
    pulseAntiAfk()
-   for _ = 1, 300 do
+   for _ = 1, 100 do
     if not antiAfkOn or closed then break end
     task.wait(0.1)
    end
@@ -1272,7 +1268,8 @@ toggle(left,"🛡️ Anti-AFK",nextLeft(),function()
 end,function()
  antiAfkOn = false
  pcall(function()
-  VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+  VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+  VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.S, false, game)
  end)
  status("Anti-AFK: OFF")
 end)
