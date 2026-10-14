@@ -1514,16 +1514,25 @@ end)
 --==================================================
 
 close.MouseButton1Click:Connect(function()
+    -- Stop every automation when the main GUI is closed.
     closed = true
-
     autoRollOn = false
+    autoCollectBalanceOn = false
     autoCollectOn = false
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
+    autoIncomePotionOn = false
+    autoLuckPotionOn = false
+    autoDamagePotionOn = false
+
+    -- Invalidate potion loops belonging to this execution immediately.
+    if shared.__DiceHubRunId == thisDiceHubRunId then
+        shared.__DiceHubRunId = shared.__DiceHubRunId + 1
+    end
+
     antiAfkOn, fpsOn, hideBasesOn = false, false, false
     restoreVisuals()
     gui:Destroy()
-
 end)
 
 print("========================================")
