@@ -11,15 +11,6 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 
--- Remove the previous DiceHub GUI before creating a fresh one.
-local playerGui = player:WaitForChild("PlayerGui")
-for _, oldGui in ipairs(playerGui:GetChildren()) do
-    if oldGui.Name == "DiceGachaHub" then
-        oldGui:Destroy()
-    end
-end
-print("Dice Hub lama dibersihkan")
-
 -- A newer execution invalidates loops from any older DiceHub instance.
 shared.__DiceHubRunId = (shared.__DiceHubRunId or 0) + 1
 local thisDiceHubRunId = shared.__DiceHubRunId
