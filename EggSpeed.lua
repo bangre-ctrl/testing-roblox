@@ -1,6 +1,5 @@
 -- EggSpeed.lua
--- Local speed GUI with slider up to 1,000,000 and ON/OFF toggle.
--- Intended for testing in your own Roblox experience / a LocalScript environment.
+-- Local speed GUI with slider from 16 to 200 and ON/OFF toggle.
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -73,9 +72,14 @@ slider.Active = true
 slider.Parent = frame
 Instance.new("UICorner", slider).CornerRadius = UDim.new(1, 0)
 
-local MIN_SPEED, MAX_SPEED = 16, 1000000
+local MIN_SPEED, MAX_SPEED = 16, 200
 local speed, enabled, draggingSlider, draggingWindow = 50, false, false, false
 local originalSpeed = 16
+
+local function getHumanoid()
+    local character = player.Character
+    return character and character:FindFirstChildOfClass("Humanoid")
+end
 
 local fill = Instance.new("Frame")
 fill.Size = UDim2.new((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED), 0, 1, 0)
@@ -104,15 +108,11 @@ toggle.Font = Enum.Font.GothamBold
 toggle.Parent = frame
 Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 8)
 
-local function getHumanoid()
-    local character = player.Character
-    return character and character:FindFirstChildOfClass("Humanoid")
-end
-
 local function applySpeed()
     local humanoid = getHumanoid()
-    if not humanoid then return end
-    humanoid.WalkSpeed = enabled and speed or originalSpeed
+    if humanoid then
+        humanoid.WalkSpeed = enabled and speed or originalSpeed
+    end
 end
 
 local function updateSlider(screenX)
@@ -122,7 +122,7 @@ local function updateSlider(screenX)
     speed = math.floor(MIN_SPEED + percent * (MAX_SPEED - MIN_SPEED) + 0.5)
     fill.Size = UDim2.new(percent, 0, 1, 0)
     knob.Position = UDim2.new(percent, 0, 0.5, 0)
-    valueLabel.Text = string.format("Speed: %s", tostring(speed))
+    valueLabel.Text = "Speed: " .. speed
     if enabled then applySpeed() end
 end
 
