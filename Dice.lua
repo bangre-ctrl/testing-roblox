@@ -661,6 +661,19 @@ toggle(
     end
 )
 
+toggle(left, "🍀 Buy Lucky Spin", nextLeft(), function()
+    local ok, err = pcall(function()
+        fireRE("QuestService", "Buy", "Lucky Spin")
+    end)
+    if ok then
+        status("Lucky Spin: purchase request sent")
+    else
+        status("Lucky Spin failed: " .. tostring(err))
+    end
+end, function()
+    status("Lucky Spin: toggle has no repeating action")
+end)
+
 toggle(left, "💰 Auto Collect Balance", nextLeft(), function()
     autoCollectBalanceOn = true
     status("Auto Collect Balance: ON")
