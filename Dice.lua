@@ -661,7 +661,7 @@ toggle(
     end
 )
 
-toggle(left, "🍀 Buy Lucky Spin", nextLeft(), function()
+button(left, "🍀 Buy Lucky Spin", function()
     local ok, err = pcall(function()
         fireRE("QuestService", "Buy", "Lucky Spin")
     end)
@@ -670,8 +670,6 @@ toggle(left, "🍀 Buy Lucky Spin", nextLeft(), function()
     else
         status("Lucky Spin failed: " .. tostring(err))
     end
-end, function()
-    status("Lucky Spin: toggle has no repeating action")
 end)
 
 toggle(left, "💰 Auto Collect Balance", nextLeft(), function()
