@@ -1219,6 +1219,20 @@ end, function()
     status("Auto farm Candy: OFF")
 end)
 
+button(right, "📍 Teleport ke Haunted House", function()
+    local ok, err = pcall(function()
+        local character = player.Character or player.CharacterAdded:Wait()
+        local root = character:WaitForChild("HumanoidRootPart")
+        root.CFrame = CFrame.new(-1942.552001953125, -4.186700820922852, 11425.3994140625)
+    end)
+    if ok then
+        status("Teleport ke Haunted House: berhasil")
+    else
+        warn("[Halloween Teleport] Failed:", err)
+        status("Teleport ke Haunted House gagal")
+    end
+end)
+
 --==================================================
 -- RIGHT: POTIONS
 --==================================================
