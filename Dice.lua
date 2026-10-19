@@ -84,6 +84,7 @@ local autoDailyQuestOn = false
 local autoWeeklyQuestOn = false
 local autoFarmCandyOn = false
 local autoHalloweenDiceOn = false
+local autoHalloweenQuestOn = false
 local antiAfkOn, fpsOn, hideBasesOn = false, false, false
 local antiAfkBusy = false
 local savedProperties, savedLighting = {}, {}
@@ -1150,28 +1151,31 @@ local halloweenHousePositions = {
 
 section(right, "🎃 AUTO CLAIM QUEST HALLOWEN HOURLY")
 
-local function claimHalloweenHourly(questType)
-    local ok, err = pcall(function()
-        fireRE("HalloweenQuestService", "Claim", "Hourly", questType)
+toggle(right, "🎃 Auto Claim Halloween Hourly", nextRight(), function()
+    autoHalloweenQuestOn = true
+    status("Halloween Hourly Auto Claim: ON")
+    task.spawn(function()
+        local questTypes = { "Doors", "Floors", "PumpkinRolls" }
+        while autoHalloweenQuestOn and not closed do
+            for _, questType in ipairs(questTypes) do
+                if not autoHalloweenQuestOn or closed then break end
+                local ok, err = pcall(function()
+                    fireRE("HalloweenQuestService", "Claim", "Hourly", questType)
+                end)
+                if not ok then
+                    warn("[Halloween Quest] Claim failed (" .. questType .. "):", err)
+                end
+                task.wait(1)
+            end
+            for _ = 1, 29 do
+                if not autoHalloweenQuestOn or closed then break end
+                task.wait(1)
+            end
+        end
     end)
-    if ok then
-        status("Halloween Hourly claim sent: " .. questType)
-    else
-        warn("[Halloween Quest] Claim failed:", err)
-        status("Halloween Hourly claim failed: " .. questType)
-    end
-end
-
-button(right, "🚪 25 Doors Tricks or Treats", function()
-    claimHalloweenHourly("Doors")
-end)
-
-button(right, "🏚️ Clear 100 Haunted House Floors!", function()
-    claimHalloweenHourly("Floors")
-end)
-
-button(right, "🎲 Rolls 25 Pumpkin Dice", function()
-    claimHalloweenHourly("PumpkinRolls")
+end, function()
+    autoHalloweenQuestOn = false
+    status("Halloween Hourly Auto Claim: OFF")
 end)
 
 section(right, "🍬 CANDY FARM")
@@ -1615,6 +1619,7 @@ close.MouseButton1Click:Connect(function()
     autoWeeklyQuestOn = false
     autoFarmCandyOn = false
     autoHalloweenDiceOn = false
+    autoHalloweenQuestOn = false
     autoIncomePotionOn = false
     autoLuckPotionOn = false
     autoDamagePotionOn = false
