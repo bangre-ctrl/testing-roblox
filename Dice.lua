@@ -83,6 +83,7 @@ local autoCollectOn = false
 local autoDailyQuestOn = false
 local autoWeeklyQuestOn = false
 local autoFarmCandyOn = false
+local autoHalloweenDiceOn = false
 local antiAfkOn, fpsOn, hideBasesOn = false, false, false
 local antiAfkBusy = false
 local savedProperties, savedLighting = {}, {}
@@ -1114,6 +1115,29 @@ end)
 currentGroup = "Hallowen"
 section(left, "🎃 Hallowen")
 
+toggle(left, "🎲 Rolls Hallowen Dice x1", nextLeft(), function()
+    autoHalloweenDiceOn = true
+    status("Rolls Hallowen Dice x1: ON")
+    task.spawn(function()
+        while autoHalloweenDiceOn and not closed do
+            local ok, result = pcall(function()
+                return invokeRF("PumpkinDiceService", "Roll", 1)
+            end)
+            if not ok then
+                warn("[Halloween Dice] Roll failed:", result)
+                status("Halloween Dice roll failed")
+            end
+            for _ = 1, 10 do
+                if not autoHalloweenDiceOn or closed then break end
+                task.wait(0.1)
+            end
+        end
+    end)
+end, function()
+    autoHalloweenDiceOn = false
+    status("Rolls Hallowen Dice x1: OFF")
+end)
+
 local halloweenHousePositions = {
     Vector3.new(-1918.9908447265625, -18.525264739990234, 11269.607421875),
     Vector3.new(-1874.678955078125, -18.52757453918457, 11318.90625),
@@ -1123,6 +1147,32 @@ local halloweenHousePositions = {
     Vector3.new(-1993.9033203125, -18.54891586303711, 11360.33203125),
     Vector3.new(-2076.938720703125, -18.637426376342773, 11351.5859375),
 }
+
+section(right, "🎃 AUTO CLAIM QUEST HALLOWEN HOURLY")
+
+local function claimHalloweenHourly(questType)
+    local ok, err = pcall(function()
+        fireRE("HalloweenQuestService", "Claim", "Hourly", questType)
+    end)
+    if ok then
+        status("Halloween Hourly claim sent: " .. questType)
+    else
+        warn("[Halloween Quest] Claim failed:", err)
+        status("Halloween Hourly claim failed: " .. questType)
+    end
+end
+
+button(right, "🚪 25 Doors Tricks or Treats", function()
+    claimHalloweenHourly("Doors")
+end)
+
+button(right, "🏚️ Clear 100 Haunted House Floors!", function()
+    claimHalloweenHourly("Floors")
+end)
+
+button(right, "🎲 Rolls 25 Pumpkin Dice", function()
+    claimHalloweenHourly("PumpkinRolls")
+end)
 
 section(right, "🍬 CANDY FARM")
 
@@ -1564,6 +1614,7 @@ close.MouseButton1Click:Connect(function()
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
     autoFarmCandyOn = false
+    autoHalloweenDiceOn = false
     autoIncomePotionOn = false
     autoLuckPotionOn = false
     autoDamagePotionOn = false
