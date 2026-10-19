@@ -1296,7 +1296,8 @@ button(right, "🎃 Pumpkin Pot III", function() useHalloweenPotion("Pumpkin Pot
 button(right, "🍬 Candy Pot I", function() useHalloweenPotion("Candy Pot I") end)
 button(right, "🍬 Candy Pot II", function() useHalloweenPotion("Candy Pot II") end)
 
--- Halloween-specific controls end here. Regular potions remain in the Potion tab.
+-- Keep Halloween teleports in the dedicated Teleport tab, separate from potion buttons.
+currentGroup = "Teleport"
 button(right, "🛍️ Teleport ke Candy Shop", function()
     local ok, err = pcall(function()
         local character = player.Character or player.CharacterAdded:Wait()
