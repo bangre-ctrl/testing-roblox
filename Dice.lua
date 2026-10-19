@@ -1227,6 +1227,10 @@ end
 halloweenQuestToggle("⏱️ Hourly", "Hourly", false)
 halloweenQuestToggle("📅 Daily", "Daily", true)
 
+-- Forward declarations let the Halloween Auto Potion toggle reuse the same potion cycles.
+local POTION_USE_INTERVALS, INCOME_POTIONS, LUCK_POTIONS, DAMAGE_POTIONS
+local runPotionCycle
+
 section(right, "🍬 CANDY FARM")
 
 toggle(right, "🍬 Auto farm Candy", nextRight(), function()
@@ -1269,6 +1273,41 @@ end, function()
     status("Auto farm Candy: OFF")
 end)
 
+toggle(right, "🧪 Auto Potion", nextRight(), function()
+    autoIncomePotionOn = true
+    autoLuckPotionOn = true
+    autoDamagePotionOn = true
+    status("Auto Potion: ON")
+    runPotionCycle(function() return autoIncomePotionOn end, INCOME_POTIONS, "Income")
+    runPotionCycle(function() return autoLuckPotionOn end, LUCK_POTIONS, "Luck")
+    runPotionCycle(function() return autoDamagePotionOn end, DAMAGE_POTIONS, "Damage")
+end, function()
+    autoIncomePotionOn = false
+    autoLuckPotionOn = false
+    autoDamagePotionOn = false
+    status("Auto Potion: OFF")
+end)
+
+button(right, "🛍️ Teleport ke Candy Shop", function()
+    local ok, err = pcall(function()
+        local character = player.Character or player.CharacterAdded:Wait()
+        local root = character:WaitForChild("HumanoidRootPart")
+        root.CFrame = CFrame.new(-2069.175537109375, -11.537344932556152, 11405.544921875)
+    end)
+    if ok then status("Teleport ke Candy Shop: berhasil")
+    else warn("[Halloween Teleport] Candy Shop failed:", err); status("Teleport ke Candy Shop gagal") end
+end)
+
+button(right, "🏠 Teleport ke Plaza", function()
+    local ok, err = pcall(function()
+        local character = player.Character or player.CharacterAdded:Wait()
+        local root = character:WaitForChild("HumanoidRootPart")
+        root.CFrame = CFrame.new(-2047.4921875, -19.755407333374023, 11291.7578125)
+    end)
+    if ok then status("Teleport ke Plaza: berhasil")
+    else warn("[Halloween Teleport] Plaza failed:", err); status("Teleport ke Plaza gagal") end
+end)
+
 button(right, "📍 Teleport ke Haunted House", function()
     local ok, err = pcall(function()
         local character = player.Character or player.CharacterAdded:Wait()
@@ -1290,7 +1329,7 @@ end)
 currentGroup = "Potion"
 section(right, "🧪 POTIONS")
 
-local POTION_USE_INTERVALS = {
+POTION_USE_INTERVALS = {
     ["Income I"] = 310, ["Income II"] = 310, ["Income III"] = 310, ["Income IV"] = 310,
     ["Leaf Income I"] = 220, ["Leaf Income II"] = 220, ["Leaf Income III"] = 220,
     ["Cursed Income I"] = 190, ["Cursed Income II"] = 190, ["Cursed Income III"] = 190,
@@ -1313,7 +1352,7 @@ local POTION_USE_INTERVALS = {
     ["Shadow Damage I"] = 250, ["Shadow Damage II"] = 250, ["Shadow Damage III"] = 250, ["Shadow Damage IV"] = 250,
     ["Slayer Damage I"] = 220, ["Slayer Damage II"] = 220, ["Slayer Damage III"] = 220,
 }
-local INCOME_POTIONS = {
+INCOME_POTIONS = {
     "Income I", "Income II", "Income III", "Income IV",
     "Leaf Income I", "Leaf Income II", "Leaf Income III",
     "Cursed Income I", "Cursed Income II", "Cursed Income III",
@@ -1322,7 +1361,7 @@ local INCOME_POTIONS = {
     "Shadow Income I", "Shadow Income II", "Shadow Income III", "Shadow Income IV",
     "Slayer Income I", "Slayer Income II", "Slayer Income III",
 }
-local LUCK_POTIONS = {
+LUCK_POTIONS = {
     "Luck I", "Luck II", "Luck III", "Luck IV",
     "Leaf Luck I", "Leaf Luck II", "Leaf Luck III",
     "Cursed Luck I", "Cursed Luck II", "Cursed Luck III",
@@ -1332,7 +1371,7 @@ local LUCK_POTIONS = {
     "Slayer Luck I", "Slayer Luck II", "Slayer Luck III",
 }
 
-local DAMAGE_POTIONS = {
+DAMAGE_POTIONS = {
     "Damage I", "Damage II", "Damage III", "Damage IV",
     "Leaf Damage I", "Leaf Damage II", "Leaf Damage III",
     "Cursed Damage I", "Cursed Damage II", "Cursed Damage III",
@@ -1342,7 +1381,7 @@ local DAMAGE_POTIONS = {
     "Slayer Damage I", "Slayer Damage II", "Slayer Damage III",
 }
 
-local function runPotionCycle(enabledCheck, potionList, label)
+runPotionCycle = function(enabledCheck, potionList, label)
     task.spawn(function()
         local nextUse = {}
         while enabledCheck() and not closed and thisDiceHubRunId == shared.__DiceHubRunId do
