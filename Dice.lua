@@ -1201,7 +1201,7 @@ local function halloweenQuestToggle(label, enabledText, isDaily)
         end
         if currentlyOn then return end
         task.spawn(function()
-            local questTypes = isDaily and { "Floors" } or { "Doors", "Floors", "PumpkinRolls", "Rolls" }
+            local questTypes = isDaily and { "Floors", "Doors" } or { "Doors", "Floors", "PumpkinRolls", "Rolls" }
             while (isDaily and autoHalloweenDailyQuestOn or (not isDaily and autoHalloweenQuestOn)) and not closed do
                 for _, questType in ipairs(questTypes) do
                     local active = isDaily and autoHalloweenDailyQuestOn or autoHalloweenQuestOn
