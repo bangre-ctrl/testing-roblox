@@ -85,6 +85,7 @@ local autoWeeklyQuestOn = false
 local autoFarmCandyOn = false
 local autoHalloweenDiceOn = false
 local autoHalloweenQuestOn = false
+local autoHalloweenDailyQuestOn = false
 local antiAfkOn, fpsOn, hideBasesOn = false, false, false
 local antiAfkBusy = false
 local savedProperties, savedLighting = {}, {}
@@ -1150,34 +1151,81 @@ end, function()
     status("Rolls Hallowen Dice x1: OFF")
 end)
 
-section(right, "🎃 AUTO CLAIM QUEST HALLOWEN HOURLY")
+section(right, "🎃 Auto Hallowen Quest")
 
-toggle(right, "🎃 Auto Claim Halloween Hourly", nextRight(), function()
-    autoHalloweenQuestOn = true
-    status("Halloween Hourly Auto Claim: ON")
-    task.spawn(function()
-        local questTypes = { "Doors", "Floors", "PumpkinRolls" }
-        while autoHalloweenQuestOn and not closed do
-            for _, questType in ipairs(questTypes) do
-                if not autoHalloweenQuestOn or closed then break end
-                local ok, err = pcall(function()
-                    fireRE("HalloweenQuestService", "Claim", "Hourly", questType)
-                end)
-                if not ok then
-                    warn("[Halloween Quest] Claim failed (" .. questType .. "):", err)
-                end
-                task.wait(1)
-            end
-            for _ = 1, 29 do
-                if not autoHalloweenQuestOn or closed then break end
-                task.wait(1)
-            end
+local halloweenQuestRow = Instance.new("Frame")
+halloweenQuestRow:SetAttribute("PageGroup", currentGroup)
+halloweenQuestRow.Size = UDim2.new(1, -16, 0, 42)
+halloweenQuestRow.BackgroundTransparency = 1
+halloweenQuestRow.LayoutOrder = #right:GetChildren()
+halloweenQuestRow.Parent = right
+
+local halloweenQuestRowLayout = Instance.new("UIListLayout")
+halloweenQuestRowLayout.FillDirection = Enum.FillDirection.Horizontal
+halloweenQuestRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+halloweenQuestRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+halloweenQuestRowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+halloweenQuestRowLayout.Padding = UDim.new(0, 6)
+halloweenQuestRowLayout.Parent = halloweenQuestRow
+
+local function halloweenQuestToggle(label, enabledText, isDaily)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.5, -3, 1, 0)
+    b.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+    b.Text = label .. " : OFF"
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.TextSize = 12
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.LayoutOrder = isDaily and 2 or 1
+    b.Parent = halloweenQuestRow
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+
+    local function setEnabled(on)
+        if isDaily then
+            autoHalloweenDailyQuestOn = on
+        else
+            autoHalloweenQuestOn = on
         end
+        b.Text = label .. (on and " : ON" or " : OFF")
+        b.BackgroundColor3 = on and Color3.fromRGB(45, 155, 75) or Color3.fromRGB(55, 55, 65)
+    end
+
+    b.MouseButton1Click:Connect(function()
+        local currentlyOn = isDaily and autoHalloweenDailyQuestOn or autoHalloweenQuestOn
+        setEnabled(not currentlyOn)
+        if isDaily then
+            status("Halloween Daily Auto Claim: " .. (autoHalloweenDailyQuestOn and "ON" or "OFF"))
+        else
+            status("Halloween Hourly Auto Claim: " .. (autoHalloweenQuestOn and "ON" or "OFF"))
+        end
+        if currentlyOn then return end
+        task.spawn(function()
+            local questTypes = isDaily and { "Floors" } or { "Doors", "Floors", "PumpkinRolls", "Rolls" }
+            while (isDaily and autoHalloweenDailyQuestOn or (not isDaily and autoHalloweenQuestOn)) and not closed do
+                for _, questType in ipairs(questTypes) do
+                    local active = isDaily and autoHalloweenDailyQuestOn or autoHalloweenQuestOn
+                    if not active or closed then break end
+                    local ok, err = pcall(function()
+                        fireRE("HalloweenQuestService", "Claim", isDaily and "Daily" or "Hourly", questType)
+                    end)
+                    if not ok then
+                        warn("[Halloween Quest] Claim failed (" .. (isDaily and "Daily/" or "Hourly/") .. questType .. "):", err)
+                    end
+                    task.wait(1)
+                end
+                for _ = 1, 29 do
+                    local active = isDaily and autoHalloweenDailyQuestOn or autoHalloweenQuestOn
+                    if not active or closed then break end
+                    task.wait(1)
+                end
+            end
+        end)
     end)
-end, function()
-    autoHalloweenQuestOn = false
-    status("Halloween Hourly Auto Claim: OFF")
-end)
+end
+
+halloweenQuestToggle("⏱️ Hourly", "Hourly", false)
+halloweenQuestToggle("📅 Daily", "Daily", true)
 
 section(right, "🍬 CANDY FARM")
 
@@ -1635,6 +1683,7 @@ close.MouseButton1Click:Connect(function()
     autoFarmCandyOn = false
     autoHalloweenDiceOn = false
     autoHalloweenQuestOn = false
+    autoHalloweenDailyQuestOn = false
     autoIncomePotionOn = false
     autoLuckPotionOn = false
     autoDamagePotionOn = false
