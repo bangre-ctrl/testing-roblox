@@ -406,7 +406,7 @@ local function addTab(name, emoji)
  b.BorderSizePixel=0; b.LayoutOrder=#tabButtons+1; b.Parent=sidebar
  Instance.new("UICorner",b).CornerRadius=UDim.new(0,8); tabButtons[name]=b
 end
-addTab("Main","🏠"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Potion","🧪"); addTab("Hallowen","🎃"); addTab("Setting","⚙️")
+addTab("Main","🏠"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Potion","🧪"); addTab("Hallowen","🎃"); addTab("Halloween Potion","🧪"); addTab("Setting","⚙️")
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
 left.Size = UDim2.new(0, 588, 0, 448)
@@ -1274,9 +1274,9 @@ end, function()
     status("Auto farm Candy: OFF")
 end)
 
--- Halloween potion controls: one-click use buttons in the right column.
-section(left, "🎃 HALLOWEEN POTION")
-section(right, "🧪 POTION ITEMS")
+-- Dedicated Halloween Potion page: buttons are one-click/manual use only.
+currentGroup = "Halloween Potion"
+section(right, "🎃 HALLOWEEN POTION ITEMS")
 
 local function useHalloweenPotion(potionName)
     local ok, err = pcall(function()
@@ -1510,7 +1510,7 @@ toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); 
 toggle(left,"👁️ Hide All Bases",nextLeft(),function() hideBasesOn=true; reapplyVisuals(); status("Hide All Bases: ON") end,function() hideBasesOn=false; reapplyVisuals(); status("Hide All Bases: OFF") end)
 local function showGroup(group)
  left.Visible = (group == "Main" or group == "Hallowen" or group == "Setting")
- right.Visible = (group == "Quest" or group == "Tower" or group == "Teleport" or group == "Potion" or group == "Hallowen")
+ right.Visible = (group == "Quest" or group == "Tower" or group == "Teleport" or group == "Potion" or group == "Hallowen" or group == "Halloween Potion")
  for _,container in ipairs({left,right}) do
   for _,o in ipairs(container:GetChildren()) do if o:IsA("GuiObject") then o.Visible=(o:GetAttribute("PageGroup")==group) end end
   container.CanvasPosition=Vector2.new(0,0)
