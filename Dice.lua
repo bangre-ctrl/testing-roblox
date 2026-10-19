@@ -86,6 +86,7 @@ local autoFarmCandyOn = false
 local autoHalloweenDiceOn = false
 local autoHalloweenQuestOn = false
 local autoHalloweenDailyQuestOn = false
+local autoHalloweenPotionOn = false
 local antiAfkOn, fpsOn, hideBasesOn = false, false, false
 local antiAfkBusy = false
 local savedProperties, savedLighting = {}, {}
@@ -1273,6 +1274,38 @@ end, function()
     status("Auto farm Candy: OFF")
 end)
 
+toggle(right, "🎃 Auto Halloween Potion", nextRight(), function()
+    autoHalloweenPotionOn = true
+    status("Auto Halloween Potion: ON")
+    task.spawn(function()
+        local potionNames = { "Pumpkin Pot I", "Pumpkin Pot II", "Pumpkin Pot III" }
+        local nextUse = {}
+        while autoHalloweenPotionOn and not closed and thisDiceHubRunId == shared.__DiceHubRunId do
+            for _, potionName in ipairs(potionNames) do
+                if not autoHalloweenPotionOn or closed or thisDiceHubRunId ~= shared.__DiceHubRunId then break end
+                local now = os.clock()
+                if not nextUse[potionName] or now >= nextUse[potionName] then
+                    local ok, err = pcall(function()
+                        fireRE("BoostService", "Use", potionName)
+                    end)
+                    if ok then
+                        nextUse[potionName] = os.clock() + 310
+                        status("Halloween Potion: used " .. potionName)
+                    else
+                        warn("[Halloween Potion]", potionName, err)
+                        nextUse[potionName] = os.clock() + 10
+                    end
+                    task.wait(0.35)
+                end
+            end
+            task.wait(1)
+        end
+    end)
+end, function()
+    autoHalloweenPotionOn = false
+    status("Auto Halloween Potion: OFF")
+end)
+
 toggle(right, "🧪 Auto Potion", nextRight(), function()
     autoIncomePotionOn = true
     autoLuckPotionOn = true
@@ -1723,6 +1756,7 @@ close.MouseButton1Click:Connect(function()
     autoHalloweenDiceOn = false
     autoHalloweenQuestOn = false
     autoHalloweenDailyQuestOn = false
+    autoHalloweenPotionOn = false
     autoIncomePotionOn = false
     autoLuckPotionOn = false
     autoDamagePotionOn = false
