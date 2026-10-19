@@ -1306,21 +1306,7 @@ end, function()
     status("Auto Halloween Potion: OFF")
 end)
 
-toggle(right, "🧪 Auto Potion", nextRight(), function()
-    autoIncomePotionOn = true
-    autoLuckPotionOn = true
-    autoDamagePotionOn = true
-    status("Auto Potion: ON")
-    runPotionCycle(function() return autoIncomePotionOn end, INCOME_POTIONS, "Income")
-    runPotionCycle(function() return autoLuckPotionOn end, LUCK_POTIONS, "Luck")
-    runPotionCycle(function() return autoDamagePotionOn end, DAMAGE_POTIONS, "Damage")
-end, function()
-    autoIncomePotionOn = false
-    autoLuckPotionOn = false
-    autoDamagePotionOn = false
-    status("Auto Potion: OFF")
-end)
-
+-- Halloween-specific controls end here. Regular potions remain in the Potion tab.
 button(right, "🛍️ Teleport ke Candy Shop", function()
     local ok, err = pcall(function()
         local character = player.Character or player.CharacterAdded:Wait()
