@@ -1125,6 +1125,31 @@ local halloweenHousePositions = {
     Vector3.new(-2076.938720703125, -18.637426376342773, 11351.5859375),
 }
 
+section(right, "🎲 HALLOWEEN DICE")
+
+toggle(right, "🎲 Rolls Hallowen Dice x1", nextRight(), function()
+    autoHalloweenDiceOn = true
+    status("Rolls Hallowen Dice x1: ON")
+    task.spawn(function()
+        while autoHalloweenDiceOn and not closed do
+            local ok, result = pcall(function()
+                return invokeRF("PumpkinDiceService", "Roll", 1)
+            end)
+            if not ok then
+                warn("[Halloween Dice] Roll failed:", result)
+                status("Halloween Dice roll failed")
+            end
+            for _ = 1, 10 do
+                if not autoHalloweenDiceOn or closed then break end
+                task.wait(0.1)
+            end
+        end
+    end)
+end, function()
+    autoHalloweenDiceOn = false
+    status("Rolls Hallowen Dice x1: OFF")
+end)
+
 section(right, "🎃 AUTO CLAIM QUEST HALLOWEN HOURLY")
 
 toggle(right, "🎃 Auto Claim Halloween Hourly", nextRight(), function()
@@ -1152,29 +1177,6 @@ toggle(right, "🎃 Auto Claim Halloween Hourly", nextRight(), function()
 end, function()
     autoHalloweenQuestOn = false
     status("Halloween Hourly Auto Claim: OFF")
-end)
-
-toggle(right, "🎲 Rolls Hallowen Dice x1", nextRight(), function()
-    autoHalloweenDiceOn = true
-    status("Rolls Hallowen Dice x1: ON")
-    task.spawn(function()
-        while autoHalloweenDiceOn and not closed do
-            local ok, result = pcall(function()
-                return invokeRF("PumpkinDiceService", "Roll", 1)
-            end)
-            if not ok then
-                warn("[Halloween Dice] Roll failed:", result)
-                status("Halloween Dice roll failed")
-            end
-            for _ = 1, 10 do
-                if not autoHalloweenDiceOn or closed then break end
-                task.wait(0.1)
-            end
-        end
-    end)
-end, function()
-    autoHalloweenDiceOn = false
-    status("Rolls Hallowen Dice x1: OFF")
 end)
 
 section(right, "🍬 CANDY FARM")
