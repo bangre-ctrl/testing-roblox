@@ -82,6 +82,7 @@ local autoDamagePotionOn = false
 local autoCollectOn = false
 local autoDailyQuestOn = false
 local autoWeeklyQuestOn = false
+local autoFarmCandyOn = false
 local antiAfkOn, fpsOn, hideBasesOn = false, false, false
 local antiAfkBusy = false
 local savedProperties, savedLighting = {}, {}
@@ -401,7 +402,7 @@ local function addTab(name, emoji)
  b.BorderSizePixel=0; b.LayoutOrder=#tabButtons+1; b.Parent=sidebar
  Instance.new("UICorner",b).CornerRadius=UDim.new(0,8); tabButtons[name]=b
 end
-addTab("Main","🏠"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Potion","🧪"); addTab("Setting","⚙️")
+addTab("Main","🏠"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Potion","🧪"); addTab("Hallowen","🎃"); addTab("Setting","⚙️")
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
 left.Size = UDim2.new(0, 588, 0, 448)
@@ -1107,6 +1108,65 @@ end)
 
 
 --==================================================
+-- HALLOWEN: CANDY FARM
+--==================================================
+
+currentGroup = "Hallowen"
+section(left, "🎃 Hallowen")
+
+local halloweenHousePositions = {
+    Vector3.new(-1918.9908447265625, -18.525264739990234, 11269.607421875),
+    Vector3.new(-1874.678955078125, -18.52757453918457, 11318.90625),
+    Vector3.new(-1872.4171142578125, -18.5252742767334, 11360.30859375),
+    Vector3.new(-1806.24169921875, -18.522422790527344, 11321.392578125),
+    Vector3.new(-1800.51025390625, -18.514902114868164, 11360.6962890625),
+    Vector3.new(-1993.9033203125, -18.54891586303711, 11360.33203125),
+    Vector3.new(-2076.938720703125, -18.637426376342773, 11351.5859375),
+}
+
+section(right, "🍬 CANDY FARM")
+
+toggle(right, "🍬 Auto farm Candy", nextRight(), function()
+    autoFarmCandyOn = true
+    status("Auto farm Candy: ON")
+    task.spawn(function()
+        while autoFarmCandyOn and not closed do
+            for houseIndex, position in ipairs(halloweenHousePositions) do
+                if not autoFarmCandyOn or closed then break end
+
+                local character = player.Character
+                local root = character and character:FindFirstChild("HumanoidRootPart")
+                if not root then
+                    character = player.CharacterAdded:Wait()
+                    root = character:WaitForChild("HumanoidRootPart")
+                end
+
+                if root and autoFarmCandyOn and not closed then
+                    local ok, err = pcall(function()
+                        root.CFrame = CFrame.new(position)
+                    end)
+                    if ok then
+                        status("Candy Farm: House " .. tostring(houseIndex) .. "/7")
+                    else
+                        warn("[Candy Farm] Teleport failed:", err)
+                    end
+                end
+
+                -- 5 seconds at each house; a full 7-house cycle is 35 seconds,
+                -- exceeding the 27-second per-house cooldown.
+                for _ = 1, 50 do
+                    if not autoFarmCandyOn or closed then break end
+                    task.wait(0.1)
+                end
+            end
+        end
+    end)
+end, function()
+    autoFarmCandyOn = false
+    status("Auto farm Candy: OFF")
+end)
+
+--==================================================
 -- RIGHT: POTIONS
 --==================================================
 
@@ -1284,8 +1344,8 @@ end)
 toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
 toggle(left,"👁️ Hide All Bases",nextLeft(),function() hideBasesOn=true; reapplyVisuals(); status("Hide All Bases: ON") end,function() hideBasesOn=false; reapplyVisuals(); status("Hide All Bases: OFF") end)
 local function showGroup(group)
- left.Visible = (group == "Main" or group == "Setting")
- right.Visible = (group == "Quest" or group == "Tower" or group == "Teleport" or group == "Potion")
+ left.Visible = (group == "Main" or group == "Hallowen" or group == "Setting")
+ right.Visible = (group == "Quest" or group == "Tower" or group == "Teleport" or group == "Potion" or group == "Hallowen")
  for _,container in ipairs({left,right}) do
   for _,o in ipairs(container:GetChildren()) do if o:IsA("GuiObject") then o.Visible=(o:GetAttribute("PageGroup")==group) end end
   container.CanvasPosition=Vector2.new(0,0)
@@ -1503,6 +1563,7 @@ close.MouseButton1Click:Connect(function()
     autoCollectOn = false
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
+    autoFarmCandyOn = false
     autoIncomePotionOn = false
     autoLuckPotionOn = false
     autoDamagePotionOn = false
