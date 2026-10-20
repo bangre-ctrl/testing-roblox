@@ -71,14 +71,22 @@ toggle("FPS Boost","fps",function(on)
  if on then pcall(function() Lighting.GlobalShadows=false end) else pcall(function() Lighting.GlobalShadows=true end) end
  status("FPS Boost "..(on and "ON" or "OFF"))
 end)
-toggle("Hide All Bases","hideBases",function(on)
- local plots=Workspace:FindFirstChild("Plots")
- if plots then for _,o in ipairs(plots:GetDescendants()) do pcall(function()
-   if o:IsA("BasePart") then o.LocalTransparencyModifier=on and 1 or 0
-   elseif o:IsA("Decal") or o:IsA("Texture") then o.Transparency=on and 1 or 0 end
- end) end end
- status("Hide All Bases "..(on and "ON" or "OFF"))
+toggle("Hide All Bases", "hideBases", function(on)
+    local plots = Workspace:FindFirstChild("Plots")
+    if plots then
+        for _, object in ipairs(plots:GetDescendants()) do
+            pcall(function()
+                if object:IsA("BasePart") then
+                    object.LocalTransparencyModifier = on and 1 or 0
+                elseif object:IsA("Decal") or object:IsA("Texture") then
+                    object.Transparency = on and 1 or 0
+                end
+            end)
+        end
+    end
+    status("Hide All Bases " .. (on and "ON" or "OFF"))
 end)
+
 -- drag / minimize
 local dragging, dragStart, startPos=false,nil,nil
 title.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dragging=true; dragStart=i.Position; startPos=main.Position; i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dragging=false end end) end end)
