@@ -76,7 +76,7 @@ toggle("Hide All Bases","hideBases",function(on)
  if plots then for _,o in ipairs(plots:GetDescendants()) do pcall(function()
    if o:IsA("BasePart") then o.LocalTransparencyModifier=on and 1 or 0
    elseif o:IsA("Decal") or o:IsA("Texture") then o.Transparency=on and 1 or 0 end
- end) end
+ end) end end
  status("Hide All Bases "..(on and "ON" or "OFF"))
 end)
 -- drag / minimize
