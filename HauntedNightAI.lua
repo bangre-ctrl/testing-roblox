@@ -1,6 +1,7 @@
 -- HauntedNightAI.lua
--- Starts ONLY after the "Haunted Night has started" notification.
--- Uses Haunted Potion once, rolls Pumpkin Dice x1, and stops at countdown end.
+-- Persistent event watcher: only starts a session after the Haunted Night start notification.
+-- If Haunted Night is absent or another event is running, stay idle (no potion, no rolls).
+-- After the countdown ends, return to waiting for the next Haunted Night.
 -- Includes a standalone Anti-AFK loop based on Dice.lua (W tap every 10s).
 -- Does not modify or load Dice.lua.
 
@@ -227,12 +228,14 @@ while isCurrentRun() do
             countdownSeen = false
             potionUsedThisEvent = false
             lastRollAt = 0
+            log("Sesi Haunted Night selesai. Menunggu Haunted Night berikutnya; tidak roll/pakai potion saat idle.")
         elseif os.clock() - eventStartedAt > CONFIG.CountdownGracePeriod then
             log("Countdown tidak muncul setelah notifikasi; event dibatalkan agar tidak roll pada weather lain.")
             eventActive = false
             countdownSeen = false
             potionUsedThisEvent = false
             lastRollAt = 0
+            log("Kembali menunggu Haunted Night berikutnya; tidak roll/pakai potion saat idle.")
         end
     end
 
