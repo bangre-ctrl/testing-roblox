@@ -1,10 +1,12 @@
 -- HauntedNightAI.lua
 -- Starts ONLY after the "Haunted Night has started" notification.
--- Uses Haunted Potion once, rolls Pumpkin Dice x1, and stops at 1s/countdown disappearance.
--- Separate file; does not modify Dice.lua.
+-- Uses Haunted Potion once, rolls Pumpkin Dice x1, and stops at countdown end.
+-- Includes a standalone Anti-AFK loop based on Dice.lua (W tap every 10s).
+-- Does not modify or load Dice.lua.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 if not player then
@@ -16,9 +18,17 @@ local CONFIG = {
     ScanInterval = 0.2,
     RollInterval = 1.0,
     CountdownGracePeriod = 15,
+    AntiAFKInterval = 10,
+    AntiAFKKeyHold = 0.12,
     UsePotion = true,
+    AntiAFK = true,
     Debug = true,
 }
+
+-- Invalidate loops from an older HauntedNightAI execution.
+shared.__HauntedNightAIRunId = (shared.__HauntedNightAIRunId or 0) + 1
+local thisRunId = shared.__HauntedNightAIRunId
+local stopped = false
 
 local network = ReplicatedStorage:WaitForChild("Network")
 local pumpkinRoll = network:WaitForChild("PumpkinDiceService"):WaitForChild("RF"):WaitForChild("Roll")
@@ -30,6 +40,7 @@ local eventStartedAt = 0
 local potionUsedThisEvent = false
 local lastRollAt = 0
 local lastSeenNotification = ""
+local antiAfkBusy = false
 
 local function log(...)
     if CONFIG.Debug then
@@ -37,16 +48,19 @@ local function log(...)
     end
 end
 
+local function isCurrentRun()
+    return not stopped and shared.__HauntedNightAIRunId == thisRunId
+end
+
 local function isHauntedStartMessage(value)
     if type(value) ~= "string" then
         return false
     end
-    local normalized = string.lower(value)
-    return normalized:find("haunted night has started", 1, true) ~= nil
+    return string.lower(value):find("haunted night has started", 1, true) ~= nil
 end
 
 local function beginEvent(message)
-    if eventActive then
+    if eventActive or not isCurrentRun() then
         return
     end
 
@@ -56,6 +70,7 @@ local function beginEvent(message)
     potionUsedThisEvent = false
     lastRollAt = 0
     lastSeenNotification = message or ""
+
     log("Notifikasi Haunted Night terdeteksi:", message or "(teks tidak tersedia)")
 
     if CONFIG.UsePotion and not potionUsedThisEvent then
@@ -71,17 +86,17 @@ local function beginEvent(message)
     end
 end
 
-local function inspectTextObject(obj, checkInitialText)
+local function watchTextObject(obj, checkInitialText)
     if not (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then
         return
     end
 
     local function checkText()
+        if not isCurrentRun() then
+            return
+        end
         local value = obj.Text
-        if isHauntedStartMessage(value) and value ~= lastSeenNotification then
-            beginEvent(value)
-        elseif isHauntedStartMessage(value) and not eventActive then
-            -- Allows a fresh notification clone with the same message text.
+        if isHauntedStartMessage(value) and not eventActive then
             beginEvent(value)
         end
     end
@@ -103,14 +118,14 @@ local function connectNotificationWatcher()
         return
     end
 
-    -- Existing template labels are watched for text changes, but not scanned at startup
-    -- to avoid treating a template's default text as a new event.
+    -- Watch existing text elements for future text changes; don't trigger from
+    -- a template's initial/default text at startup.
     for _, obj in ipairs(textNotifications:GetDescendants()) do
-        inspectTextObject(obj, false)
+        watchTextObject(obj, false)
     end
 
     textNotifications.DescendantAdded:Connect(function(obj)
-        inspectTextObject(obj, true)
+        watchTextObject(obj, true)
     end)
 
     log("Pemantau notifikasi aktif.")
@@ -157,10 +172,45 @@ local function rollPumpkinDiceX1()
     end
 end
 
+-- Standalone Anti-AFK copied in behavior from Dice.lua:
+-- send a short W key tap every 10 seconds, with safe key release.
+task.spawn(function()
+    if not CONFIG.AntiAFK then
+        return
+    end
+
+    log("Anti-AFK aktif (tap W setiap " .. tostring(CONFIG.AntiAFKInterval) .. " detik).")
+
+    while isCurrentRun() do
+        if not antiAfkBusy then
+            antiAfkBusy = true
+            local ok, err = pcall(function()
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+                task.wait(CONFIG.AntiAFKKeyHold)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+            end)
+            if not ok then
+                warn("[HauntedNightAI] Anti-AFK gagal:", err)
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+                end)
+            end
+            antiAfkBusy = false
+        end
+
+        for _ = 1, CONFIG.AntiAFKInterval * 10 do
+            if not isCurrentRun() then
+                break
+            end
+            task.wait(0.1)
+        end
+    end
+end)
+
 task.spawn(connectNotificationWatcher)
 log("Aktif. Menunggu notifikasi Haunted Night has started...")
 
-while true do
+while isCurrentRun() do
     if eventActive then
         local label = getWeatherCountdownLabel()
         local secondsLeft = label and parseCountdown(label.Text) or nil
@@ -178,7 +228,7 @@ while true do
             potionUsedThisEvent = false
             lastRollAt = 0
         elseif os.clock() - eventStartedAt > CONFIG.CountdownGracePeriod then
-            log("Countdown tidak muncul setelah notifikasi; event dibatalkan untuk menghindari roll yang salah.")
+            log("Countdown tidak muncul setelah notifikasi; event dibatalkan agar tidak roll pada weather lain.")
             eventActive = false
             countdownSeen = false
             potionUsedThisEvent = false
