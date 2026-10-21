@@ -65,10 +65,31 @@ local function section(s)
  local l=Instance.new("TextLabel",scroll); l.Size=UDim2.new(1,-8,0,25); l.BackgroundTransparency=1; l.Text=s; l.TextColor3=Color3.fromRGB(180,210,255); l.Font=Enum.Font.GothamBold; l.TextSize=14; l.TextXAlignment=Enum.TextXAlignment.Left
 end
 local buttons={}
+local pendingToggleRow=nil
+local function finishToggleRow()
+ pendingToggleRow=nil
+end
 local function toggle(label,key,callback)
- local b=Instance.new("TextButton",scroll); b.Size=UDim2.new(1,-8,0,34); b.BackgroundColor3=Color3.fromRGB(55,55,68); b.TextColor3=Color3.new(1,1,1); b.Font=Enum.Font.GothamBold; b.TextSize=12
+ local row=pendingToggleRow
+ if not row then
+  row=Instance.new("Frame",scroll); row.Name="ToggleRow"; row.Size=UDim2.new(1,-8,0,38); row.BackgroundTransparency=1
+  pendingToggleRow=row
+ else
+  pendingToggleRow=nil
+ end
+ local b=Instance.new("TextButton",row)
+ b.Size=UDim2.new(row:FindFirstChild("LeftToggle") and 0.5 or 0.5,-4,0,34)
+ b.Position=UDim2.new(row:FindFirstChild("LeftToggle") and 0.5 or 0, row:FindFirstChild("LeftToggle") and 4 or 0,0,0)
+ if not row:FindFirstChild("LeftToggle") then b.Name="LeftToggle" else b.Name="RightToggle" end
+ b.BackgroundColor3=Color3.fromRGB(55,55,68); b.TextColor3=Color3.new(1,1,1); b.Font=Enum.Font.GothamBold; b.TextSize=12; b.TextWrapped=true
  local function paint() b.Text=label.." : "..(state[key] and "ON" or "OFF"); b.BackgroundColor3=state[key] and Color3.fromRGB(55,120,80) or Color3.fromRGB(55,55,68) end
  b.Activated:Connect(function() state[key]=not state[key]; paint(); callback(state[key]) end); paint(); buttons[key]=b
+end
+-- Keep section headers full-width and start each section on a fresh row.
+local originalSection=section
+section=function(s)
+ pendingToggleRow=nil
+ local l=Instance.new("TextLabel",scroll); l.Size=UDim2.new(1,-8,0,25); l.BackgroundTransparency=1; l.Text=s; l.TextColor3=Color3.fromRGB(180,210,255); l.Font=Enum.Font.GothamBold; l.TextSize=14; l.TextXAlignment=Enum.TextXAlignment.Left
 end
 section("📜 AUTO HALLOWEEN QUEST")
 toggle("Hourly Quest","hourly",function(on) status("Hourly Quest "..(on and "ON" or "OFF")) end)
