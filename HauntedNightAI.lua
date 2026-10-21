@@ -96,47 +96,102 @@ minimize.Activated:Connect(function() minimized=not minimized; scroll.Visible=no
 close.Activated:Connect(function() closed=true; state.haunted=false; state.antiAfk=false; shared.__HauntedNightAIRunId=shared.__HauntedNightAIRunId+1; gui:Destroy() end)
 
 -- Timer parsing and potion UI paths confirmed from PlayerGui.
+-- Halloween potion timer parser. Supports formats such as "7h 55m", "2h 4m", "4m 30s", "55s", and "1s".
 local function parseTimer(v)
- if type(v)~="string" then return nil end
- local m=tonumber(v:match("(%d+)%s*m")); local s=tonumber(v:match("(%d+)%s*s"))
- if m or s then return (m or 0)*60+(s or 0) end
- return tonumber(v:match("^%s*(%d+)%s*$"))
+    if type(v) ~= "string" then return nil end
+    local textValue = string.lower(v)
+    local h = tonumber(textValue:match("(%d+)%s*h")) or 0
+    local m = tonumber(textValue:match("(%d+)%s*m")) or 0
+    local s = tonumber(textValue:match("(%d+)%s*s")) or 0
+    if textValue:match("%d+%s*h") or textValue:match("%d+%s*m") or textValue:match("%d+%s*s") then
+        return h * 3600 + m * 60 + s
+    end
+    return tonumber(textValue:match("^%s*(%d+)%s*$"))
 end
+
 local function timerFor(name)
- local pg=player:FindFirstChildOfClass("PlayerGui"); local root=pg and pg:FindFirstChild("Root"); local menus=root and root:FindFirstChild("Menus"); local boosts=menus and menus:FindFirstChild("Boosts"); local content=boosts and boosts:FindFirstChild("Content"); local sf=content and content:FindFirstChild("ScrollingFrame")
- local card=sf and sf:FindFirstChild("Boost_"..name); local label=card and card:FindFirstChild("TextLabel")
- if label and label:IsA("TextLabel") then return label end
- return nil
+    local pg = player:FindFirstChildOfClass("PlayerGui")
+    local root = pg and pg:FindFirstChild("Root")
+    local menus = root and root:FindFirstChild("Menus")
+    local boosts = menus and menus:FindFirstChild("Boosts")
+    local content = boosts and boosts:FindFirstChild("Content")
+    local sf = content and content:FindFirstChild("ScrollingFrame")
+    local card = sf and sf:FindFirstChild("Boost_" .. name)
+    local label = card and card:FindFirstChild("TextLabel")
+    if label and label:IsA("TextLabel") then
+        return label
+    end
+    return nil
 end
+
 local function tierCycle(enabled, tiers, category)
- task.spawn(function()
-  local usedAt={}
-  while alive() and not closed do
-   if state[enabled] then
-    local activeName,activeTime=nil,nil
-    for _,name in ipairs(tiers) do
-      local label=timerFor(name); local t=label and parseTimer(label.Text)
-      if t and t>1 then activeName=name; activeTime=t; break end
-    end
-    if not activeName then
-      for _,name in ipairs(tiers) do
-       if not usedAt[name] or os.clock()-usedAt[name]>2 then
-        local label=timerFor(name); local t=label and parseTimer(label.Text)
-        -- Never overwrite an existing active countdown. Only try the highest available tier.
-        if not (t and t>1) then
-          if firePotion(name) then usedAt[name]=os.clock(); break end
+    task.spawn(function()
+        local pendingName = nil
+        local pendingSince = 0
+        while alive() and not closed do
+            if state[enabled] then
+                local activeName = nil
+                local timerUnknown = false
+
+                -- If any potion in this category has a live countdown, do not use another.
+                for _, name in ipairs(tiers) do
+                    local label = timerFor(name)
+                    if label then
+                        local seconds = parseTimer(label.Text)
+                        if seconds == nil then
+                            timerUnknown = true
+                        elseif seconds > 1 then
+                            activeName = name
+                            break
+                        end
+                    end
+                end
+
+                if activeName then
+                    pendingName = nil
+                    status(category .. " Potion active: " .. activeName)
+                elseif timerUnknown then
+                    -- Fail closed: don't consume more potions if a visible timer can't be parsed.
+                    pendingName = nil
+                    status(category .. " Potion: timer unreadable; waiting")
+                elseif pendingName then
+                    -- Give the UI time to show the new countdown. If it never appears,
+                    -- assume that tier may be unavailable and try the next lower tier.
+                    if os.clock() - pendingSince >= 8 then
+                        local nextIndex = table.find(tiers, pendingName)
+                        if nextIndex and nextIndex < #tiers then
+                            local nextName = tiers[nextIndex + 1]
+                            log(category .. " timer did not appear for " .. pendingName .. "; trying " .. nextName)
+                            if firePotion(nextName) then
+                                pendingName = nextName
+                                pendingSince = os.clock()
+                            else
+                                pendingName = nil
+                            end
+                        else
+                            pendingName = nil
+                            status(category .. " Potion: no active timer detected")
+                        end
+                    end
+                else
+                    -- No timer is active: try the highest tier first.
+                    local firstName = tiers[1]
+                    if firePotion(firstName) then
+                        pendingName = firstName
+                        pendingSince = os.clock()
+                    end
+                end
+            else
+                pendingName = nil
+            end
+            task.wait(0.5)
         end
-       end
-      end
-    end
-   end
-   task.wait(.5)
-  end
- end)
+    end)
 end
-tierCycle("pumpkin",{"Pumpkin Pot III","Pumpkin Pot II","Pumpkin Pot I"},"Pumpkin")
-tierCycle("candy",{"Candy Pot III","Candy Pot II","Candy Pot I"},"Candy")
-tierCycle("damage",{"Damage III","Damage II","Damage I"},"Damage")
+
+tierCycle("pumpkin", {"Pumpkin Pot III", "Pumpkin Pot II", "Pumpkin Pot I"}, "Pumpkin")
+tierCycle("candy", {"Candy Pot III", "Candy Pot II", "Candy Pot I"}, "Candy")
+tierCycle("damage", {"Damage Pot III", "Damage Pot II", "Damage Pot I"}, "Damage")
 
 -- Haunted Night notification watcher and event loop; event automation is gated by toggle.
 local function isStart(s) return type(s)=="string" and string.lower(s):find("haunted night has started",1,true)~=nil end
