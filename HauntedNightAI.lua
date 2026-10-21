@@ -110,16 +110,17 @@ local function setMinimized(value)
  minimized=value
  scroll.Visible=not minimized
  if minimized then
-  main.Size=UDim2.fromOffset(700,66)
-  title.Size=UDim2.new(0,205,0,38)
-  statusLabel.Position=UDim2.fromOffset(205,9); statusLabel.Size=UDim2.fromOffset(62,42); statusLabel.TextSize=11
-  pumpkinStatus.Position=UDim2.fromOffset(270,9); pumpkinStatus.Size=UDim2.fromOffset(120,42); pumpkinStatus.TextSize=10
-  candyStatus.Position=UDim2.fromOffset(390,9); candyStatus.Size=UDim2.fromOffset(105,42); candyStatus.TextSize=10
-  damageStatus.Position=UDim2.fromOffset(495,9); damageStatus.Size=UDim2.fromOffset(115,42); damageStatus.TextSize=10
+  -- Compact square-ish status card: labels stack vertically, not horizontally.
+  main.Size=UDim2.fromOffset(330,142)
+  title.Position=UDim2.fromOffset(10,2); title.Size=UDim2.new(1,-78,0,30)
+  statusLabel.Position=UDim2.fromOffset(12,38); statusLabel.Size=UDim2.new(1,-24,0,18); statusLabel.TextSize=12
+  pumpkinStatus.Position=UDim2.fromOffset(12,59); pumpkinStatus.Size=UDim2.new(1,-24,0,17); pumpkinStatus.TextSize=11
+  candyStatus.Position=UDim2.fromOffset(12,78); candyStatus.Size=UDim2.new(1,-24,0,17); candyStatus.TextSize=11
+  damageStatus.Position=UDim2.fromOffset(12,97); damageStatus.Size=UDim2.new(1,-24,0,17); damageStatus.TextSize=11
   minimize.Text="□"
  else
   main.Size=UDim2.fromOffset(420,570)
-  title.Size=UDim2.new(1,-70,0,38)
+  title.Position=UDim2.fromOffset(10,0); title.Size=UDim2.new(1,-70,0,38)
   statusLabel.Position=UDim2.fromOffset(10,37); statusLabel.Size=UDim2.new(1,-20,0,18); statusLabel.TextSize=12
   pumpkinStatus.Position=UDim2.fromOffset(10,54); pumpkinStatus.Size=UDim2.new(1,-20,0,15); pumpkinStatus.TextSize=11
   candyStatus.Position=UDim2.fromOffset(10,69); candyStatus.Size=UDim2.new(1,-20,0,15); candyStatus.TextSize=11
