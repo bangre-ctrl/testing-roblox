@@ -167,7 +167,7 @@ task.spawn(function()
   if state.haunted and eventActive then
    local l=weatherLabel(); local seconds=l and parseTimer(l.Text)
    if seconds and seconds>1 then countdownSeen=true
-    if os.clock()-lastRoll>=1 then lastRoll=os.clock(); local ok,err=pcall(function() pumpkinRoll:InvokeServer(1) end); if not ok then warn("[HauntedNightAI] Roll failed: "..tostring(err)) end end
+    if os.clock()-lastRoll>=1 then lastRoll=os.clock(); local ok,err=pcall(function() pumpkinRoll:InvokeServer(5) end); if not ok then warn("[HauntedNightAI] Roll failed: "..tostring(err)) end end
    elseif countdownSeen then
     log("Event ended; roll stopped. Waiting next Haunted Night."); eventActive=false; countdownSeen=false; potionUsed=false
    elseif os.clock()-eventStarted>15 then
