@@ -35,17 +35,17 @@ pcall(function() local old=player.PlayerGui:FindFirstChild("HauntedNightHub"); i
 local gui=Instance.new("ScreenGui"); gui.Name="HauntedNightHub"; gui.ResetOnSpawn=false; gui.Parent=player:WaitForChild("PlayerGui")
 local camera=workspace.CurrentCamera
 local viewport=camera and camera.ViewportSize or Vector2.new(800,600)
-local normalWidth=math.max(260,math.min(420,viewport.X-24))
+local normalWidth=math.max(280,math.min(760,viewport.X-24))
 local normalHeight=math.max(300,math.min(570,viewport.Y-24))
 local main=Instance.new("Frame",gui); main.Size=UDim2.fromOffset(normalWidth,normalHeight); main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2); main.BackgroundColor3=Color3.fromRGB(25,25,32); main.BorderSizePixel=0; main.Active=true
 Instance.new("UICorner",main).CornerRadius=UDim.new(0,12)
 local title=Instance.new("TextLabel",main); title.Size=UDim2.new(1,-70,0,38); title.Position=UDim2.fromOffset(12,0); title.BackgroundTransparency=1; title.Text="🎃 Haunted Night Hub"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=17; title.TextXAlignment=Enum.TextXAlignment.Left
 local close=Instance.new("TextButton",main); close.Size=UDim2.fromOffset(32,28); close.Position=UDim2.new(1,-38,0,5); close.Text="X"; close.TextColor3=Color3.new(1,1,1); close.BackgroundColor3=Color3.fromRGB(170,55,55)
 local minimize=Instance.new("TextButton",main); minimize.Size=UDim2.fromOffset(28,28); minimize.Position=UDim2.new(1,-70,0,5); minimize.Text="–"; minimize.TextColor3=Color3.new(1,1,1); minimize.BackgroundColor3=Color3.fromRGB(70,70,85)
-statusLabel=Instance.new("TextLabel",main); statusLabel.Size=UDim2.new(1,-20,0,18); statusLabel.Position=UDim2.fromOffset(10,37); statusLabel.BackgroundTransparency=1; statusLabel.Text="Ready"; statusLabel.TextColor3=Color3.fromRGB(120,205,255); statusLabel.TextSize=12; statusLabel.Font=Enum.Font.Gotham; statusLabel.TextXAlignment=Enum.TextXAlignment.Left
-local pumpkinStatus=Instance.new("TextLabel",main); pumpkinStatus.Size=UDim2.new(1,-20,0,15); pumpkinStatus.Position=UDim2.fromOffset(10,54); pumpkinStatus.BackgroundTransparency=1; pumpkinStatus.Text="Pumpkin: idle"; pumpkinStatus.TextColor3=Color3.fromRGB(255,190,90); pumpkinStatus.TextSize=11; pumpkinStatus.Font=Enum.Font.Gotham; pumpkinStatus.TextXAlignment=Enum.TextXAlignment.Left
-local candyStatus=Instance.new("TextLabel",main); candyStatus.Size=UDim2.new(1,-20,0,15); candyStatus.Position=UDim2.fromOffset(10,69); candyStatus.BackgroundTransparency=1; candyStatus.Text="Candy: idle"; candyStatus.TextColor3=Color3.fromRGB(255,150,210); candyStatus.TextSize=11; candyStatus.Font=Enum.Font.Gotham; candyStatus.TextXAlignment=Enum.TextXAlignment.Left
-local damageStatus=Instance.new("TextLabel",main); damageStatus.Size=UDim2.new(1,-20,0,15); damageStatus.Position=UDim2.fromOffset(10,84); damageStatus.BackgroundTransparency=1; damageStatus.Text="Damage: idle"; damageStatus.TextColor3=Color3.fromRGB(170,210,255); damageStatus.TextSize=11; damageStatus.Font=Enum.Font.Gotham; damageStatus.TextXAlignment=Enum.TextXAlignment.Left
+statusLabel=Instance.new("TextLabel",main); statusLabel.Size=UDim2.new(0,100,0,28); statusLabel.Position=UDim2.fromOffset(10,38); statusLabel.BackgroundTransparency=1; statusLabel.Text="Ready"; statusLabel.TextColor3=Color3.fromRGB(120,205,255); statusLabel.TextSize=12; statusLabel.Font=Enum.Font.GothamBold; statusLabel.TextXAlignment=Enum.TextXAlignment.Left
+local pumpkinStatus=Instance.new("TextLabel",main); pumpkinStatus.Size=UDim2.new(0.25,-20,0,28); pumpkinStatus.Position=UDim2.new(0,112,0,38); pumpkinStatus.BackgroundTransparency=1; pumpkinStatus.Text="Pumpkin: idle"; pumpkinStatus.TextColor3=Color3.fromRGB(255,190,90); pumpkinStatus.TextSize=11; pumpkinStatus.Font=Enum.Font.Gotham; pumpkinStatus.TextXAlignment=Enum.TextXAlignment.Left; pumpkinStatus.TextWrapped=true
+local candyStatus=Instance.new("TextLabel",main); candyStatus.Size=UDim2.new(0.25,-20,0,28); candyStatus.Position=UDim2.new(0.25,95,0,38); candyStatus.BackgroundTransparency=1; candyStatus.Text="Candy: idle"; candyStatus.TextColor3=Color3.fromRGB(255,150,210); candyStatus.TextSize=11; candyStatus.Font=Enum.Font.Gotham; candyStatus.TextXAlignment=Enum.TextXAlignment.Left; candyStatus.TextWrapped=true
+local damageStatus=Instance.new("TextLabel",main); damageStatus.Size=UDim2.new(0.25,-20,0,28); damageStatus.Position=UDim2.new(0.5,80,0,38); damageStatus.BackgroundTransparency=1; damageStatus.Text="Damage: idle"; damageStatus.TextColor3=Color3.fromRGB(170,210,255); damageStatus.TextSize=11; damageStatus.Font=Enum.Font.Gotham; damageStatus.TextXAlignment=Enum.TextXAlignment.Left; damageStatus.TextWrapped=true
 local minimized=false
 local function potionStatus(category, message)
  local target = category == "Pumpkin" and pumpkinStatus or category == "Candy" and candyStatus or damageStatus
@@ -58,7 +58,7 @@ local function potionStatus(category, message)
   end
  end
 end
-local scroll=Instance.new("ScrollingFrame",main); scroll.Position=UDim2.fromOffset(10,102); scroll.Size=UDim2.new(1,-20,1,-112); scroll.BackgroundTransparency=1; scroll.BorderSizePixel=0; scroll.ScrollBarThickness=5; scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; scroll.CanvasSize=UDim2.new()
+local scroll=Instance.new("ScrollingFrame",main); scroll.Position=UDim2.fromOffset(10,72); scroll.Size=UDim2.new(1,-20,1,-82); scroll.BackgroundTransparency=1; scroll.BorderSizePixel=0; scroll.ScrollBarThickness=5; scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; scroll.CanvasSize=UDim2.new()
 local layout=Instance.new("UIListLayout",scroll); layout.Padding=UDim.new(0,5); layout.SortOrder=Enum.SortOrder.LayoutOrder
 local pad=Instance.new("UIPadding",scroll); pad.PaddingTop=UDim.new(0,4); pad.PaddingBottom=UDim.new(0,8)
 local function section(s)
@@ -144,7 +144,7 @@ local function setMinimized(value)
   damageStatus.Position=UDim2.fromOffset(12,97); damageStatus.Size=UDim2.new(1,-24,0,17); damageStatus.TextSize=11
   minimize.Text="□"
  else
-  main.Size=UDim2.fromOffset(normalWidth,normalHeight); main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2); scroll.Size=UDim2.new(1,-20,1,-112)
+  main.Size=UDim2.fromOffset(normalWidth,normalHeight); main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2); scroll.Position=UDim2.fromOffset(10,72); scroll.Size=UDim2.new(1,-20,1,-82)
   title.Position=UDim2.fromOffset(10,0); title.Size=UDim2.new(1,-70,0,38)
   statusLabel.Position=UDim2.fromOffset(10,37); statusLabel.Size=UDim2.new(1,-20,0,18); statusLabel.TextSize=12
   pumpkinStatus.Position=UDim2.fromOffset(10,54); pumpkinStatus.Size=UDim2.new(1,-20,0,15); pumpkinStatus.TextSize=11
