@@ -82,11 +82,6 @@ local autoDamagePotionOn = false
 local autoCollectOn = false
 local autoDailyQuestOn = false
 local autoWeeklyQuestOn = false
-local autoFarmCandyOn = false
-local autoHalloweenDiceOn = false
-local autoHalloweenQuestOn = false
-local autoHalloweenDailyQuestOn = false
-local autoHalloweenPotionOn = false
 local antiAfkOn, fpsOn, hideBasesOn = false, false, false
 local antiAfkBusy = false
 local savedProperties, savedLighting = {}, {}
@@ -406,7 +401,7 @@ local function addTab(name, emoji)
  b.BorderSizePixel=0; b.LayoutOrder=#tabButtons+1; b.Parent=sidebar
  Instance.new("UICorner",b).CornerRadius=UDim.new(0,8); tabButtons[name]=b
 end
-addTab("Main","🏠"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Potion","🧪"); addTab("Hallowen","🎃"); addTab("Halloween Potion","🧪"); addTab("Setting","⚙️")
+addTab("Main","🏠"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Potion","🧪"); addTab("Setting","⚙️")
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
 left.Size = UDim2.new(0, 588, 0, 448)
@@ -1111,192 +1106,7 @@ end,function()
 end)
 
 
---==================================================
--- HALLOWEN: CANDY FARM
---==================================================
-
-currentGroup = "Hallowen"
-
-local halloweenHousePositions = {
-    Vector3.new(-1918.9908447265625, -18.525264739990234, 11269.607421875),
-    Vector3.new(-1874.678955078125, -18.52757453918457, 11318.90625),
-    Vector3.new(-1872.4171142578125, -18.5252742767334, 11360.30859375),
-    Vector3.new(-1806.24169921875, -18.522422790527344, 11321.392578125),
-    Vector3.new(-1800.51025390625, -18.514902114868164, 11360.6962890625),
-    Vector3.new(-1993.9033203125, -18.54891586303711, 11360.33203125),
-    Vector3.new(-2076.938720703125, -18.637426376342773, 11351.5859375),
-}
-
-section(right, "🎲 HALLOWEEN DICE")
-
-toggle(right, "🎲 Rolls Hallowen Dice x1", nextRight(), function()
-    autoHalloweenDiceOn = true
-    status("Rolls Hallowen Dice x1: ON")
-    task.spawn(function()
-        while autoHalloweenDiceOn and not closed do
-            local ok, result = pcall(function()
-                return invokeRF("PumpkinDiceService", "Roll", 1)
-            end)
-            if not ok then
-                warn("[Halloween Dice] Roll failed:", result)
-                status("Halloween Dice roll failed")
-            end
-            for _ = 1, 10 do
-                if not autoHalloweenDiceOn or closed then break end
-                task.wait(0.1)
-            end
-        end
-    end)
-end, function()
-    autoHalloweenDiceOn = false
-    status("Rolls Hallowen Dice x1: OFF")
-end)
-
-section(right, "🎃 Auto Hallowen Quest")
-
-local halloweenQuestRow = Instance.new("Frame")
-halloweenQuestRow:SetAttribute("PageGroup", currentGroup)
-halloweenQuestRow.Size = UDim2.new(1, -16, 0, 42)
-halloweenQuestRow.BackgroundTransparency = 1
-halloweenQuestRow.LayoutOrder = #right:GetChildren()
-halloweenQuestRow.Parent = right
-
-local halloweenQuestRowLayout = Instance.new("UIListLayout")
-halloweenQuestRowLayout.FillDirection = Enum.FillDirection.Horizontal
-halloweenQuestRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-halloweenQuestRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-halloweenQuestRowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-halloweenQuestRowLayout.Padding = UDim.new(0, 6)
-halloweenQuestRowLayout.Parent = halloweenQuestRow
-
-local function halloweenQuestToggle(label, enabledText, isDaily)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.5, -3, 1, 0)
-    b.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-    b.Text = label .. " : OFF"
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.TextSize = 12
-    b.Font = Enum.Font.GothamBold
-    b.BorderSizePixel = 0
-    b.LayoutOrder = isDaily and 2 or 1
-    b.Parent = halloweenQuestRow
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-
-    local function setEnabled(on)
-        if isDaily then
-            autoHalloweenDailyQuestOn = on
-        else
-            autoHalloweenQuestOn = on
-        end
-        b.Text = label .. (on and " : ON" or " : OFF")
-        b.BackgroundColor3 = on and Color3.fromRGB(45, 155, 75) or Color3.fromRGB(55, 55, 65)
-    end
-
-    b.MouseButton1Click:Connect(function()
-        local currentlyOn = isDaily and autoHalloweenDailyQuestOn or autoHalloweenQuestOn
-        setEnabled(not currentlyOn)
-        if isDaily then
-            status("Halloween Daily Auto Claim: " .. (autoHalloweenDailyQuestOn and "ON" or "OFF"))
-        else
-            status("Halloween Hourly Auto Claim: " .. (autoHalloweenQuestOn and "ON" or "OFF"))
-        end
-        if currentlyOn then return end
-        task.spawn(function()
-            local questTypes = isDaily and { "Floors", "Doors", "PumpkinRolls" } or { "Doors", "Floors", "PumpkinRolls", "Rolls", "Potion" }
-            while (isDaily and autoHalloweenDailyQuestOn or (not isDaily and autoHalloweenQuestOn)) and not closed do
-                for _, questType in ipairs(questTypes) do
-                    local active = isDaily and autoHalloweenDailyQuestOn or autoHalloweenQuestOn
-                    if not active or closed then break end
-                    local ok, err = pcall(function()
-                        fireRE("HalloweenQuestService", "Claim", isDaily and "Daily" or "Hourly", questType)
-                    end)
-                    if not ok then
-                        warn("[Halloween Quest] Claim failed (" .. (isDaily and "Daily/" or "Hourly/") .. questType .. "):", err)
-                    end
-                    task.wait(1)
-                end
-                for _ = 1, 29 do
-                    local active = isDaily and autoHalloweenDailyQuestOn or autoHalloweenQuestOn
-                    if not active or closed then break end
-                    task.wait(1)
-                end
-            end
-        end)
-    end)
-end
-
-halloweenQuestToggle("⏱️ Hourly", "Hourly", false)
-halloweenQuestToggle("📅 Daily", "Daily", true)
-
--- Forward declarations let the Halloween Auto Potion toggle reuse the same potion cycles.
-local POTION_USE_INTERVALS, INCOME_POTIONS, LUCK_POTIONS, DAMAGE_POTIONS
-local runPotionCycle
-
-section(right, "🍬 CANDY FARM")
-
-toggle(right, "🍬 Auto farm Candy", nextRight(), function()
-    autoFarmCandyOn = true
-    status("Auto farm Candy: ON")
-    task.spawn(function()
-        while autoFarmCandyOn and not closed do
-            for houseIndex, position in ipairs(halloweenHousePositions) do
-                if not autoFarmCandyOn or closed then break end
-
-                local character = player.Character
-                local root = character and character:FindFirstChild("HumanoidRootPart")
-                if not root then
-                    character = player.CharacterAdded:Wait()
-                    root = character:WaitForChild("HumanoidRootPart")
-                end
-
-                if root and autoFarmCandyOn and not closed then
-                    local ok, err = pcall(function()
-                        root.CFrame = CFrame.new(position)
-                    end)
-                    if ok then
-                        status("Candy Farm: House " .. tostring(houseIndex) .. "/7")
-                    else
-                        warn("[Candy Farm] Teleport failed:", err)
-                    end
-                end
-
-                -- 5 seconds at each house; a full 7-house cycle is 35 seconds,
-                -- exceeding the 27-second per-house cooldown.
-                for _ = 1, 50 do
-                    if not autoFarmCandyOn or closed then break end
-                    task.wait(0.1)
-                end
-            end
-        end
-    end)
-end, function()
-    autoFarmCandyOn = false
-    status("Auto farm Candy: OFF")
-end)
-
--- Dedicated Halloween Potion page: buttons are one-click/manual use only.
-currentGroup = "Halloween Potion"
-section(right, "🎃 HALLOWEEN POTION ITEMS")
-
-local function useHalloweenPotion(potionName)
-    local ok, err = pcall(function()
-        fireRE("BoostService", "Use", potionName)
-    end)
-    if ok then
-        status("Used " .. potionName)
-    else
-        warn("[Halloween Potion]", potionName, err)
-        status("Failed to use " .. potionName)
-    end
-end
-
-button(right, "🎃 Pumpkin Pot I", function() useHalloweenPotion("Pumpkin Pot I") end)
-button(right, "🎃 Pumpkin Pot II", function() useHalloweenPotion("Pumpkin Pot II") end)
-button(right, "🎃 Pumpkin Pot III", function() useHalloweenPotion("Pumpkin Pot III") end)
-button(right, "🍬 Candy Pot I", function() useHalloweenPotion("Candy Pot I") end)
-button(right, "🍬 Candy Pot II", function() useHalloweenPotion("Candy Pot II") end)
-
--- Keep Halloween teleports in the dedicated Teleport tab, separate from potion buttons.
+-- Teleport destinations
 currentGroup = "Teleport"
 button(right, "🛍️ Teleport ke Candy Shop", function()
     local ok, err = pcall(function()
@@ -1331,6 +1141,7 @@ button(right, "📍 Teleport ke Haunted House", function()
         status("Teleport ke Haunted House gagal")
     end
 end)
+
 
 --==================================================
 -- RIGHT: POTIONS
@@ -1510,8 +1321,8 @@ end)
 toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
 toggle(left,"👁️ Hide All Bases",nextLeft(),function() hideBasesOn=true; reapplyVisuals(); status("Hide All Bases: ON") end,function() hideBasesOn=false; reapplyVisuals(); status("Hide All Bases: OFF") end)
 local function showGroup(group)
- left.Visible = (group == "Main" or group == "Hallowen" or group == "Setting")
- right.Visible = (group == "Quest" or group == "Tower" or group == "Teleport" or group == "Potion" or group == "Hallowen" or group == "Halloween Potion")
+ left.Visible = (group == "Main" or group == "Setting")
+ right.Visible = (group == "Quest" or group == "Tower" or group == "Teleport" or group == "Potion")
  for _,container in ipairs({left,right}) do
   for _,o in ipairs(container:GetChildren()) do if o:IsA("GuiObject") then o.Visible=(o:GetAttribute("PageGroup")==group) end end
   container.CanvasPosition=Vector2.new(0,0)
@@ -1729,11 +1540,6 @@ close.MouseButton1Click:Connect(function()
     autoCollectOn = false
     autoDailyQuestOn = false
     autoWeeklyQuestOn = false
-    autoFarmCandyOn = false
-    autoHalloweenDiceOn = false
-    autoHalloweenQuestOn = false
-    autoHalloweenDailyQuestOn = false
-    autoHalloweenPotionOn = false
     autoIncomePotionOn = false
     autoLuckPotionOn = false
     autoDamagePotionOn = false
