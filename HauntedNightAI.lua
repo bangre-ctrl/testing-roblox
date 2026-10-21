@@ -69,7 +69,7 @@ local function fitNormalGui()
  local contentHeight=layout.AbsoluteContentSize.Y+12
  normalHeight=math.min(maxNormalHeight,math.max(190,66+contentHeight+10))
  main.Size=UDim2.fromOffset(normalWidth,normalHeight)
- main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2)
+ -- Preserve the user's current position instead of snapping back to center.
  scroll.Position=UDim2.fromOffset(10,66)
  scroll.Size=UDim2.new(1,-20,0,math.max(70,normalHeight-76))
  scroll.CanvasSize=UDim2.fromOffset(0,contentHeight)
@@ -147,7 +147,9 @@ local function setMinimized(value)
  scroll.Visible=not minimized
  if minimized then
   -- Compact square-ish status card: labels stack vertically, not horizontally.
-  local compactWidth=math.max(220,math.min(300,viewport.X-16)); local compactHeight=math.min(132,viewport.Y-16); main.Size=UDim2.fromOffset(compactWidth,compactHeight); main.Position=UDim2.new(.5,-compactWidth/2,.5,-compactHeight/2)
+  local compactWidth=math.max(220,math.min(300,viewport.X-16)); local compactHeight=math.min(132,viewport.Y-16)
+  -- Keep the current top-left position when switching to Mini GUI.
+  main.Size=UDim2.fromOffset(compactWidth,compactHeight)
   title.Position=UDim2.fromOffset(10,2); title.Size=UDim2.new(1,-78,0,30)
   statusLabel.Position=UDim2.fromOffset(12,38); statusLabel.Size=UDim2.new(1,-24,0,18); statusLabel.TextSize=12
   pumpkinStatus.Position=UDim2.fromOffset(12,59); pumpkinStatus.Size=UDim2.new(1,-24,0,17); pumpkinStatus.TextSize=11
