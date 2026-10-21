@@ -191,7 +191,7 @@ end
 
 tierCycle("pumpkin", {"Pumpkin Pot III", "Pumpkin Pot II", "Pumpkin Pot I"}, "Pumpkin")
 tierCycle("candy", {"Candy Pot III", "Candy Pot II", "Candy Pot I"}, "Candy")
-tierCycle("damage", {"Damage Pot III", "Damage Pot II", "Damage Pot I"}, "Damage")
+tierCycle("damage", {"Damage III", "Damage II", "Damage I"}, "Damage")
 
 -- Haunted Night notification watcher and event loop; event automation is gated by toggle.
 local function isStart(s) return type(s)=="string" and string.lower(s):find("haunted night has started",1,true)~=nil end
