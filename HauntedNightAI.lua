@@ -149,7 +149,7 @@ local function tierCycle(enabled, tiers, category)
 
                 if activeName then
                     pendingName = nil
-                    status(category .. " Potion active: " .. activeName)
+                    -- Keep active potion status silent to prevent Pumpkin/Candy loops overwriting the same GUI label.
                 elseif timerUnknown then
                     -- Fail closed: don't consume more potions if a visible timer can't be parsed.
                     pendingName = nil
