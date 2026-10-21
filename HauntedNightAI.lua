@@ -33,7 +33,7 @@ end
 -- GUI
 pcall(function() local old=player.PlayerGui:FindFirstChild("HauntedNightHub"); if old then old:Destroy() end end)
 local gui=Instance.new("ScreenGui"); gui.Name="HauntedNightHub"; gui.ResetOnSpawn=false; gui.Parent=player:WaitForChild("PlayerGui")
-local main=Instance.new("Frame",gui); main.Size=UDim2.fromOffset(420,520); main.Position=UDim2.new(.5,-210,.5,-260); main.BackgroundColor3=Color3.fromRGB(25,25,32); main.BorderSizePixel=0; main.Active=true
+local main=Instance.new("Frame",gui); main.Size=UDim2.fromOffset(420,570); main.Position=UDim2.new(.5,-210,.5,-285); main.BackgroundColor3=Color3.fromRGB(25,25,32); main.BorderSizePixel=0; main.Active=true
 Instance.new("UICorner",main).CornerRadius=UDim.new(0,12)
 local title=Instance.new("TextLabel",main); title.Size=UDim2.new(1,-70,0,38); title.Position=UDim2.fromOffset(12,0); title.BackgroundTransparency=1; title.Text="🎃 Haunted Night Hub"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=17; title.TextXAlignment=Enum.TextXAlignment.Left
 local close=Instance.new("TextButton",main); close.Size=UDim2.fromOffset(32,28); close.Position=UDim2.new(1,-38,0,5); close.Text="X"; close.TextColor3=Color3.new(1,1,1); close.BackgroundColor3=Color3.fromRGB(170,55,55)
@@ -99,7 +99,7 @@ local dragging, dragStart, startPos=false,nil,nil
 title.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dragging=true; dragStart=i.Position; startPos=main.Position; i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dragging=false end end) end end)
 UserInputService.InputChanged:Connect(function(i) if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then local d=i.Position-dragStart; main.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y) end end)
 local minimized=false
-minimize.Activated:Connect(function() minimized=not minimized; scroll.Visible=not minimized; main.Size=minimized and UDim2.fromOffset(420,66) or UDim2.fromOffset(420,520) end)
+minimize.Activated:Connect(function() minimized=not minimized; scroll.Visible=not minimized; main.Size=minimized and UDim2.fromOffset(420,66) or UDim2.fromOffset(420,570) end)
 close.Activated:Connect(function() closed=true; state.haunted=false; state.antiAfk=false; shared.__HauntedNightAIRunId=shared.__HauntedNightAIRunId+1; gui:Destroy() end)
 
 -- Timer parsing and potion UI paths confirmed from PlayerGui.
