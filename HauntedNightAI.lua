@@ -42,9 +42,17 @@ statusLabel=Instance.new("TextLabel",main); statusLabel.Size=UDim2.new(1,-20,0,1
 local pumpkinStatus=Instance.new("TextLabel",main); pumpkinStatus.Size=UDim2.new(1,-20,0,15); pumpkinStatus.Position=UDim2.fromOffset(10,54); pumpkinStatus.BackgroundTransparency=1; pumpkinStatus.Text="Pumpkin: idle"; pumpkinStatus.TextColor3=Color3.fromRGB(255,190,90); pumpkinStatus.TextSize=11; pumpkinStatus.Font=Enum.Font.Gotham; pumpkinStatus.TextXAlignment=Enum.TextXAlignment.Left
 local candyStatus=Instance.new("TextLabel",main); candyStatus.Size=UDim2.new(1,-20,0,15); candyStatus.Position=UDim2.fromOffset(10,69); candyStatus.BackgroundTransparency=1; candyStatus.Text="Candy: idle"; candyStatus.TextColor3=Color3.fromRGB(255,150,210); candyStatus.TextSize=11; candyStatus.Font=Enum.Font.Gotham; candyStatus.TextXAlignment=Enum.TextXAlignment.Left
 local damageStatus=Instance.new("TextLabel",main); damageStatus.Size=UDim2.new(1,-20,0,15); damageStatus.Position=UDim2.fromOffset(10,84); damageStatus.BackgroundTransparency=1; damageStatus.Text="Damage: idle"; damageStatus.TextColor3=Color3.fromRGB(170,210,255); damageStatus.TextSize=11; damageStatus.Font=Enum.Font.Gotham; damageStatus.TextXAlignment=Enum.TextXAlignment.Left
+local minimized=false
 local function potionStatus(category, message)
  local target = category == "Pumpkin" and pumpkinStatus or category == "Candy" and candyStatus or damageStatus
- if target and target.Parent then target.Text = category .. ": " .. message end
+ if target and target.Parent then
+  if minimized then
+   message=message:gsub(" active — ", ": "):gsub(" remaining","")
+   target.Text=category .. ": " .. message
+  else
+   target.Text=category .. ": " .. message
+  end
+ end
 end
 local scroll=Instance.new("ScrollingFrame",main); scroll.Position=UDim2.fromOffset(10,102); scroll.Size=UDim2.new(1,-20,1,-112); scroll.BackgroundTransparency=1; scroll.BorderSizePixel=0; scroll.ScrollBarThickness=5; scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; scroll.CanvasSize=UDim2.new()
 local layout=Instance.new("UIListLayout",scroll); layout.Padding=UDim.new(0,5); layout.SortOrder=Enum.SortOrder.LayoutOrder
@@ -98,7 +106,6 @@ end)
 local dragging, dragStart, startPos=false,nil,nil
 title.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dragging=true; dragStart=i.Position; startPos=main.Position; i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dragging=false end end) end end)
 UserInputService.InputChanged:Connect(function(i) if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then local d=i.Position-dragStart; main.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y) end end)
-local minimized=false
 local function setMinimized(value)
  minimized=value
  scroll.Visible=not minimized
@@ -109,9 +116,6 @@ local function setMinimized(value)
   pumpkinStatus.Position=UDim2.fromOffset(270,9); pumpkinStatus.Size=UDim2.fromOffset(120,42); pumpkinStatus.TextSize=10
   candyStatus.Position=UDim2.fromOffset(390,9); candyStatus.Size=UDim2.fromOffset(105,42); candyStatus.TextSize=10
   damageStatus.Position=UDim2.fromOffset(495,9); damageStatus.Size=UDim2.fromOffset(115,42); damageStatus.TextSize=10
-  pumpkinStatus.Text= pumpkinStatus.Text:gsub(" active — ", ": "):gsub(" remaining","")
-  candyStatus.Text= candyStatus.Text:gsub(" active — ", ": "):gsub(" remaining","")
-  damageStatus.Text= damageStatus.Text:gsub(" active — ", ": "):gsub(" remaining","")
   minimize.Text="□"
  else
   main.Size=UDim2.fromOffset(420,570)
