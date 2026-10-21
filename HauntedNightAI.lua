@@ -38,8 +38,15 @@ Instance.new("UICorner",main).CornerRadius=UDim.new(0,12)
 local title=Instance.new("TextLabel",main); title.Size=UDim2.new(1,-70,0,38); title.Position=UDim2.fromOffset(12,0); title.BackgroundTransparency=1; title.Text="🎃 Haunted Night Hub"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=17; title.TextXAlignment=Enum.TextXAlignment.Left
 local close=Instance.new("TextButton",main); close.Size=UDim2.fromOffset(32,28); close.Position=UDim2.new(1,-38,0,5); close.Text="X"; close.TextColor3=Color3.new(1,1,1); close.BackgroundColor3=Color3.fromRGB(170,55,55)
 local minimize=Instance.new("TextButton",main); minimize.Size=UDim2.fromOffset(28,28); minimize.Position=UDim2.new(1,-70,0,5); minimize.Text="–"; minimize.TextColor3=Color3.new(1,1,1); minimize.BackgroundColor3=Color3.fromRGB(70,70,85)
-statusLabel=Instance.new("TextLabel",main); statusLabel.Size=UDim2.new(1,-20,0,22); statusLabel.Position=UDim2.fromOffset(10,40); statusLabel.BackgroundTransparency=1; statusLabel.Text="Ready"; statusLabel.TextColor3=Color3.fromRGB(120,205,255); statusLabel.TextSize=12; statusLabel.Font=Enum.Font.Gotham; statusLabel.TextXAlignment=Enum.TextXAlignment.Left
-local scroll=Instance.new("ScrollingFrame",main); scroll.Position=UDim2.fromOffset(10,66); scroll.Size=UDim2.new(1,-20,1,-76); scroll.BackgroundTransparency=1; scroll.BorderSizePixel=0; scroll.ScrollBarThickness=5; scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; scroll.CanvasSize=UDim2.new()
+statusLabel=Instance.new("TextLabel",main); statusLabel.Size=UDim2.new(1,-20,0,18); statusLabel.Position=UDim2.fromOffset(10,37); statusLabel.BackgroundTransparency=1; statusLabel.Text="Ready"; statusLabel.TextColor3=Color3.fromRGB(120,205,255); statusLabel.TextSize=12; statusLabel.Font=Enum.Font.Gotham; statusLabel.TextXAlignment=Enum.TextXAlignment.Left
+local pumpkinStatus=Instance.new("TextLabel",main); pumpkinStatus.Size=UDim2.new(1,-20,0,15); pumpkinStatus.Position=UDim2.fromOffset(10,54); pumpkinStatus.BackgroundTransparency=1; pumpkinStatus.Text="Pumpkin: idle"; pumpkinStatus.TextColor3=Color3.fromRGB(255,190,90); pumpkinStatus.TextSize=11; pumpkinStatus.Font=Enum.Font.Gotham; pumpkinStatus.TextXAlignment=Enum.TextXAlignment.Left
+local candyStatus=Instance.new("TextLabel",main); candyStatus.Size=UDim2.new(1,-20,0,15); candyStatus.Position=UDim2.fromOffset(10,69); candyStatus.BackgroundTransparency=1; candyStatus.Text="Candy: idle"; candyStatus.TextColor3=Color3.fromRGB(255,150,210); candyStatus.TextSize=11; candyStatus.Font=Enum.Font.Gotham; candyStatus.TextXAlignment=Enum.TextXAlignment.Left
+local damageStatus=Instance.new("TextLabel",main); damageStatus.Size=UDim2.new(1,-20,0,15); damageStatus.Position=UDim2.fromOffset(10,84); damageStatus.BackgroundTransparency=1; damageStatus.Text="Damage: idle"; damageStatus.TextColor3=Color3.fromRGB(170,210,255); damageStatus.TextSize=11; damageStatus.Font=Enum.Font.Gotham; damageStatus.TextXAlignment=Enum.TextXAlignment.Left
+local function potionStatus(category, message)
+ local target = category == "Pumpkin" and pumpkinStatus or category == "Candy" and candyStatus or damageStatus
+ if target and target.Parent then target.Text = category .. ": " .. message end
+end
+local scroll=Instance.new("ScrollingFrame",main); scroll.Position=UDim2.fromOffset(10,102); scroll.Size=UDim2.new(1,-20,1,-112); scroll.BackgroundTransparency=1; scroll.BorderSizePixel=0; scroll.ScrollBarThickness=5; scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; scroll.CanvasSize=UDim2.new()
 local layout=Instance.new("UIListLayout",scroll); layout.Padding=UDim.new(0,5); layout.SortOrder=Enum.SortOrder.LayoutOrder
 local pad=Instance.new("UIPadding",scroll); pad.PaddingTop=UDim.new(0,4); pad.PaddingBottom=UDim.new(0,8)
 local function section(s)
@@ -130,7 +137,7 @@ local function tierCycle(enabled, tiers, category)
         local pendingSince = 0
         while alive() and not closed do
             if state[enabled] then
-                local activeName = nil
+                local activeName, activeSeconds = nil, nil
                 local timerUnknown = false
 
                 -- If any potion in this category has a live countdown, do not use another.
@@ -142,6 +149,7 @@ local function tierCycle(enabled, tiers, category)
                             timerUnknown = true
                         elseif seconds > 1 then
                             activeName = name
+                            activeSeconds = seconds
                             break
                         end
                     end
@@ -149,11 +157,11 @@ local function tierCycle(enabled, tiers, category)
 
                 if activeName then
                     pendingName = nil
-                    -- Keep active potion status silent to prevent Pumpkin/Candy loops overwriting the same GUI label.
+                    potionStatus(category, activeName .. " active — " .. tostring(math.floor(activeSeconds / 3600)) .. "h " .. tostring(math.floor((activeSeconds % 3600) / 60)) .. "m remaining")
                 elseif timerUnknown then
                     -- Fail closed: don't consume more potions if a visible timer can't be parsed.
                     pendingName = nil
-                    status(category .. " Potion: timer unreadable; waiting")
+                    potionStatus(category, "timer unreadable; waiting")
                 elseif pendingName then
                     -- Give the UI time to show the new countdown. If it never appears,
                     -- assume that tier may be unavailable and try the next lower tier.
@@ -170,7 +178,7 @@ local function tierCycle(enabled, tiers, category)
                             end
                         else
                             pendingName = nil
-                            status(category .. " Potion: no active timer detected")
+                            potionStatus(category, "no active timer detected")
                         end
                     end
                 else
