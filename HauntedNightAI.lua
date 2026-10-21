@@ -35,9 +35,11 @@ pcall(function() local old=player.PlayerGui:FindFirstChild("HauntedNightHub"); i
 local gui=Instance.new("ScreenGui"); gui.Name="HauntedNightHub"; gui.ResetOnSpawn=false; gui.Parent=player:WaitForChild("PlayerGui")
 local camera=workspace.CurrentCamera
 local viewport=camera and camera.ViewportSize or Vector2.new(800,600)
-local normalWidth=math.max(280,math.min(590,viewport.X-24))
-local maxNormalHeight=math.max(280,math.min(520,viewport.Y-24))
-local normalHeight=280
+-- Responsive sizing: keep the hub compact on phones and leave gameplay visible.
+local isSmallScreen = viewport.X < 700 or viewport.Y < 520
+local normalWidth = math.max(240, math.min(isSmallScreen and 430 or 590, viewport.X - 16))
+local maxNormalHeight = math.max(190, math.min(520, math.floor(viewport.Y * (isSmallScreen and 0.68 or 0.78))))
+local normalHeight = math.min(280, maxNormalHeight)
 local main=Instance.new("Frame",gui); main.Size=UDim2.fromOffset(normalWidth,normalHeight); main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2); main.BackgroundColor3=Color3.fromRGB(25,25,32); main.BorderSizePixel=0; main.Active=true
 Instance.new("UICorner",main).CornerRadius=UDim.new(0,12)
 local title=Instance.new("TextLabel",main); title.Size=UDim2.new(1,-70,0,38); title.Position=UDim2.fromOffset(12,0); title.BackgroundTransparency=1; title.Text="🎃 Haunted Night Hub"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=17; title.TextXAlignment=Enum.TextXAlignment.Left
@@ -145,7 +147,7 @@ local function setMinimized(value)
  scroll.Visible=not minimized
  if minimized then
   -- Compact square-ish status card: labels stack vertically, not horizontally.
-  local compactWidth=math.max(250,math.min(330,viewport.X-20)); local compactHeight=math.min(142,viewport.Y-20); main.Size=UDim2.fromOffset(compactWidth,compactHeight); main.Position=UDim2.new(.5,-compactWidth/2,.5,-compactHeight/2)
+  local compactWidth=math.max(220,math.min(300,viewport.X-16)); local compactHeight=math.min(132,viewport.Y-16); main.Size=UDim2.fromOffset(compactWidth,compactHeight); main.Position=UDim2.new(.5,-compactWidth/2,.5,-compactHeight/2)
   title.Position=UDim2.fromOffset(10,2); title.Size=UDim2.new(1,-78,0,30)
   statusLabel.Position=UDim2.fromOffset(12,38); statusLabel.Size=UDim2.new(1,-24,0,18); statusLabel.TextSize=12
   pumpkinStatus.Position=UDim2.fromOffset(12,59); pumpkinStatus.Size=UDim2.new(1,-24,0,17); pumpkinStatus.TextSize=11
