@@ -61,35 +61,30 @@ end
 local scroll=Instance.new("ScrollingFrame",main); scroll.Position=UDim2.fromOffset(10,72); scroll.Size=UDim2.new(1,-20,1,-82); scroll.BackgroundTransparency=1; scroll.BorderSizePixel=0; scroll.ScrollBarThickness=5; scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; scroll.CanvasSize=UDim2.new()
 local layout=Instance.new("UIListLayout",scroll); layout.Padding=UDim.new(0,5); layout.SortOrder=Enum.SortOrder.LayoutOrder
 local pad=Instance.new("UIPadding",scroll); pad.PaddingTop=UDim.new(0,4); pad.PaddingBottom=UDim.new(0,8)
-local function section(s)
- local l=Instance.new("TextLabel",scroll); l.Size=UDim2.new(1,-8,0,25); l.BackgroundTransparency=1; l.Text=s; l.TextColor3=Color3.fromRGB(180,210,255); l.Font=Enum.Font.GothamBold; l.TextSize=14; l.TextXAlignment=Enum.TextXAlignment.Left
-end
 local buttons={}
-local pendingToggleRow=nil
-local function finishToggleRow()
- pendingToggleRow=nil
+local activeSectionRow=nil
+local function section(s)
+ local row=Instance.new("Frame",scroll); row.Name="FeatureSectionRow"; row.Size=UDim2.new(1,-8,0,44); row.BackgroundTransparency=1
+ local heading=Instance.new("TextLabel",row); heading.Size=UDim2.new(0.29,-6,1,0); heading.Position=UDim2.fromOffset(0,0); heading.BackgroundTransparency=1; heading.Text=s; heading.TextColor3=Color3.fromRGB(180,210,255); heading.Font=Enum.Font.GothamBold; heading.TextSize=12; heading.TextWrapped=true; heading.TextXAlignment=Enum.TextXAlignment.Left; heading.TextYAlignment=Enum.TextYAlignment.Center
+ local holder=Instance.new("Frame",row); holder.Name="FeatureButtons"; holder.Position=UDim2.new(0.29,4,0,0); holder.Size=UDim2.new(0.71,-4,1,0); holder.BackgroundTransparency=1
+ activeSectionRow={row=row,holder=holder,count=0}
 end
 local function toggle(label,key,callback)
- local row=pendingToggleRow
- if not row then
-  row=Instance.new("Frame",scroll); row.Name="ToggleRow"; row.Size=UDim2.new(1,-8,0,38); row.BackgroundTransparency=1
-  pendingToggleRow=row
- else
-  pendingToggleRow=nil
- end
- local b=Instance.new("TextButton",row)
- b.Size=UDim2.new(row:FindFirstChild("LeftToggle") and 0.5 or 0.5,-4,0,34)
- b.Position=UDim2.new(row:FindFirstChild("LeftToggle") and 0.5 or 0, row:FindFirstChild("LeftToggle") and 4 or 0,0,0)
- if not row:FindFirstChild("LeftToggle") then b.Name="LeftToggle" else b.Name="RightToggle" end
- b.BackgroundColor3=Color3.fromRGB(55,55,68); b.TextColor3=Color3.new(1,1,1); b.Font=Enum.Font.GothamBold; b.TextSize=12; b.TextWrapped=true
+ if not activeSectionRow then return end
+ local sectionData=activeSectionRow
+ local index=sectionData.count
+ sectionData.count=index+1
+ local rowIndex=math.floor(index/2)
+ local colIndex=index%2
+ local neededHeight=(rowIndex+1)*36
+ if neededHeight>sectionData.row.Size.Y.Offset then sectionData.row.Size=UDim2.new(1,-8,0,neededHeight+4) end
+ local b=Instance.new("TextButton",sectionData.holder)
+ b.Name=key.."Toggle"
+ b.Size=UDim2.new(0.5,-3,0,32)
+ b.Position=UDim2.new(colIndex*0.5,colIndex==1 and 3 or 0,0,rowIndex*36)
+ b.BackgroundColor3=Color3.fromRGB(55,55,68); b.TextColor3=Color3.new(1,1,1); b.Font=Enum.Font.GothamBold; b.TextSize=11; b.TextWrapped=true
  local function paint() b.Text=label.." : "..(state[key] and "ON" or "OFF"); b.BackgroundColor3=state[key] and Color3.fromRGB(55,120,80) or Color3.fromRGB(55,55,68) end
  b.Activated:Connect(function() state[key]=not state[key]; paint(); callback(state[key]) end); paint(); buttons[key]=b
-end
--- Keep section headers full-width and start each section on a fresh row.
-local originalSection=section
-section=function(s)
- pendingToggleRow=nil
- local l=Instance.new("TextLabel",scroll); l.Size=UDim2.new(1,-8,0,25); l.BackgroundTransparency=1; l.Text=s; l.TextColor3=Color3.fromRGB(180,210,255); l.Font=Enum.Font.GothamBold; l.TextSize=14; l.TextXAlignment=Enum.TextXAlignment.Left
 end
 section("📜 AUTO HALLOWEEN QUEST")
 toggle("Hourly Quest","hourly",function(on) status("Hourly Quest "..(on and "ON" or "OFF")) end)
