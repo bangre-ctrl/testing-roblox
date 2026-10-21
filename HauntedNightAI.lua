@@ -36,7 +36,8 @@ local gui=Instance.new("ScreenGui"); gui.Name="HauntedNightHub"; gui.ResetOnSpaw
 local camera=workspace.CurrentCamera
 local viewport=camera and camera.ViewportSize or Vector2.new(800,600)
 local normalWidth=math.max(280,math.min(590,viewport.X-24))
-local normalHeight=math.min(390,math.max(280,viewport.Y-24))
+local maxNormalHeight=math.max(280,math.min(520,viewport.Y-24))
+local normalHeight=280
 local main=Instance.new("Frame",gui); main.Size=UDim2.fromOffset(normalWidth,normalHeight); main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2); main.BackgroundColor3=Color3.fromRGB(25,25,32); main.BorderSizePixel=0; main.Active=true
 Instance.new("UICorner",main).CornerRadius=UDim.new(0,12)
 local title=Instance.new("TextLabel",main); title.Size=UDim2.new(1,-70,0,38); title.Position=UDim2.fromOffset(12,0); title.BackgroundTransparency=1; title.Text="🎃 Haunted Night Hub"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=17; title.TextXAlignment=Enum.TextXAlignment.Left
@@ -61,6 +62,19 @@ end
 local scroll=Instance.new("ScrollingFrame",main); scroll.Position=UDim2.fromOffset(10,66); scroll.Size=UDim2.new(1,-20,1,-76); scroll.BackgroundTransparency=1; scroll.BorderSizePixel=0; scroll.ScrollBarThickness=5; scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; scroll.CanvasSize=UDim2.new()
 local layout=Instance.new("UIListLayout",scroll); layout.Padding=UDim.new(0,5); layout.SortOrder=Enum.SortOrder.LayoutOrder
 local pad=Instance.new("UIPadding",scroll); pad.PaddingTop=UDim.new(0,4); pad.PaddingBottom=UDim.new(0,8)
+local function fitNormalGui()
+ if minimized then return end
+ local contentHeight=layout.AbsoluteContentSize.Y+12
+ normalHeight=math.min(maxNormalHeight,math.max(190,66+contentHeight+10))
+ main.Size=UDim2.fromOffset(normalWidth,normalHeight)
+ main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2)
+ scroll.Position=UDim2.fromOffset(10,66)
+ scroll.Size=UDim2.new(1,-20,0,math.max(70,normalHeight-76))
+ scroll.CanvasSize=UDim2.fromOffset(0,contentHeight)
+end
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+ task.defer(fitNormalGui)
+end)
 local buttons={}
 local activeSectionRow=nil
 local function section(s)
@@ -139,7 +153,7 @@ local function setMinimized(value)
   damageStatus.Position=UDim2.fromOffset(12,97); damageStatus.Size=UDim2.new(1,-24,0,17); damageStatus.TextSize=11
   minimize.Text="□"
  else
-  main.Size=UDim2.fromOffset(normalWidth,normalHeight); main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2); scroll.Position=UDim2.fromOffset(10,66); scroll.Size=UDim2.new(1,-20,1,-76)
+  fitNormalGui()
   title.Position=UDim2.fromOffset(10,0); title.Size=UDim2.new(1,-70,0,38)
   statusLabel.Position=UDim2.fromOffset(10,37); statusLabel.Size=UDim2.new(1,-20,0,18); statusLabel.TextSize=12
   pumpkinStatus.Position=UDim2.fromOffset(10,54); pumpkinStatus.Size=UDim2.new(1,-20,0,15); pumpkinStatus.TextSize=11
