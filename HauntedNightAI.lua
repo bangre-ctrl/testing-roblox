@@ -36,7 +36,7 @@ local gui=Instance.new("ScreenGui"); gui.Name="HauntedNightHub"; gui.ResetOnSpaw
 local camera=workspace.CurrentCamera
 local viewport=camera and camera.ViewportSize or Vector2.new(800,600)
 local normalWidth=math.max(280,math.min(590,viewport.X-24))
-local normalHeight=math.max(280,math.min(455,viewport.Y-24))
+local normalHeight=math.min(390,math.max(280,viewport.Y-24))
 local main=Instance.new("Frame",gui); main.Size=UDim2.fromOffset(normalWidth,normalHeight); main.Position=UDim2.new(.5,-normalWidth/2,.5,-normalHeight/2); main.BackgroundColor3=Color3.fromRGB(25,25,32); main.BorderSizePixel=0; main.Active=true
 Instance.new("UICorner",main).CornerRadius=UDim.new(0,12)
 local title=Instance.new("TextLabel",main); title.Size=UDim2.new(1,-70,0,38); title.Position=UDim2.fromOffset(12,0); title.BackgroundTransparency=1; title.Text="🎃 Haunted Night Hub"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=17; title.TextXAlignment=Enum.TextXAlignment.Left
