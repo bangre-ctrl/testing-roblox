@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
@@ -401,7 +402,7 @@ local function addTab(name, emoji)
  b.BorderSizePixel=0; b.LayoutOrder=#tabButtons+1; b.Parent=sidebar
  Instance.new("UICorner",b).CornerRadius=UDim.new(0,8); tabButtons[name]=b
 end
-addTab("Main","🏠"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Potion","🧪"); addTab("Setting","⚙️")
+addTab("Main","🏠"); addTab("Quest","📜"); addTab("Tower","🏰"); addTab("Teleport","📍"); addTab("Potion","🧪"); addTab("Unit","🧩"); addTab("Setting","⚙️")
 local left = Instance.new("ScrollingFrame")
 left.Name = "Left"
 left.Size = UDim2.new(0, 588, 0, 448)
@@ -1214,9 +1215,100 @@ end, function()
     status("Auto Damage Potions: OFF")
 end)
 
--- SETTINGS: Anti-AFK, FPS Boost, Hide All Bases
+-- UNIT: Auto-equip saved quirk UUIDs
+local UUID_FILE = "DiceQuirkUUIDs.json"
+local savedQuirkUUIDs = { Prodigy = {}, MidasTouch = {}, FortuneFavor = {} }
+local scannerEnabled, lastDetectedUUID, scannerHookInstalled = false, nil, false
+local originalNamecall
+local autoEquipRunning = false
+local function normalizeUUIDList(list)
+    local result, seen = {}, {}
+    if type(list) ~= "table" then return result end
+    for _, uuid in ipairs(list) do
+        if type(uuid) == "string" and uuid ~= "" and not seen[uuid] then seen[uuid] = true; table.insert(result, uuid) end
+    end
+    return result
+end
+local function loadUUIDFile()
+    if type(isfile) ~= "function" or type(readfile) ~= "function" then return false, "Executor tidak mendukung load file" end
+    if not isfile(UUID_FILE) then return true, "File UUID belum ada" end
+    local ok, data = pcall(function() return HttpService:JSONDecode(readfile(UUID_FILE)) end)
+    if not ok or type(data) ~= "table" then return false, "Gagal membaca file UUID" end
+    savedQuirkUUIDs.Prodigy = normalizeUUIDList(data.Prodigy)
+    savedQuirkUUIDs.MidasTouch = normalizeUUIDList(data.MidasTouch)
+    savedQuirkUUIDs.FortuneFavor = normalizeUUIDList(data.FortuneFavor)
+    return true, "UUID dimuat"
+end
+local function writeUUIDFile()
+    if type(writefile) ~= "function" then return false, "Executor tidak mendukung writefile" end
+    local ok, err = pcall(function() writefile(UUID_FILE, HttpService:JSONEncode(savedQuirkUUIDs)) end)
+    return ok, err
+end
+local function installUUIDScanner()
+    if scannerHookInstalled then return true end
+    if type(hookmetamethod) ~= "function" or type(getnamecallmethod) ~= "function" or type(newcclosure) ~= "function" then return false, "Fungsi hook scanner tidak tersedia" end
+    if shared.__DiceHubUUIDScannerInstalled then return false, "Hook scanner lama masih aktif; restart executor" end
+    local equipRemote = ReplicatedStorage:WaitForChild("Network"):WaitForChild("UnitService"):WaitForChild("RF"):WaitForChild("Equip")
+    shared.__DiceHubUUIDScannerInstalled = true
+    local ok, result = pcall(function()
+        originalNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+            if scannerEnabled and self == equipRemote and getnamecallmethod() == "InvokeServer" then
+                local args = {...}
+                if type(args[1]) == "string" then lastDetectedUUID = args[1]; status("UUID terdeteksi") end
+            end
+            return originalNamecall(self, ...)
+        end))
+    end)
+    if not ok then shared.__DiceHubUUIDScannerInstalled = nil; return false, tostring(result) end
+    scannerHookInstalled = true
+    return true
+end
+local function saveDetectedUUID(category, label)
+    if not lastDetectedUUID then status("Aktifkan scanner dan equip unit manual dulu"); return end
+    local list = savedQuirkUUIDs[category]
+    for _, uuid in ipairs(list) do if uuid == lastDetectedUUID then status("UUID " .. label .. " sudah tersimpan"); return end end
+    table.insert(list, lastDetectedUUID)
+    local ok, err = writeUUIDFile()
+    if not ok then table.remove(list); status("Gagal menyimpan UUID: " .. tostring(err)); return end
+    lastDetectedUUID = nil
+    status(label .. " UUID tersimpan")
+end
+local function autoEquipCategory(category, label)
+    if autoEquipRunning then status("Auto Equip sedang berjalan"); return end
+    if #savedQuirkUUIDs[category] == 0 then local ok, msg = loadUUIDFile(); if not ok then status(msg); return end end
+    local list = savedQuirkUUIDs[category]
+    if #list == 0 then status("UUID " .. label .. " kosong"); return end
+    local network = ReplicatedStorage:WaitForChild("Network")
+    local equipRemote = network:WaitForChild("UnitService"):WaitForChild("RF"):WaitForChild("Equip")
+    local interactSlotRemote = network:WaitForChild("PlotService"):WaitForChild("RE"):WaitForChild("InteractSlot")
+    autoEquipRunning = true
+    status("Auto Equip " .. label .. " dimulai")
+    task.spawn(function()
+        local total, completed = math.min(#list, 18), 0
+        for index = 1, total do
+            if closed or not gui.Parent then break end
+            local okEquip = pcall(function() return equipRemote:InvokeServer(list[index]) end)
+            if okEquip then
+                task.wait(0.5)
+                local okPlace = pcall(function() interactSlotRemote:FireServer(index) end)
+                if okPlace then completed += 1 end
+            end
+            task.wait(0.5)
+        end
+        autoEquipRunning = false
+        status(("Auto Equip %s selesai: request %d/%d"):format(label, completed, total))
+    end)
+end
+currentGroup = "Unit"
+section(left, "🧩 UNIT")
+button(left, "Auto Equip Prodigy", function() autoEquipCategory("Prodigy", "Prodigy") end)
+button(left, "Auto Equip Midas Touch", function() autoEquipCategory("MidasTouch", "Midas Touch") end)
+button(left, "Auto Equip Fortune's Favor", function() autoEquipCategory("FortuneFavor", "Fortune's Favor") end)
+
+-- SETTINGS: existing settings + UUID scanner/save controls
 currentGroup = "Setting"
 section(left, "⚙️ SETTINGS")
+section(left, "Save")
 local function remember(o,p)
  if not savedProperties[o] then savedProperties[o]={} end
  if savedProperties[o][p]==nil then local ok,v=pcall(function() return o[p] end); if ok then savedProperties[o][p]=v end end
@@ -1283,8 +1375,76 @@ end,function()
 end)
 toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
 toggle(left,"👁️ Hide All Bases",nextLeft(),function() hideBasesOn=true; reapplyVisuals(); status("Hide All Bases: ON") end,function() hideBasesOn=false; reapplyVisuals(); status("Hide All Bases: OFF") end)
+
+local uuidSaveRow = Instance.new("Frame")
+uuidSaveRow:SetAttribute("PageGroup", currentGroup)
+uuidSaveRow.Size = UDim2.new(1, -16, 0, 48)
+uuidSaveRow.BackgroundTransparency = 1
+uuidSaveRow.LayoutOrder = #left:GetChildren()
+uuidSaveRow.Parent = left
+local uuidRowLayout = Instance.new("UIListLayout")
+uuidRowLayout.FillDirection = Enum.FillDirection.Horizontal
+uuidRowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+uuidRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+uuidRowLayout.Padding = UDim.new(0, 8)
+uuidRowLayout.Parent = uuidSaveRow
+local function uuidRowButton(text, color)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.5, -4, 0, 44)
+    b.BackgroundColor3 = color or Color3.fromRGB(52, 52, 63)
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.Parent = uuidSaveRow
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    return b
+end
+local loadUUIDButton = uuidRowButton("📂 LOAD UUIDS")
+local scanUUIDButton = uuidRowButton("🔎 START SCAN", Color3.fromRGB(54, 125, 96))
+local uuidSaveButtons = Instance.new("Frame")
+uuidSaveButtons:SetAttribute("PageGroup", currentGroup)
+uuidSaveButtons.Size = UDim2.new(1, -16, 0, 84)
+uuidSaveButtons.BackgroundTransparency = 1
+uuidSaveButtons.LayoutOrder = #left:GetChildren()
+uuidSaveButtons.Parent = left
+local uuidGrid = Instance.new("UIGridLayout")
+uuidGrid.CellSize = UDim2.new(1/3, -8, 0, 76)
+uuidGrid.CellPadding = UDim2.new(0, 8, 0, 0)
+uuidGrid.FillDirectionMaxCells = 3
+uuidGrid.SortOrder = Enum.SortOrder.LayoutOrder
+uuidGrid.Parent = uuidSaveButtons
+local function uuidSaveButton(text, category, label)
+    local b = Instance.new("TextButton")
+    b.BackgroundColor3 = Color3.fromRGB(52, 52, 63)
+    b.Text = "▣\n" .. text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamBold
+    b.TextWrapped = true
+    b.BorderSizePixel = 0
+    b.Parent = uuidSaveButtons
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    b.MouseButton1Click:Connect(function() saveDetectedUUID(category, label) end)
+end
+uuidSaveButton("Prodigy", "Prodigy", "Prodigy")
+uuidSaveButton("Midas Touch", "MidasTouch", "Midas Touch")
+uuidSaveButton("Fortune's Favor", "FortuneFavor", "Fortune's Favor")
+loadUUIDButton.MouseButton1Click:Connect(function()
+    local ok, msg = loadUUIDFile()
+    if ok then status(("%s | Prodigy %d, Midas %d, Fortune %d"):format(msg, #savedQuirkUUIDs.Prodigy, #savedQuirkUUIDs.MidasTouch, #savedQuirkUUIDs.FortuneFavor)) else status(msg) end
+end)
+scanUUIDButton.MouseButton1Click:Connect(function()
+    if not scannerHookInstalled then local ok, err = installUUIDScanner(); if not ok then status("Scanner gagal: " .. tostring(err)); return end end
+    scannerEnabled = not scannerEnabled
+    scanUUIDButton.Text = scannerEnabled and "⏹ STOP SCAN" or "🔎 START SCAN"
+    scanUUIDButton.BackgroundColor3 = scannerEnabled and Color3.fromRGB(150, 85, 55) or Color3.fromRGB(54, 125, 96)
+    status(scannerEnabled and "Scanner ON — equip unit manual" or "Scanner OFF")
+end)
+loadUUIDFile()
 local function showGroup(group)
- left.Visible = (group == "Main" or group == "Setting")
+ left.Visible = (group == "Main" or group == "Setting" or group == "Unit")
  right.Visible = (group == "Quest" or group == "Tower" or group == "Teleport" or group == "Potion")
  for _,container in ipairs({left,right}) do
   for _,o in ipairs(container:GetChildren()) do if o:IsA("GuiObject") then o.Visible=(o:GetAttribute("PageGroup")==group) end end
