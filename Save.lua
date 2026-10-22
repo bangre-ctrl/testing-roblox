@@ -121,10 +121,10 @@ local autoProdigyButton = makeButton("AutoEquipProdigy", "AUTO EQUIP PRODIGY", 2
 local loadButton = makeButton("Load", "LOAD SAVED UUIDS", 328, Color3.fromRGB(83, 91, 108))
 local closeButton = makeButton("Close", "CLOSE GUI", 370, Color3.fromRGB(130, 62, 70))
 local autoEquipRunning = false
-local function updateUI(message)
+local function updateUI(message, silent)
     status.Text = ("Scanner: %s\nUUID terakhir: %s"):format(scannerEnabled and "ON" or "OFF", lastDetectedUUID or "belum ada")
     counts.Text = ("Prodigy: %d  |  Fortune: %d  |  Midas: %d"):format(#savedUUIDs.Prodigy, #savedUUIDs.FortuneFavor, #savedUUIDs.MidasTouch)
-    if message then print("[Save.lua] " .. message) end
+    if message and not silent then print("[Save.lua] " .. message) end
 end
 local function saveSelectedQuirk(key, label)
     if not lastDetectedUUID then updateUI("Save batal: equip unit manual dulu agar UUID tertangkap."); return end
