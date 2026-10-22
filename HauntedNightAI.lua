@@ -20,7 +20,7 @@ local questClaim = network:WaitForChild("HalloweenQuestService"):WaitForChild("R
 
 local state = {haunted=false, cashAI=false, pumpkin=false, candy=false, damage=false, hourly=false, daily=false, candyFarm=false, antiAfk=false, fps=false, hideBases=false}
 local closed, eventActive, countdownSeen, potionUsed = false, false, false, false
-local cashEventActive, cashIncomeUsed = false, false
+local cashEventActive, cashCountdownSeen, cashIncomeUsed = false, false, false
 local eventStarted, lastRoll, antiBusy = 0, 0, false
 local savedProps, savedLighting = {}, {}
 local function log(s) print("[HauntedNightAI] "..s) end
@@ -114,7 +114,7 @@ toggle("Haunted Night AI","haunted",function(on)
  else status("Haunted Night AI ON — waiting for event") end
 end)
 toggle("Cash AI","cashAI",function(on)
- if not on then cashEventActive=false; cashIncomeUsed=false; status("Cash AI OFF")
+ if not on then cashEventActive=false; cashCountdownSeen=false; cashIncomeUsed=false; status("Cash AI OFF")
  else status("Cash AI ON — waiting for Cash event") end
 end)
 section("🧪 AUTO HALLOWEEN POTIONS — highest tier first")
@@ -291,14 +291,7 @@ local function isCashStart(s)
  local t=lowerText(s)
  return t:find("cash has appear",1,true)~=nil or t:find("cash has appeared",1,true)~=nil
 end
-local function isCashEnd(s)
- local t=lowerText(s)
- return t:find("cash has disappear",1,true)~=nil
-  or t:find("cash has disappeared",1,true)~=nil
-  or t:find("cash has ended",1,true)~=nil
-  or t:find("cash event ended",1,true)~=nil
-  or t:find("cash ended",1,true)~=nil
-end
+-- Cash event end is detected from its countdown, matching Haunted Night AI.
 local function beginEvent(msg)
  if not state.haunted or eventActive or not alive() then return end
  eventActive=true; countdownSeen=false; eventStarted=os.clock(); potionUsed=false; lastRoll=0
@@ -335,6 +328,7 @@ end
 local function beginCashEvent(msg)
  if not state.cashAI or cashEventActive or cashIncomeUsed or not alive() then return end
  cashEventActive=true
+ cashCountdownSeen=false
  cashIncomeUsed=true
  log("Cash AI detected: "..msg.." — using income potions by duration")
  task.spawn(function()
@@ -355,14 +349,8 @@ local function watchText(obj, initial)
   if not alive() then return end
   local t=obj.Text
   if state.haunted and not eventActive and isHauntedStart(t) then beginEvent(t) end
-  if state.cashAI then
-   if isCashEnd(t) then
-    if cashEventActive or cashIncomeUsed then log("Cash event ended; Cash AI rearmed") end
-    cashEventActive=false
-    cashIncomeUsed=false
-   elseif isCashStart(t) then
-    beginCashEvent(t)
-   end
+  if state.cashAI and isCashStart(t) then
+   beginCashEvent(t)
   end
  end
  obj:GetPropertyChangedSignal("Text"):Connect(check)
@@ -379,6 +367,18 @@ local function weatherLabel()
  local pg=player:FindFirstChildOfClass("PlayerGui"); local root=pg and pg:FindFirstChild("Root"); local menus=root and root:FindFirstChild("Menus"); local boosts=menus and menus:FindFirstChild("Boosts"); local content=boosts and boosts:FindFirstChild("Content"); local sf=content and content:FindFirstChild("ScrollingFrame"); local card=sf and sf:FindFirstChild("__WeatherEvent"); local l=card and card:FindFirstChild("TextLabel")
  return l
 end
+local function cashCountdownLabel()
+ -- Cash event countdown is expected to be exposed as a named event card in the same UI.
+ local pg=player:FindFirstChildOfClass("PlayerGui")
+ local root=pg and pg:FindFirstChild("Root")
+ local menus=root and root:FindFirstChild("Menus")
+ local boosts=menus and menus:FindFirstChild("Boosts")
+ local content=boosts and boosts:FindFirstChild("Content")
+ local sf=content and content:FindFirstChild("ScrollingFrame")
+ local card=sf and sf:FindFirstChild("__CashEvent")
+ local label=card and card:FindFirstChild("TextLabel")
+ return label
+end
 task.spawn(function()
  while alive() and not closed do
   if state.haunted and eventActive then
@@ -389,6 +389,18 @@ task.spawn(function()
     log("Event ended; roll stopped. Waiting next Haunted Night."); eventActive=false; countdownSeen=false; potionUsed=false
    elseif os.clock()-eventStarted>15 then
     log("Countdown missing; cancel session."); eventActive=false; countdownSeen=false; potionUsed=false
+   end
+  end
+  if state.cashAI and cashEventActive then
+   local l=cashCountdownLabel()
+   local seconds=l and parseTimer(l.Text)
+   if seconds and seconds>1 then
+    cashCountdownSeen=true
+   elseif cashCountdownSeen then
+    log("Cash countdown ended; Cash AI rearmed")
+    cashEventActive=false
+    cashCountdownSeen=false
+    cashIncomeUsed=false
    end
   end
   task.wait(.2)
