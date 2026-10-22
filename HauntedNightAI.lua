@@ -18,7 +18,7 @@ local pumpkinRoll = network:WaitForChild("PumpkinDiceService"):WaitForChild("RF"
 local boostUse = network:WaitForChild("BoostService"):WaitForChild("RE"):WaitForChild("Use")
 local questClaim = network:WaitForChild("HalloweenQuestService"):WaitForChild("RE"):WaitForChild("Claim")
 
-local state = {haunted=false, pumpkin=false, candy=false, damage=false, hourly=false, daily=false, candyFarm=false, antiAfk=false, fps=false, hideBases=false}
+local state = {haunted=false, cashAI=false, pumpkin=false, candy=false, damage=false, hourly=false, daily=false, candyFarm=false, antiAfk=false, fps=false, hideBases=false}
 local closed, eventActive, countdownSeen, potionUsed = false, false, false, false
 local cashEventActive, cashIncomeUsed = false, false
 local eventStarted, lastRoll, antiBusy = 0, 0, false
@@ -112,6 +112,10 @@ section("🌙 HAUNTED NIGHT AI")
 toggle("Haunted Night AI","haunted",function(on)
  if not on then eventActive=false; countdownSeen=false; potionUsed=false; status("Haunted Night AI OFF — no new rolls/potions")
  else status("Haunted Night AI ON — waiting for event") end
+end)
+toggle("Cash AI","cashAI",function(on)
+ if not on then cashEventActive=false; cashIncomeUsed=false; status("Cash AI OFF")
+ else status("Cash AI ON — waiting for Cash event") end
 end)
 section("🧪 AUTO HALLOWEEN POTIONS — highest tier first")
 toggle("Auto Pumpkin Potion III → II → I","pumpkin",function(on) status("Pumpkin Auto Potion "..(on and "ON" or "OFF")) end)
@@ -276,8 +280,7 @@ tierCycle("damage", {"Dragon Damage III", "Dragon Damage II", "Dragon Damage I"}
 tierCycle("damage", {"Pirate Damage III", "Pirate Damage II", "Pirate Damage I"}, "Pirate Damage")
 tierCycle("damage", {"Slayer Damage III", "Slayer Damage II", "Slayer Damage I"}, "Slayer Damage")
 
--- Event notification watcher. Haunted Night uses its existing roll loop;
--- Cash event consumes each income potion once per event, then rearms after an end notice.
+-- Event notification watcher. Cash AI is independent from Haunted Night AI.
 local function lowerText(s)
  return type(s)=="string" and string.lower(s) or ""
 end
@@ -291,6 +294,7 @@ end
 local function isCashEnd(s)
  local t=lowerText(s)
  return t:find("cash has disappear",1,true)~=nil
+  or t:find("cash has disappeared",1,true)~=nil
   or t:find("cash has ended",1,true)~=nil
   or t:find("cash event ended",1,true)~=nil
   or t:find("cash ended",1,true)~=nil
@@ -301,27 +305,47 @@ local function beginEvent(msg)
  log("Haunted Night detected: "..msg)
  if not potionUsed then potionUsed=true; firePotion("Haunted Potion") end
 end
+local incomePotions = {
+ "Income IV", "Income III", "Income II", "Income I",
+ "Leaf Income III", "Leaf Income II", "Leaf Income I",
+ "Cursed Income III", "Cursed Income II", "Cursed Income I",
+ "Dragon Income III", "Dragon Income II", "Dragon Income I",
+ "Pirate Income III", "Pirate Income II", "Pirate Income I",
+ "Shadow Income IV", "Shadow Income III", "Shadow Income II", "Shadow Income I",
+ "Slayer Income III", "Slayer Income II", "Slayer Income I",
+}
+local function incomeUseCount(name)
+ -- Potion duration tiers: I=2m, II=3m, III=4m, IV=5m.
+ local tier = tonumber(name:match("Income (%d+)"))
+ if tier == nil then return 1 end
+ return (tier <= 2) and 2 or 1
+end
 local function beginCashEvent(msg)
- if not state.haunted or cashEventActive or cashIncomeUsed or not alive() then return end
+ if not state.cashAI or cashEventActive or cashIncomeUsed or not alive() then return end
  cashEventActive=true
  cashIncomeUsed=true
- log("Cash event detected: "..msg.." — using income potions once")
- -- Income IV lasts 2 minutes, so use it twice; other income potions once.
- for _, name in ipairs({"Income IV", "Income IV", "Income II", "Income I"}) do
-  if not alive() or closed then break end
-  firePotion(name)
-  task.wait(0.35)
- end
+ log("Cash AI detected: "..msg.." — using income potions by duration")
+ task.spawn(function()
+  for _, name in ipairs(incomePotions) do
+   if not alive() or closed or not state.cashAI then break end
+   for _=1,incomeUseCount(name) do
+    if not alive() or closed or not state.cashAI then break end
+    firePotion(name)
+    task.wait(0.35)
+   end
+   task.wait(0.2)
+  end
+ end)
 end
 local function watchText(obj, initial)
  if not (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then return end
  local function check()
   if not alive() then return end
   local t=obj.Text
-  if state.haunted then
-   if not eventActive and isHauntedStart(t) then beginEvent(t) end
+  if state.haunted and not eventActive and isHauntedStart(t) then beginEvent(t) end
+  if state.cashAI then
    if isCashEnd(t) then
-    if cashEventActive or cashIncomeUsed then log("Cash event ended; income potion trigger rearmed") end
+    if cashEventActive or cashIncomeUsed then log("Cash event ended; Cash AI rearmed") end
     cashEventActive=false
     cashIncomeUsed=false
    elseif isCashStart(t) then
