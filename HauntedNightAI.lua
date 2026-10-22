@@ -273,7 +273,6 @@ tierCycle("damage", {"Leaf Damage III", "Leaf Damage II", "Leaf Damage I"}, "Lea
 tierCycle("damage", {"Cursed Damage III", "Cursed Damage II", "Cursed Damage I"}, "Cursed Damage")
 tierCycle("damage", {"Dragon Damage III", "Dragon Damage II", "Dragon Damage I"}, "Dragon Damage")
 tierCycle("damage", {"Pirate Damage III", "Pirate Damage II", "Pirate Damage I"}, "Pirate Damage")
-tierCycle("damage", {"Shadow Damage IV", "Shadow Damage III", "Shadow Damage II", "Shadow Damage I"}, "Shadow Damage")
 tierCycle("damage", {"Slayer Damage III", "Slayer Damage II", "Slayer Damage I"}, "Slayer Damage")
 
 -- Haunted Night notification watcher and event loop; event automation is gated by toggle.
