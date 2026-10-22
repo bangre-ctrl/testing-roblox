@@ -193,7 +193,7 @@ autoProdigyButton.MouseButton1Click:Connect(function()
                 return equipRemote:InvokeServer(uuid)
             end)
             if equipped then
-                task.wait(1)
+                task.wait(0.5)
                 local placed, slotErr = pcall(function()
                     interactSlotRemote:FireServer(index)
                 end)
@@ -206,7 +206,7 @@ autoProdigyButton.MouseButton1Click:Connect(function()
             else
                 updateUI(("Equip gagal pada UUID %d: %s"):format(index, tostring(equipErr)))
             end
-            if index < total then task.wait(1) end
+            if index < total then task.wait(0.5) end
         end
         autoEquipRunning = false
         if autoProdigyButton.Parent then autoProdigyButton.Text = "AUTO EQUIP PRODIGY" end
