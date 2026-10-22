@@ -177,33 +177,40 @@ autoProdigyButton.MouseButton1Click:Connect(function()
         return
     end
 
-    local equipRemote = ReplicatedStorage:WaitForChild("Network")
-        :WaitForChild("UnitService")
-        :WaitForChild("RF")
-        :WaitForChild("Equip")
+    local network = ReplicatedStorage:WaitForChild("Network")
+    local equipRemote = network:WaitForChild("UnitService"):WaitForChild("RF"):WaitForChild("Equip")
+    local interactSlotRemote = network:WaitForChild("PlotService"):WaitForChild("RE"):WaitForChild("InteractSlot")
 
     autoEquipRunning = true
-    autoProdigyButton.Text = "EQUIPPING..."
+    autoProdigyButton.Text = "EQUIPPING TO PODIUM..."
     task.spawn(function()
         local total = math.min(#savedUUIDs.Prodigy, 18)
         local completed = 0
         for index = 1, total do
             if not gui.Parent then break end
             local uuid = savedUUIDs.Prodigy[index]
-            local ok, err = pcall(function()
+            local equipped, equipErr = pcall(function()
                 return equipRemote:InvokeServer(uuid)
             end)
-            if ok then
-                completed += 1
-                updateUI(("Auto equip Prodigy %d/%d"):format(index, total))
+            if equipped then
+                task.wait(1)
+                local placed, slotErr = pcall(function()
+                    interactSlotRemote:FireServer(index)
+                end)
+                if placed then
+                    completed += 1
+                    updateUI(("Prodigy %d/%d dipasang ke podium"):format(index, total))
+                else
+                    updateUI(("Gagal pasang UUID %d ke podium: %s"):format(index, tostring(slotErr)))
+                end
             else
-                updateUI(("Equip gagal pada UUID %d: %s"):format(index, tostring(err)))
+                updateUI(("Equip gagal pada UUID %d: %s"):format(index, tostring(equipErr)))
             end
-            if index < total then task.wait(0.8) end
+            if index < total then task.wait(1) end
         end
         autoEquipRunning = false
         if autoProdigyButton.Parent then autoProdigyButton.Text = "AUTO EQUIP PRODIGY" end
-        updateUI(("Auto equip selesai. Request berhasil: %d/%d"):format(completed, total))
+        updateUI(("Selesai. Request podium berhasil: %d/%d"):format(completed, total))
     end)
 end)
 loadButton.MouseButton1Click:Connect(function() local ok, message = loadFromFile(); updateUI(ok and message or ("Load gagal: " .. tostring(message))) end)
