@@ -316,7 +316,9 @@ local incomePotions = {
 }
 local function incomeUseCount(name)
  -- Potion duration tiers: I=2m, II=3m, III=4m, IV=5m.
- local tier = tonumber(name:match("Income (%d+)"))
+ local roman = name:match("Income ([IV]+)$")
+ local tierByRoman = {I=1, II=2, III=3, IV=4}
+ local tier = roman and tierByRoman[roman]
  if tier == nil then return 1 end
  return (tier <= 2) and 2 or 1
 end
