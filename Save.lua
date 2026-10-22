@@ -167,6 +167,45 @@ end)
 saveProdigy.MouseButton1Click:Connect(function() saveSelectedQuirk("Prodigy", "Prodigy") end)
 saveFortune.MouseButton1Click:Connect(function() saveSelectedQuirk("FortuneFavor", "Fortune's Favor") end)
 saveMidas.MouseButton1Click:Connect(function() saveSelectedQuirk("MidasTouch", "Midas Touch") end)
+autoProdigyButton.MouseButton1Click:Connect(function()
+    if autoEquipRunning then
+        updateUI("Auto equip masih berjalan.")
+        return
+    end
+    if #savedUUIDs.Prodigy == 0 then
+        updateUI("Daftar Prodigy kosong. Tekan LOAD SAVED UUIDS dulu.")
+        return
+    end
+
+    local equipRemote = ReplicatedStorage:WaitForChild("Network")
+        :WaitForChild("UnitService")
+        :WaitForChild("RF")
+        :WaitForChild("Equip")
+
+    autoEquipRunning = true
+    autoProdigyButton.Text = "EQUIPPING..."
+    task.spawn(function()
+        local total = math.min(#savedUUIDs.Prodigy, 18)
+        local completed = 0
+        for index = 1, total do
+            if not gui.Parent then break end
+            local uuid = savedUUIDs.Prodigy[index]
+            local ok, err = pcall(function()
+                return equipRemote:InvokeServer(uuid)
+            end)
+            if ok then
+                completed += 1
+                updateUI(("Auto equip Prodigy %d/%d"):format(index, total))
+            else
+                updateUI(("Equip gagal pada UUID %d: %s"):format(index, tostring(err)))
+            end
+            if index < total then task.wait(0.8) end
+        end
+        autoEquipRunning = false
+        if autoProdigyButton.Parent then autoProdigyButton.Text = "AUTO EQUIP PRODIGY" end
+        updateUI(("Auto equip selesai. Request berhasil: %d/%d"):format(completed, total))
+    end)
+end)
 loadButton.MouseButton1Click:Connect(function() local ok, message = loadFromFile(); updateUI(ok and message or ("Load gagal: " .. tostring(message))) end)
 closeButton.MouseButton1Click:Connect(function() scannerEnabled = false; gui:Destroy() end)
 do
