@@ -1308,7 +1308,7 @@ button(left, "Auto Equip Fortune's Favor", function() autoEquipCategory("Fortune
 -- SETTINGS: existing settings + UUID scanner/save controls
 currentGroup = "Setting"
 section(left, "⚙️ SETTINGS")
-section(left, "Save")
+-- Save header is placed after the existing Setting toggles below.
 local function remember(o,p)
  if not savedProperties[o] then savedProperties[o]={} end
  if savedProperties[o][p]==nil then local ok,v=pcall(function() return o[p] end); if ok then savedProperties[o][p]=v end end
@@ -1375,6 +1375,7 @@ end,function()
 end)
 toggle(left,"⚡ FPS Boost",nextLeft(),function() fpsOn=true; reapplyVisuals(); status("FPS Boost: ON") end,function() fpsOn=false; reapplyVisuals(); status("FPS Boost: OFF") end)
 toggle(left,"👁️ Hide All Bases",nextLeft(),function() hideBasesOn=true; reapplyVisuals(); status("Hide All Bases: ON") end,function() hideBasesOn=false; reapplyVisuals(); status("Hide All Bases: OFF") end)
+section(left, "Save")
 
 local uuidSaveRow = Instance.new("Frame")
 uuidSaveRow:SetAttribute("PageGroup", currentGroup)
