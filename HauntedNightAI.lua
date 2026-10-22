@@ -319,13 +319,13 @@ local function incomeUseCount(name)
  -- Based on the supplied values: 310≈5m, 250≈4m, 220≈3m40s,
  -- 190≈3m10s, 130≈2m10s. Under 4 minutes => use twice.
  local durationByFamily = {
-  ["Income"] = 310,
-  ["Leaf Income"] = 220,
-  ["Cursed Income"] = 190,
-  ["Dragon Income"] = 130,
-  ["Pirate Income"] = 250,
-  ["Shadow Income"] = 250,
-  ["Slayer Income"] = 220,
+  ["Income"] = 300,
+  ["Leaf Income"] = 210,
+  ["Cursed Income"] = 180,
+  ["Dragon Income"] = 120,
+  ["Pirate Income"] = 240,
+  ["Shadow Income"] = 240,
+  ["Slayer Income"] = 210,
  }
  local family = name:match("^(.-) [IV]+$")
  local duration = family and durationByFamily[family]
