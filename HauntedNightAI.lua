@@ -315,12 +315,22 @@ local incomePotions = {
  "Slayer Income III", "Slayer Income II", "Slayer Income I",
 }
 local function incomeUseCount(name)
- -- Potion duration tiers: I=2m, II=3m, III=4m, IV=5m.
- local roman = name:match("Income ([IV]+)$")
- local tierByRoman = {I=1, II=2, III=3, IV=4}
- local tier = roman and tierByRoman[roman]
- if tier == nil then return 1 end
- return (tier <= 2) and 2 or 1
+ -- Durations are specific to each potion family, not its Roman numeral tier.
+ -- Based on the supplied values: 310≈5m, 250≈4m, 220≈3m40s,
+ -- 190≈3m10s, 130≈2m10s. Under 4 minutes => use twice.
+ local durationByFamily = {
+  ["Income"] = 310,
+  ["Leaf Income"] = 220,
+  ["Cursed Income"] = 190,
+  ["Dragon Income"] = 130,
+  ["Pirate Income"] = 250,
+  ["Shadow Income"] = 250,
+  ["Slayer Income"] = 220,
+ }
+ local family = name:match("^(.-) [IV]+$")
+ local duration = family and durationByFamily[family]
+ if not duration then return 1 end
+ return duration < 240 and 2 or 1
 end
 local function beginCashEvent(msg)
  if not state.cashAI or cashEventActive or cashIncomeUsed or not alive() then return end
