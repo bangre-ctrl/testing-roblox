@@ -20,6 +20,7 @@ local questClaim = network:WaitForChild("HalloweenQuestService"):WaitForChild("R
 
 local state = {haunted=false, pumpkin=false, candy=false, damage=false, hourly=false, daily=false, candyFarm=false, antiAfk=false, fps=false, hideBases=false}
 local closed, eventActive, countdownSeen, potionUsed = false, false, false, false
+local cashEventActive, cashIncomeUsed = false, false
 local eventStarted, lastRoll, antiBusy = 0, 0, false
 local savedProps, savedLighting = {}, {}
 local function log(s) print("[HauntedNightAI] "..s) end
@@ -275,18 +276,60 @@ tierCycle("damage", {"Dragon Damage III", "Dragon Damage II", "Dragon Damage I"}
 tierCycle("damage", {"Pirate Damage III", "Pirate Damage II", "Pirate Damage I"}, "Pirate Damage")
 tierCycle("damage", {"Slayer Damage III", "Slayer Damage II", "Slayer Damage I"}, "Slayer Damage")
 
--- Haunted Night notification watcher and event loop; event automation is gated by toggle.
-local function isStart(s) return type(s)=="string" and string.lower(s):find("haunted night has started",1,true)~=nil end
+-- Event notification watcher. Haunted Night uses its existing roll loop;
+-- Cash event consumes each income potion once per event, then rearms after an end notice.
+local function lowerText(s)
+ return type(s)=="string" and string.lower(s) or ""
+end
+local function isHauntedStart(s)
+ return lowerText(s):find("haunted night has started",1,true)~=nil
+end
+local function isCashStart(s)
+ local t=lowerText(s)
+ return t:find("cash has appear",1,true)~=nil or t:find("cash has appeared",1,true)~=nil
+end
+local function isCashEnd(s)
+ local t=lowerText(s)
+ return t:find("cash has disappear",1,true)~=nil
+  or t:find("cash has ended",1,true)~=nil
+  or t:find("cash event ended",1,true)~=nil
+  or t:find("cash ended",1,true)~=nil
+end
 local function beginEvent(msg)
  if not state.haunted or eventActive or not alive() then return end
  eventActive=true; countdownSeen=false; eventStarted=os.clock(); potionUsed=false; lastRoll=0
  log("Haunted Night detected: "..msg)
  if not potionUsed then potionUsed=true; firePotion("Haunted Potion") end
 end
+local function beginCashEvent(msg)
+ if not state.haunted or cashEventActive or cashIncomeUsed or not alive() then return end
+ cashEventActive=true
+ cashIncomeUsed=true
+ log("Cash event detected: "..msg.." — using income potions once")
+ for _, name in ipairs({"Income IV", "Income II", "Income I"}) do
+  if not alive() or closed then break end
+  firePotion(name)
+  task.wait(0.35)
+ end
+end
 local function watchText(obj, initial)
  if not (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then return end
- local function check() if alive() and state.haunted and not eventActive and isStart(obj.Text) then beginEvent(obj.Text) end end
- obj:GetPropertyChangedSignal("Text"):Connect(check); if initial then check() end
+ local function check()
+  if not alive() then return end
+  local t=obj.Text
+  if state.haunted then
+   if not eventActive and isHauntedStart(t) then beginEvent(t) end
+   if isCashEnd(t) then
+    if cashEventActive or cashIncomeUsed then log("Cash event ended; income potion trigger rearmed") end
+    cashEventActive=false
+    cashIncomeUsed=false
+   elseif isCashStart(t) then
+    beginCashEvent(t)
+   end
+  end
+ end
+ obj:GetPropertyChangedSignal("Text"):Connect(check)
+ if initial then check() end
 end
 task.spawn(function()
  local pg=player:WaitForChild("PlayerGui"); local root=pg:WaitForChild("Root",15); local n=root and root:WaitForChild("Notifications",15); local texts=n and n:WaitForChild("TextNotifications",15)
