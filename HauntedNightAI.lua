@@ -306,7 +306,8 @@ local function beginCashEvent(msg)
  cashEventActive=true
  cashIncomeUsed=true
  log("Cash event detected: "..msg.." — using income potions once")
- for _, name in ipairs({"Income IV", "Income II", "Income I"}) do
+ -- Income IV lasts 2 minutes, so use it twice; other income potions once.
+ for _, name in ipairs({"Income IV", "Income IV", "Income II", "Income I"}) do
   if not alive() or closed then break end
   firePotion(name)
   task.wait(0.35)
