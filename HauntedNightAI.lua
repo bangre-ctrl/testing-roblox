@@ -115,7 +115,7 @@ end)
 section("🧪 AUTO HALLOWEEN POTIONS — highest tier first")
 toggle("Auto Pumpkin Potion III → II → I","pumpkin",function(on) status("Pumpkin Auto Potion "..(on and "ON" or "OFF")) end)
 toggle("Auto Candy Potion III → II → I","candy",function(on) status("Candy Auto Potion "..(on and "ON" or "OFF")) end)
-toggle("Auto Damage Potion III → II → I","damage",function(on) status("Damage Auto Potion "..(on and "ON" or "OFF")) end)
+toggle("Auto All Damage Potions","damage",function(on) status("All Damage Potions "..(on and "ON" or "OFF")) end)
 section("⚙️ SETTINGS")
 toggle("Anti-AFK (W every 10s)","antiAfk",function(on) status("Anti-AFK "..(on and "ON" or "OFF")) end)
 toggle("FPS Boost","fps",function(on)
@@ -266,7 +266,15 @@ end
 
 tierCycle("pumpkin", {"Pumpkin Pot III", "Pumpkin Pot II", "Pumpkin Pot I"}, "Pumpkin")
 tierCycle("candy", {"Candy Pot III", "Candy Pot II", "Candy Pot I"}, "Candy")
-tierCycle("damage", {"Damage III", "Damage II", "Damage I"}, "Damage")
+-- Each damage-potion family has its own timer cycle. Use highest tier first,
+-- then fall back if that tier is unavailable; re-use when its timer expires.
+tierCycle("damage", {"Damage IV", "Damage III", "Damage II", "Damage I"}, "Damage")
+tierCycle("damage", {"Leaf Damage III", "Leaf Damage II", "Leaf Damage I"}, "Leaf Damage")
+tierCycle("damage", {"Cursed Damage III", "Cursed Damage II", "Cursed Damage I"}, "Cursed Damage")
+tierCycle("damage", {"Dragon Damage III", "Dragon Damage II", "Dragon Damage I"}, "Dragon Damage")
+tierCycle("damage", {"Pirate Damage III", "Pirate Damage II", "Pirate Damage I"}, "Pirate Damage")
+tierCycle("damage", {"Shadow Damage IV", "Shadow Damage III", "Shadow Damage II", "Shadow Damage I"}, "Shadow Damage")
+tierCycle("damage", {"Slayer Damage III", "Slayer Damage II", "Slayer Damage I"}, "Slayer Damage")
 
 -- Haunted Night notification watcher and event loop; event automation is gated by toggle.
 local function isStart(s) return type(s)=="string" and string.lower(s):find("haunted night has started",1,true)~=nil end
