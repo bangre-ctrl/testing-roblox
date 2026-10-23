@@ -103,6 +103,17 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.fromOffset(30, 30)
+minimize.Position = UDim2.new(1, -72, 0, 7)
+minimize.Text = "—"
+minimize.TextSize = 20
+minimize.Font = Enum.Font.GothamBold
+minimize.TextColor3 = Color3.new(1, 1, 1)
+minimize.BackgroundColor3 = Color3.fromRGB(65, 75, 95)
+minimize.Parent = main
+Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 6)
+
 local close = Instance.new("TextButton")
 close.Size = UDim2.fromOffset(30, 30)
 close.Position = UDim2.new(1, -36, 0, 7)
@@ -115,6 +126,30 @@ close.Parent = main
 Instance.new("UICorner", close).CornerRadius = UDim.new(0, 6)
 close.MouseButton1Click:Connect(function()
     gui:Destroy()
+end)
+
+-- Minimize hides the panel but leaves a small restore button.
+local restore = Instance.new("TextButton")
+restore.Name = "RestoreGradeHub"
+restore.Size = UDim2.fromOffset(118, 34)
+restore.Position = UDim2.new(0, 18, 0.5, -17)
+restore.Text = "GRADE HUB  +"
+restore.TextSize = 13
+restore.Font = Enum.Font.GothamBold
+restore.TextColor3 = Color3.new(1, 1, 1)
+restore.BackgroundColor3 = Color3.fromRGB(35, 145, 70)
+restore.Visible = false
+restore.Parent = gui
+Instance.new("UICorner", restore).CornerRadius = UDim.new(0, 8)
+
+minimize.MouseButton1Click:Connect(function()
+    main.Visible = false
+    restore.Visible = true
+end)
+
+restore.MouseButton1Click:Connect(function()
+    main.Visible = true
+    restore.Visible = false
 end)
 
 local grid = Instance.new("Frame")
