@@ -51,7 +51,7 @@ stroke.Thickness = 2
 stroke.Parent = main
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -50, 0, 38)
+title.Size = UDim2.new(1, -110, 0, 38)
 title.Position = UDim2.fromOffset(12, 4)
 title.BackgroundTransparency = 1
 title.Text = "GRADE HUB"
@@ -106,12 +106,15 @@ end)
 local minimize = Instance.new("TextButton")
 minimize.Size = UDim2.fromOffset(30, 30)
 minimize.Position = UDim2.new(1, -72, 0, 7)
-minimize.Text = "—"
-minimize.TextSize = 20
+minimize.Text = "_"
+minimize.TextSize = 22
+minimize.ZIndex = 5
 minimize.Font = Enum.Font.GothamBold
 minimize.TextColor3 = Color3.new(1, 1, 1)
 minimize.BackgroundColor3 = Color3.fromRGB(65, 75, 95)
 minimize.Parent = main
+minimize.Visible = true
+minimize.Active = true
 Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 6)
 
 local close = Instance.new("TextButton")
@@ -123,6 +126,9 @@ close.Font = Enum.Font.GothamBold
 close.TextColor3 = Color3.new(1, 1, 1)
 close.BackgroundColor3 = Color3.fromRGB(160, 45, 45)
 close.Parent = main
+close.ZIndex = 5
+close.Visible = true
+close.Active = true
 Instance.new("UICorner", close).CornerRadius = UDim.new(0, 6)
 close.MouseButton1Click:Connect(function()
     gui:Destroy()
