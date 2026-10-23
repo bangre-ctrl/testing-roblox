@@ -214,6 +214,23 @@ for index, grade in ipairs(grades) do
     button.MouseButton1Click:Connect(function()
         enabled[grade.name] = not enabled[grade.name]
         refreshButton(button, grade)
+
+        -- Sync the selected grade protection setting with the game.
+        local success, err = pcall(function()
+            game:GetService("ReplicatedStorage")
+                :WaitForChild("Network")
+                :WaitForChild("GradeService")
+                :WaitForChild("RE")
+                :WaitForChild("SetGradeProtected")
+                :FireServer(grade.name, enabled[grade.name])
+        end)
+
+        if success then
+            status.Text = "Status: " .. grade.name .. (enabled[grade.name] and " ON" or " OFF")
+        else
+            status.Text = "Status: Gagal mengubah " .. grade.name
+            warn("[Grade Hub] SetGradeProtected error:", err)
+        end
     end)
 end
 
