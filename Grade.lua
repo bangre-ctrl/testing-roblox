@@ -61,6 +61,48 @@ title.TextSize = 21
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = main
 
+-- Drag the window by holding the title bar.
+local UserInputService = game:GetService("UserInputService")
+local dragging = false
+local dragInput
+local dragStart
+local startPosition
+
+title.Active = true
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPosition = main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
 local close = Instance.new("TextButton")
 close.Size = UDim2.fromOffset(30, 30)
 close.Position = UDim2.new(1, -36, 0, 7)
