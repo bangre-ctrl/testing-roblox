@@ -1,6 +1,6 @@
 -- Grade Hub Standalone
 -- GUI prototype: grade toggles + Start/Stop
--- Auto-roll result detection will be connected next.
+-- Auto-roll cycles through podium slots 1 and 2 using the shared grade toggles.
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -181,6 +181,55 @@ status.TextSize = 13
 status.Parent = main
 
 local running = false
+local cycleToken = 0
+
+-- Podium slot UUIDs supplied by the user.
+local targetUnits = {
+    {slot = "1", uuid = "15055a2b-ba16-487d-b26e-950b2ab3401e"},
+    {slot = "2", uuid = "23cd0f57-a5a2-4765-a0ab-1cc57613e375"},
+}
+
+local function getGradeRemotes()
+    local network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
+    local gradeService = network:WaitForChild("GradeService")
+    local re = gradeService:WaitForChild("RE")
+    return re:WaitForChild("Roll")
+end
+
+local function getCurrentGrade()
+    local root = playerGui:FindFirstChild("Root")
+    local menus = root and root:FindFirstChild("Menus")
+    local gradeMenu = menus and menus:FindFirstChild("Grades")
+    local display = gradeMenu and gradeMenu:FindFirstChild("GradeDisplay")
+    local label = display and display:FindFirstChild("Grade")
+    if label and label:IsA("TextLabel") then
+        return label.Text
+    end
+    return nil
+end
+
+local function clickDialogChoice(dialog, choiceName)
+    local options = dialog:FindFirstChild("Options")
+    local button = options and options:FindFirstChild(choiceName)
+    if button and button:IsA("GuiButton") and button.Visible and button.Active then
+        button:Activate()
+        return true
+    end
+    return false
+end
+
+local function waitUntil(predicate, timeout, token)
+    local started = os.clock()
+    while os.clock() - started < timeout do
+        if not running or cycleToken ~= token then
+            return false
+        end
+        local ok, result = pcall(predicate)
+        if ok and result then return result end
+        task.wait(0.1)
+    end
+    return false
+end
 
 local function refreshButton(button, grade)
     if enabled[grade.name] then
@@ -272,11 +321,109 @@ start.MouseButton1Click:Connect(function()
     end
 
     running = true
-    status.Text = "Status: Auto Roll ON — detector belum dipasang"
-    -- Next step: connect Roll remote + result detection + Keep/Skip.
+    cycleToken += 1
+    local token = cycleToken
+    status.Text = "Status: Auto Roll aktif — Slot 1"
+    task.spawn(function()
+        local ok, rollRemote = pcall(getGradeRemotes)
+        if not ok then
+            running = false
+            status.Text = "Status: Remote Roll tidak ditemukan"
+            warn("[Grade Hub] Remote Roll error:", rollRemote)
+            return
+        end
+
+        local root = playerGui:WaitForChild("Root")
+        local gradeMenu = root:WaitForChild("Menus"):WaitForChild("Grades")
+        local dialog = gradeMenu:WaitForChild("ConfirmGrade")
+        local display = gradeMenu:WaitForChild("GradeDisplay")
+        local gradeLabel = display:WaitForChild("Grade")
+
+        local targetIndex = 1
+        while running and cycleToken == token do
+            local target = targetUnits[targetIndex]
+            status.Text = "Status: Roll Slot " .. target.slot
+
+            -- Wait for any previous confirmation to close before sending another roll.
+            local closed = waitUntil(function()
+                return not dialog.Visible
+            end, 20, token)
+            if not closed then
+                if running and cycleToken == token then
+                    status.Text = "Status: Dialog belum tertutup — dihentikan"
+                    running = false
+                end
+                break
+            end
+
+            local beforeGrade = gradeLabel.Text
+            local sent, sendErr = pcall(function()
+                rollRemote:FireServer(target.uuid)
+            end)
+            if not sent then
+                status.Text = "Status: Roll gagal"
+                warn("[Grade Hub] Roll error:", sendErr)
+                running = false
+                break
+            end
+
+            -- Wait for the confirmation dialog or a grade change.
+            local result = waitUntil(function()
+                if dialog.Visible then return "dialog" end
+                if gradeLabel.Text ~= beforeGrade then return "grade" end
+                return false
+            end, 15, token)
+
+            if not result then
+                if running and cycleToken == token then
+                    status.Text = "Status: Hasil tidak terdeteksi — dihentikan"
+                    running = false
+                end
+                break
+            end
+
+            local resultGrade = gradeLabel.Text
+            if result == "dialog" then
+                -- The game's displayed grade is the result currently awaiting Keep/Skip.
+                resultGrade = gradeLabel.Text
+                local keep = enabled[resultGrade] == true
+                local choice = keep and "Keep" or "Skip"
+                local clicked = clickDialogChoice(dialog, choice)
+                if not clicked then
+                    status.Text = "Status: Tombol " .. choice .. " tidak aktif — dihentikan"
+                    running = false
+                    break
+                end
+
+                status.Text = "Status: Slot " .. target.slot .. " grade " .. resultGrade .. " → " .. choice
+
+                if keep then
+                    -- Target grade reached for this slot; move to the other unit.
+                    targetIndex = (targetIndex % #targetUnits) + 1
+                    task.wait(0.5)
+                else
+                    -- Give the game time to process Skip before rerolling the same unit.
+                    local closedAfterSkip = waitUntil(function()
+                        return not dialog.Visible
+                    end, 15, token)
+                    if not closedAfterSkip then
+                        status.Text = "Status: Dialog Skip tidak tertutup — dihentikan"
+                        running = false
+                        break
+                    end
+                    task.wait(0.35)
+                end
+            else
+                -- Some game versions update the grade without opening a confirmation dialog.
+                status.Text = "Status: Grade berubah ke " .. resultGrade .. " tanpa dialog"
+                task.wait(0.5)
+            end
+        end
+    end)
 end)
 
 stop.MouseButton1Click:Connect(function()
     running = false
+    cycleToken += 1
     status.Text = "Status: Stopped"
 end)
